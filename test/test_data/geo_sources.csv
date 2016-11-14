@@ -1,0 +1,6 @@
+"name","segment","header_lines","urltype","filetype","encoding","url","description"
+"parks",,,,"shape",,"http://public.source.civicknowledge.com.s3.amazonaws.com/example.com/geo/Parks_SD.zip","Polygons"
+"bus_stops",,,,"shape",,"http://public.source.civicknowledge.com.s3.amazonaws.com/example.com/geo/Transit_Stops_GTFS.zip","Points"
+"highways",,,,"shape",,"http://public.source.civicknowledge.com.s3.amazonaws.com/example.com/geo/Roads_Highway.zip","Lines"
+"grid",,,,"shape",,"http://public.source.civicknowledge.com.s3.amazonaws.com/example.com/geo/GRID_FIELD_BOOK.zip","Polygons"
+"community_plan",,,,"shape",,"http://public.source.civicknowledge.com.s3.amazonaws.com/example.com/geo/Community_Plan_CN.ZIP","Polygons and 1 Multipolygon"
