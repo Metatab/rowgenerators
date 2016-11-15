@@ -3,7 +3,7 @@
 "csv_no_csv",,,,"csv",,,,"http://public.source.civicknowledge.com/example.com/sources/simple-example.foo","CSV file with wrong extension"
 "multiexcel",0,"3,4",,,,,,"http://public.source.civicknowledge.com/example.com/sources/multisheet.xls","Multiple sheets in an Excel file"
 "mz_with_zip",,,,,,,,"http://public.source.civicknowledge.com/example.com/sources/test_data.zip#simple-example.csv","Multi-file Zipfile with zip extension"
-"mz_with_zip_xl",,"3,4",,,,,,"http://public.source.civicknowledge.com/example.com/sources/test_data.zip#renter_cost_excel07.xlsx","Multi-file Zipfile with zip extension"
+"mz_with_zip_xl",,"3,4",,,,,,"http://public.source.civicknowledge.com/example.com/sources/test_data.zip#excel/renter_cost_excel07.xlsx","Multi-file Zipfile with zip extension"
 "namesu8",,0,,,"utf8",,,"http://public.source.civicknowledge.com/example.com/sources/unicode-utf8.csv","CSV file with Unicode in UTF"
 "rent07",,"3,4",,,,,,"http://public.source.civicknowledge.com/example.com/sources/renter_cost_excel07.xlsx","Renter cost, Excel 2007 format"
 "rent97",,"3,4",,,,,,"http://public.source.civicknowledge.com/example.com/sources/renter_cost_excel97.xls","Renter cost, Excel 97 format"

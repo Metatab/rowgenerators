@@ -21,25 +21,46 @@ def cache_fs():
 
 class BasicTests(unittest.TestCase):
 
+    def test_source_spec_url(self):
+        from rowgenerators import SourceSpec
+
+        ss = SourceSpec(url='http://foobar.com/a/b.csv')
+        self.assertIsNone(ss.file)
+        self.assertIsNone(ss.sheet)
+
+        ss = SourceSpec(url='http://foobar.com/a/b.zip#a')
+        self.assertEqual('a',ss.file)
+        self.assertIsNone(ss.sheet)
+
+        ss = SourceSpec(url='http://foobar.com/a/b.zip#a;b')
+        self.assertEqual('a',ss.file)
+        self.assertEqual('b',ss.sheet)
+
     def test_run_csv(self):
         from rowgenerators import CsvSource, SourceSpec
         from rowgenerators.fetch import get_source
 
         cache = cache_fs()
 
-        print "Cache", cache
-
         for sd in sources():
+            # Don't have the column map yet.
             if sd['name'] in ('simple_fixed'):
                 continue
 
-            #print sd
-
             gen = SourceSpec(**sd).get_generator(cache)
 
-            print gen.spec.name, gen.__class__.__name__
-            print len(list(gen))
+            print gen.spec.name, gen.__class__.__name__, len(list(gen))
             print gen.headers
+
+    def test_example(self):
+
+        from rowgenerators import SourceSpec
+
+        ss = SourceSpec(url='http://public.source.civicknowledge.com/example.com/basics/integers.csv')
+
+        for row in ss.get_generator():
+            print row
+
 
 if __name__ == '__main__':
     unittest.main()

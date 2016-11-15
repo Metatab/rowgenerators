@@ -458,12 +458,16 @@ class ExcelSource(SourceFile):
 
             return values
 
+
         wb = open_workbook(file_name)
 
-        s = wb.sheets()[int(segment) if segment else 0]
+        try:
+            s = wb.sheets()[int(segment) if segment else 0]
+        except ValueError: # Segment is the workbook name, not the number
+            s = wb.sheet_by_name(segment)
+
 
         for i in range(0, s.nrows):
-
             row = srow_to_list(i, s)
             yield row
 

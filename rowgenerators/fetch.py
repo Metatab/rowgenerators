@@ -75,12 +75,12 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
 
     if url_type == 'zip':
         try:
-            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.file)
+            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.segment)
         except ZipOpenError:
             # Try it again
             cache_fs.remove(cache_path)
             cache_path, spec.download_time = do_download()
-            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.file)
+            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.segment)
 
         file_type = spec.get_filetype(fstor.path)
 
