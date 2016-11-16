@@ -24,9 +24,12 @@ class Source(object):
         try:
             self.spec = deepcopy(spec)
         except TypeError:
+            raise
             pass
 
         self.limit = None # Set externally to limit number of rows produced
+
+
 
 
     @property
@@ -93,6 +96,8 @@ class SourceFile(Source):
         self._fstor = fstor
         self._headers = None  # Reserved for subclasses that extract headers from data stream
         self._datatypes = None # If set, an array of the datatypes for each column, derived from the source
+
+
 
     @property
     def path(self):
@@ -308,6 +313,7 @@ class CsvSource(SourceFile):
 
             fout = tempfile.NamedTemporaryFile(delete=False)
 
+
             with self._fstor.open('rb') as fin:
                 copy_file_or_flo(fin, fout)
 
@@ -457,7 +463,6 @@ class ExcelSource(SourceFile):
                 raise
 
             return values
-
 
         wb = open_workbook(file_name)
 

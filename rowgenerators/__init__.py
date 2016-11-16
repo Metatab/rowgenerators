@@ -6,10 +6,11 @@ from generators import  CsvSource, TsvSource, FixedSource, PartitionSource, Exce
 from .exceptions import SourceError
 
 from .util import  DelayedOpen, DelayedDownload
-from sourcespec import SourceSpec
+from sourcespec import SourceSpec, RowGenerator
 from rowproxy import  RowProxy, GeoRowProxy
 
 __all__ = [
+    RowGenerator,
     SourceError, CsvSource, TsvSource, FixedSource, PartitionSource,
     ExcelSource, GoogleSource, AspwCursorSource, SocrataSource,
     DelayedOpen, DelayedDownload, RowProxy, GeoRowProxy, GeneratorSource]

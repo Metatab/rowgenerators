@@ -143,8 +143,17 @@ def parse_url_to_dict(url):
 
     p = urlparse(url)
 
+    if '+' in p.scheme:
+
+        scheme, scheme_extension = p.scheme.split('+')
+
+    else:
+        scheme = p.scheme
+        scheme_extension = None
+
     return {
-        'scheme': p.scheme,
+        'scheme': scheme,
+        'scheme_extension': scheme_extension,
         'netloc': p.netloc,
         'path': p.path,
         'params': p.params,
@@ -155,3 +164,30 @@ def parse_url_to_dict(url):
         'hostname': p.hostname,
         'port': p.port
     }
+
+def unparse_url_dict(d):
+    if 'hostname' in d and d['hostname']:
+        host_port = d['hostname']
+    else:
+        host_port = ''
+
+    if 'port' in d and d['port']:
+        host_port += ':' + str(d['port'])
+
+    user_pass = ''
+    if 'username' in d and d['username']:
+        user_pass += d['username']
+
+    if 'password' in d and d['password']:
+        user_pass += ':' + d['password']
+
+    if user_pass:
+        host_port = '{}@{}'.format(user_pass, host_port)
+
+    url = '{}://{}/{}'.format(d.get('scheme', 'http'),
+                              host_port, d.get('path', '').lstrip('/'))
+
+    if 'query' in d and d['query']:
+        url += '?' + d['query']
+
+    return url

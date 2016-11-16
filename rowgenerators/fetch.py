@@ -46,25 +46,24 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
     import os
 
     # FIXME. urltype should be moved to reftype.
-    url_type = spec.get_urltype()
+
 
     def do_download():
-
         return download(spec.url, cache_fs, account_accessor, clean=clean, logger=logger, callback=callback)
 
-    if url_type == 'file':
+    if spec.urltype == 'file':
 
-        from fs.opener import  fsopen
+        from fs.opener import fsopen
 
         syspath = spec.url.replace('file://','')
         cache_path = syspath.replace('/','_').strip('_')
 
         fs_path = os.path.join(cwd, syspath)
 
-        contents = fsopen(fs_path).read()
-        cache_fs.setcontents(cache_path, contents)
+        # FIXME! should not need to copy the files
+        cache_fs.setcontents(cache_path, fsopen(fs_path, mode='rb'))
 
-    elif url_type not in ('gs', 'socrata'): #FIXME. Need to clean up the logic for gs types.
+    elif spec.urltype not in ('gs', 'socrata'): # FIXME. Need to clean up the logic for gs types.
         try:
             cache_path, download_time = do_download()
             spec.download_time = download_time
@@ -73,32 +72,39 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
     else:
         cache_path, download_time = None, None
 
-    if url_type == 'zip':
+    if spec.urlfiletype == 'zip':
         try:
-            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.segment)
+            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.file)
         except ZipOpenError:
             # Try it again
             cache_fs.remove(cache_path)
             cache_path, spec.download_time = do_download()
-            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.segment)
+            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.file)
 
-        file_type = spec.get_filetype(fstor.path)
+        if spec.file:
+            file_type = spec.get_filetype(spec.file)
+        else:
+            # The zip archive only has one file, or only the first one
+            # was extracted
+            file_type = spec.get_filetype(fstor.path)
 
-    elif url_type == 'gs':
+
+    elif spec.urltype == 'gs':
         fstor = get_gs(spec.url, spec.segment, account_accessor)
         file_type = 'gs'
 
-    elif url_type == 'socrata':
+    elif spec.urltype == 'socrata':
         spec.encoding = 'utf8'
         url = SocrataSource.download_url(spec)
         fstor = DelayedDownload(url, cache_fs)
         file_type = 'socrata'
 
     else:
+
         fstor = DelayedOpen(cache_fs, cache_path, 'rb')
         file_type = spec.get_filetype(fstor.path)
 
-    spec.filetype = file_type
+    spec._filetype = file_type
 
     TYPE_TO_SOURCE_MAP = {
         'gs': GoogleSource,
@@ -119,6 +125,7 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         raise SourceError(
             "Failed to determine file type for source '{}'; unknown type '{}' "
             .format(spec.name, file_type))
+
 
     return cls(spec, fstor)
 

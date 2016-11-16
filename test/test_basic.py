@@ -15,42 +15,69 @@ def sources():
 
 def cache_fs():
     import tempfile
-    tmp = fsopendir(tempfile.gettempdir())
+    #tmp = fsopendir(tempfile.gettempdir())
+    tmp = fsopendir('/tmp')
     return tmp.makeopendir('rowgenerator', recursive = True)
 
 
 class BasicTests(unittest.TestCase):
 
     def test_source_spec_url(self):
-        from rowgenerators import SourceSpec
+        from rowgenerators import SourceSpec, RowGenerator
+        from copy import deepcopy
 
         ss = SourceSpec(url='http://foobar.com/a/b.csv')
         self.assertIsNone(ss.file)
-        self.assertIsNone(ss.sheet)
+        self.assertIsNone(ss.segment)
 
         ss = SourceSpec(url='http://foobar.com/a/b.zip#a')
         self.assertEqual('a',ss.file)
-        self.assertIsNone(ss.sheet)
+        self.assertIsNone(ss.segment)
+
+        ss2 = deepcopy(ss)
+        self.assertEqual(ss.file,ss2.file)
+        self.assertEqual(ss.segment,ss2.segment)
 
         ss = SourceSpec(url='http://foobar.com/a/b.zip#a;b')
         self.assertEqual('a',ss.file)
-        self.assertEqual('b',ss.sheet)
+        self.assertEqual('b',ss.segment)
 
-    def test_run_csv(self):
-        from rowgenerators import CsvSource, SourceSpec
-        from rowgenerators.fetch import get_source
+        ss2 = deepcopy(ss)
+        self.assertEqual(ss.file,ss2.file)
+        self.assertEqual(ss.segment,ss2.segment)
+
+        ss = RowGenerator(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip#renter_cost_excel07.xlsx')
+        self.assertEqual('renter_cost_excel07.xlsx', ss.file)
+
+        ss2 = deepcopy(ss)
+        self.assertEqual(ss.file, ss2.file)
+
+        ss.__dict__ = {'name': 'mz_with_zip_xl',
+                       'encoding': None,
+                       'url': 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip#excel/renter_cost_excel07.xlsx',
+                       '_urltype': None,
+                       '_filetype': 'xlsx',
+                       'file': 'excel/renter_cost_excel07.xlsx',
+                       'segment': None,
+                       'columns':None, 'headers': None}
+
+        self.assertIsNone(self.segment)
+
+
+
+    def test_run_sources(self):
+        from rowgenerators import  RowGenerator
 
         cache = cache_fs()
 
         for sd in sources():
             # Don't have the column map yet.
-            if sd['name'] in ('simple_fixed'):
+            if sd['name'] in ('simple_fixed',):
                 continue
 
-            gen = SourceSpec(**sd).get_generator(cache)
+            gen = RowGenerator(cache=cache, **sd)
 
-            print gen.spec.name, gen.__class__.__name__, len(list(gen))
-            print gen.headers
+            self.assertEquals(int(sd['n_rows']), len(list(gen)))
 
     def test_example(self):
 
