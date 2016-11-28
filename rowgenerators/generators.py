@@ -11,6 +11,35 @@ from util import copy_file_or_flo
 
 from .exceptions import SourceError
 
+from .sourcespec import SourceSpec
+
+
+class RowGenerator(SourceSpec):
+    """Primary generator object. It's actually a SourceSpec fetches a Source
+     then proxies the iterator"""
+
+    def __init__(self, url, cache=None, name=None, urltype=None, filetype=None,
+                 urlfiletype=None, encoding=None, file=None,
+                 segment=None, columns=None, **kwargs):
+
+        self.cache = cache
+        self.headers = None
+
+        super(RowGenerator, self).__init__(url, name, urltype, filetype,
+                                           urlfiletype, encoding,
+                                           file, segment, columns,
+                                           **kwargs)
+
+    def __iter__(self):
+
+        self.generator = self.get_generator(self.cache)
+
+        for row in self.generator:
+            yield row
+
+        self.headers = self.generator.headers
+
+
 
 class Source(object):
     """Base class for accessors that generate rows from any source
@@ -28,9 +57,6 @@ class Source(object):
             pass
 
         self.limit = None # Set externally to limit number of rows produced
-
-
-
 
     @property
     def headers(self):

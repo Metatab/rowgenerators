@@ -58,7 +58,7 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         syspath = spec.url.replace('file://','')
         cache_path = syspath.replace('/','_').strip('_')
 
-        fs_path = os.path.join(cwd, syspath)
+        fs_path = os.path.join(cwd,  syspath)
 
         # FIXME! should not need to copy the files
         cache_fs.setcontents(cache_path, fsopen(fs_path, mode='rb'))

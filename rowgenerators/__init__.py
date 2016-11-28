@@ -6,8 +6,9 @@ from generators import  CsvSource, TsvSource, FixedSource, PartitionSource, Exce
 from .exceptions import SourceError
 
 from .util import  DelayedOpen, DelayedDownload
-from sourcespec import SourceSpec, RowGenerator
-from rowproxy import  RowProxy, GeoRowProxy
+from sourcespec import SourceSpec
+from generators import RowGenerator
+from rowproxy import RowProxy, GeoRowProxy
 
 __all__ = [
     RowGenerator,

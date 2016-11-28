@@ -43,7 +43,6 @@ class SourceSpec(object):
 
         """
 
-
         if 'reftype' in kwargs and not urltype:
             urltype = kwargs['reftype']  # Ambry SourceFile object changed from urltype to reftype.
 
@@ -113,7 +112,9 @@ class SourceSpec(object):
 
             del parts['fragment']
             del parts['scheme_extension']
+
             self.url = unparse_url_dict(parts)
+
 
     def __deepcopy__(self, o):
 
@@ -121,7 +122,7 @@ class SourceSpec(object):
             return self.__class__(
                 url=self.url,
                 name=self.name,
-                file=self._filetype,
+                file=self.file,
                 segment=self.segment,
                 urltype=self._urltype,
                 urlfiletype=self._urlfiletype,
@@ -129,12 +130,13 @@ class SourceSpec(object):
                 encoding=self.encoding,
                 columns=self.columns
             )
-        except SpecError:
+        except SpecError as e:
             # Guess that its a conflict of the file or segment param with the url
 
             return self.__class__(
                 url=self.url,
                 name=self.name,
+                file=self.file,
                 urltype=self._urltype,
                 urlfiletype=self._urlfiletype,
                 filetype=self._filetype,
@@ -214,24 +216,3 @@ class SourceSpec(object):
         return str(self.__dict__)
 
 
-class RowGenerator(SourceSpec):
-
-    def __init__(self, url, cache=None, name=None, urltype=None, filetype=None,
-                 urlfiletype=None, encoding=None, file=None,
-                 segment=None, columns=None, **kwargs):
-
-        self.cache = cache
-        self.headers = None
-
-        super(RowGenerator, self).__init__(url, name, urltype, filetype,
-                                           urlfiletype, encoding,
-                                           file, segment, columns,
-                                           **kwargs)
-
-    def __iter__(self):
-        self.generator = self.get_generator(self.cache)
-
-        for row in self.generator:
-            yield row
-
-        self.headers = self.generator.headers

@@ -36,7 +36,7 @@ class BasicTests(unittest.TestCase):
 
         ss2 = deepcopy(ss)
         self.assertEqual(ss.file,ss2.file)
-        self.assertEqual(ss.segment,ss2.segment)
+        self.assertIsNone(ss.segment)
 
         ss = SourceSpec(url='http://foobar.com/a/b.zip#a;b')
         self.assertEqual('a',ss.file)
@@ -61,7 +61,7 @@ class BasicTests(unittest.TestCase):
                        'segment': None,
                        'columns':None, 'headers': None}
 
-        self.assertIsNone(self.segment)
+        self.assertIsNone(ss.segment)
 
 
 
