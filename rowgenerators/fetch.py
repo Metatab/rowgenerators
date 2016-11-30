@@ -18,6 +18,7 @@ from six.moves.urllib.parse import urlparse
 from six.moves.urllib.request import urlopen
 
 from fs.zipfs import ZipFS
+from fs.zipfs import ZipOpenError
 from ambry.util.ambrys3 import AmbryS3FS
 
 from ambry_sources.exceptions import ConfigurationError, DownloadError, MissingCredentials
@@ -141,7 +142,7 @@ def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
     :return:
     """
 
-    from fs.zipfs import ZipOpenError
+
 
     # FIXME Not sure what is going on here, but in multiproccessing mode,
     # the 'try' version of opening the file can fail with an error about the file being missing or corrupy
@@ -150,7 +151,6 @@ def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
     try:
         fs = ZipFS(cache_fs.open(cache_path, 'rb'))
     except ZipOpenError:
-
         fs = ZipFS(cache_fs.getsyspath(cache_path))
 
     fstor = None
@@ -412,3 +412,56 @@ class _NoOpFileLock(object):
 
     def release(self):
         pass
+
+
+def inspect(ss, cache_fs):
+    """Return a list of possible extensions to the url, such as files within a ZIP archive, or
+    worksheets in a spreadsheet"""
+
+    from copy import deepcopy
+
+    cache_path, download_time = download(ss.url, cache_fs)
+
+    def walk_all(fs):
+
+        return [join(e[0], x) for e in fs.walk() for x in e[1]
+                if not (e[0].startswith('/__') or e[0].startswith('.'))]
+
+    if ss.urlfiletype == 'zip':
+
+        try:
+            fs = ZipFS(cache_fs.open(cache_path, 'rb'))
+        except ZipOpenError:
+            fs = ZipFS(cache_fs.getsyspath(cache_path))
+
+        if ss.file is None:
+            l = []
+            for e in walk_all(fs):
+                ss2 = deepcopy(ss)
+                ss2.file = e.strip('/')
+                l.append(ss2)
+
+            return l
+
+        elif ss.filetype in ('xls', 'xlsx') and ss.segment is None:
+            src = get_source(ss, cache_fs)
+            l = []
+            for seg in src.children:
+                ss2 = deepcopy(ss)
+                ss2.segment = seg
+                l.append(ss2)
+
+            return l
+
+    if ss.urlfiletype in ('xls', 'xlsx') and ss.file is None and ss.segment is None:
+        src = get_source(ss, cache_fs)
+
+        l = []
+        for seg in src.children:
+            ss2 = deepcopy(ss)
+            ss2.segment = seg
+            l.append(ss2)
+
+        return l
+
+    return None

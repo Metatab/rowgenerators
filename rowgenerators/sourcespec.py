@@ -212,6 +212,27 @@ class SourceSpec(object):
 
         return get_source(self, cache)
 
+    def url_str(self, file=None, segment=None):
+
+        url = self.url
+        second_sep = ''
+
+        file = file if file is not None else self.file
+        segment = segment if segment is not None else self.segment
+
+        if file is not None or segment is not None:
+            url += '#'
+
+        if  file is not None:
+            url += file
+            second_sep = ';'
+
+        if segment is not None:
+            url += second_sep
+            url += segment
+        return url
+
+
     def __str__(self):
         return str(self.__dict__)
 

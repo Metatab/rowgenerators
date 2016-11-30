@@ -123,8 +123,6 @@ class SourceFile(Source):
         self._headers = None  # Reserved for subclasses that extract headers from data stream
         self._datatypes = None # If set, an array of the datatypes for each column, derived from the source
 
-
-
     @property
     def path(self):
         return self._fstor.path
@@ -133,38 +131,10 @@ class SourceFile(Source):
     def syspath(self):
         return self._fstor.syspath
 
-    def coalesce_headers(self, header_lines):
-        """Collect multiple header lines from the preamble and assemble them into a single header line"""
-
-        raise Exception("Not used?")
-
-        if len(header_lines) > 1:
-
-            # If there are gaps in the values in the first header line, extend them forward
-            hl1 = []
-            last = None
-            for x in header_lines[0]:
-                if not x:
-                    x = last
-                else:
-                    last = x
-
-                hl1.append(x)
-
-                header_lines[0] = hl1
-
-            headers = [' '.join(col_val.strip() if col_val else '' for col_val in col_set)
-                       for col_set in zip(*header_lines)]
-
-            headers = [h.strip() for h in headers]
-
-            return headers
-
-        elif len(header_lines) > 0:
-            return header_lines[0]
-
-        else:
-            return []
+    @property
+    def children(self):
+        """Return the internal files, such as worksheets of an Excel file. """
+        return None
 
 
 class GeneratorSource(Source):
@@ -456,23 +426,30 @@ class ExcelSource(SourceFile):
 
         self.finish()
 
-    def _get_row_gen(self):
+    @property
+    def _spath(self):
         from fs.errors import NoSysPathError
 
         try:
-            return self.excel_iter(self._fstor.syspath, self.spec.segment)
+            return self._fstor.syspath
 
         except NoSysPathError:
             # There is no sys path when the file is in a ZipFile, or other non-traditional filesystem.
             sub_file = self._fstor.sub_cache()
 
-            with self._fstor.open(mode='rb') as f_in, sub_file.open(self.spec.name, mode='wb') as f_out:
-                copy_file_or_flo(f_in, f_out)
+            if not sub_file.exists(self.spec.name):
+
+                with self._fstor.open(mode='rb') as f_in, sub_file.open(self.spec.name, mode='wb') as f_out:
+                    copy_file_or_flo(f_in, f_out)
 
             spath = sub_file.getsyspath(self.spec.name)
 
+            return spath
 
-            return self.excel_iter(spath, self.spec.segment)
+    def _get_row_gen(self):
+        from fs.errors import NoSysPathError
+
+        return self.excel_iter(self._spath, self.spec.segment)
 
     def excel_iter(self, file_name, segment):
         from xlrd import open_workbook
@@ -497,10 +474,18 @@ class ExcelSource(SourceFile):
         except ValueError: # Segment is the workbook name, not the number
             s = wb.sheet_by_name(segment)
 
-
         for i in range(0, s.nrows):
             row = srow_to_list(i, s)
             yield row
+
+    @property
+    def children(self):
+        from xlrd import open_workbook
+
+        wb = open_workbook(self._spath)
+
+        return wb.sheet_names()
+
 
     @staticmethod
     def make_excel_date_caster(file_name):

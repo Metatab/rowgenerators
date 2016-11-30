@@ -63,8 +63,6 @@ class BasicTests(unittest.TestCase):
 
         self.assertIsNone(ss.segment)
 
-
-
     def test_run_sources(self):
         from rowgenerators import  RowGenerator
 
@@ -87,6 +85,31 @@ class BasicTests(unittest.TestCase):
 
         for row in ss.get_generator():
             print row
+
+
+    def test_inspect(self):
+        from rowgenerators.fetch import inspect
+        from rowgenerators import SourceSpec
+
+        cache = cache_fs()
+
+        url = 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip'
+
+        ss = SourceSpec(url=url)
+
+        while True:
+
+            specs = inspect(ss, cache)
+
+            if not specs:
+                break
+
+            for i, e in enumerate(specs):
+                print i, e.url_str()
+
+            i = raw_input('Select: ')
+
+            ss = specs[int(i)]
 
 
 if __name__ == '__main__':
