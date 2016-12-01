@@ -4,7 +4,7 @@ Copyright (c) 2015 Civic Knowledge. This file is licensed under the terms of the
 Revised BSD License, included in this distribution as LICENSE.txt
 """
 
-import hashlib
+
 from six import string_types
 import os
 
@@ -76,7 +76,7 @@ class DelayedDownload(DelayedOpen):
         self._account_accessor = account_accessor
 
     def _download(self):
-        from ambry_sources.fetch import download
+        from fetch import download
 
         self._path , _ = download(self._url, self._fs, self._account_accessor, logger=self._logger)
 
@@ -183,6 +183,7 @@ def unparse_url_dict(d):
 
     if user_pass:
         host_port = '{}@{}'.format(user_pass, host_port)
+
 
     url = '{}://{}/{}'.format(d.get('scheme', 'http'),
                               host_port, d.get('path', '').lstrip('/'))

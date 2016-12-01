@@ -63,6 +63,16 @@ class BasicTests(unittest.TestCase):
 
         self.assertIsNone(ss.segment)
 
+        for url in (
+            'http://example.com/foo/archive.zip',
+            'http://example.com/foo/archive.zip#file.xlsx',
+            'http://example.com/foo/archive.zip#file.xlsx;0',
+            'http+socrata://example.com/foo/archive.zip'
+        ):
+            self.assertEqual(url,SourceSpec(url=url).url_str() )
+            self.assertEqual(url,SourceSpec(url=url).dict['url'])
+            self.assertEquals(1, len(SourceSpec(url=url).dict))
+
     def test_run_sources(self):
         from rowgenerators import  RowGenerator
 
@@ -75,41 +85,9 @@ class BasicTests(unittest.TestCase):
 
             gen = RowGenerator(cache=cache, **sd)
 
+            print sd['name'], sd['url']
+
             self.assertEquals(int(sd['n_rows']), len(list(gen)))
-
-    def test_example(self):
-
-        from rowgenerators import SourceSpec
-
-        ss = SourceSpec(url='http://public.source.civicknowledge.com/example.com/basics/integers.csv')
-
-        for row in ss.get_generator():
-            print row
-
-
-    def test_inspect(self):
-        from rowgenerators.fetch import inspect
-        from rowgenerators import SourceSpec
-
-        cache = cache_fs()
-
-        url = 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip'
-
-        ss = SourceSpec(url=url)
-
-        while True:
-
-            specs = inspect(ss, cache)
-
-            if not specs:
-                break
-
-            for i, e in enumerate(specs):
-                print i, e.url_str()
-
-            i = raw_input('Select: ')
-
-            ss = specs[int(i)]
 
 
 if __name__ == '__main__':

@@ -89,7 +89,6 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
             # was extracted
             file_type = spec.get_filetype(fstor.path)
 
-
     elif spec.urltype == 'gs':
         fstor = get_gs(spec.url, spec.segment, account_accessor)
         file_type = 'gs'
@@ -101,11 +100,11 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         file_type = 'socrata'
 
     else:
-
         fstor = DelayedOpen(cache_fs, cache_path, 'rb')
         file_type = spec.get_filetype(fstor.path)
 
-    spec._filetype = file_type
+    if file_type != spec.filetype:
+        spec._filetype = file_type
 
     TYPE_TO_SOURCE_MAP = {
         'gs': GoogleSource,
@@ -120,7 +119,7 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         'socrata': SocrataSource
     }
 
-    cls = TYPE_TO_SOURCE_MAP.get(file_type)
+    cls = TYPE_TO_SOURCE_MAP.get(spec.filetype)
 
     if cls is None:
         raise SourceError(
@@ -264,6 +263,24 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
         hash = hashlib.sha224(parsed.query).hexdigest()
         cache_path = os.path.join(cache_path, hash)
 
+    if not cache_fs.exists(cache_path):
+
+        try:
+            cache_fs.makedir(os.path.dirname(cache_path), recursive=True, allow_recreate=True)
+        except ResourceInvalidError as e:
+            # Probably b/c the dir name is already a file
+            dn = os.path.dirname(cache_path)
+            bn = os.path.basename(cache_path)
+            for i in range(10):
+                try:
+                    cache_path = os.path.join(dn+str(i), bn)
+
+                    cache_fs.makedir(os.path.dirname(cache_path), recursive=True, allow_recreate=True)
+                    break
+                except ResourceInvalidError:
+                    continue
+                raise e
+
     try:
         from filelock import FileLock
         lock = FileLock(cache_fs.getsyspath(cache_path + '.lock'))
@@ -274,8 +291,8 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
         # contention. Mem  caches are only for testing with single processes
         lock = _NoOpFileLock()
 
-    if not cache_fs.exists(cache_path):
-        cache_fs.makedir(os.path.dirname(cache_path), recursive=True, allow_recreate=True)
+
+
 
     with lock:
         if cache_fs.exists(cache_path):
@@ -441,7 +458,10 @@ def inspect(ss, cache_fs):
                 ss2.file = e.strip('/')
                 l.append(ss2)
 
-            return l
+            if len(l) > 1:
+                return l
+            else:
+                return None  # Automatically get the first one
 
         elif ss.filetype in ('xls', 'xlsx') and ss.segment is None:
             src = get_source(ss, cache_fs)
@@ -451,7 +471,10 @@ def inspect(ss, cache_fs):
                 ss2.segment = seg
                 l.append(ss2)
 
-            return l
+            if len(l) > 1:
+                return l
+            else:
+                return None # Automatically get the first one
 
     if ss.urlfiletype in ('xls', 'xlsx') and ss.file is None and ss.segment is None:
         src = get_source(ss, cache_fs)
@@ -462,6 +485,9 @@ def inspect(ss, cache_fs):
             ss2.segment = seg
             l.append(ss2)
 
-        return l
+        if len(l) > 1:
+            return l
+        else:
+            return None # Automatically get the first one
 
     return None

@@ -67,6 +67,7 @@ class SourceSpec(object):
         self.name = name
         self.url = url
         self._urltype = urltype
+        self._internalurltype = False # Set if the _urltype is set from the url
         self._urlfiletype = urlfiletype
         self._filetype = filetype
         self.encoding = encoding if encoding else None
@@ -109,6 +110,7 @@ class SourceSpec(object):
 
             if parts['scheme_extension']:
                 self._urltype = parts['scheme_extension']
+                self._internalurltype = True
 
             del parts['fragment']
             del parts['scheme_extension']
@@ -193,6 +195,7 @@ class SourceSpec(object):
 
         if self._filetype:
             return self._filetype
+
         elif self.file:
             return self.get_filetype(self.file)
 
@@ -213,9 +216,17 @@ class SourceSpec(object):
         return get_source(self, cache)
 
     def url_str(self, file=None, segment=None):
+        from .util import parse_url_to_dict, unparse_url_dict
 
-        url = self.url
         second_sep = ''
+
+        parts = parse_url_to_dict(self.url)
+        del parts['fragment']
+
+        if self.urltype in ('socrata'):
+            parts['scheme'] = parts['scheme']+'+'+self.urltype
+
+        url  = unparse_url_dict(parts)
 
         file = file if file is not None else self.file
         segment = segment if segment is not None else self.segment
@@ -223,17 +234,69 @@ class SourceSpec(object):
         if file is not None or segment is not None:
             url += '#'
 
-        if  file is not None:
+        if file is not None:
             url += file
             second_sep = ';'
 
         if segment is not None:
             url += second_sep
             url += segment
+
         return url
 
+    @property
+    def file_name(self):
+        from os.path import basename, splitext, sep
+        url = self.url
+        second_sep = ''
+
+        parts = parse_url_to_dict(self.url)
+        path, ext = splitext(basename(parts['path']))
+
+        path = path.replace(sep, '-')
+
+        file = self.file
+        segment =  self.segment
+
+        if file is not None or segment is not None:
+            path += '-'
+
+        if file is not None:
+            file = file.replace(sep, '-')
+            path += file
+            second_sep = '-'
+
+        if segment is not None:
+            path += second_sep
+            path += segment
+
+        return path
 
     def __str__(self):
         return str(self.__dict__)
 
+    @property
+    def dict(self):
 
+        d = dict(url=self.url_str())
+
+        if self._urltype and not self._internalurltype:
+            d['urltype'] = self._urltype
+
+        if self._urlfiletype:
+            d['urlfiletype'] = self._urlfiletype
+
+        if self.file:
+            from os.path import splitext
+            root, ext = splitext(self.file_name)
+            file_filetype = ext[1:].lower()
+        else:
+            file_filetype = None
+
+        if self._filetype and self._filetype != file_filetype:
+            d['filetype'] = self._filetype
+
+        if self.encoding:
+            d['encoding'] = self.encoding
+
+        return d

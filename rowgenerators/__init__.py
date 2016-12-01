@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from generators import  CsvSource, TsvSource, FixedSource, PartitionSource, ExcelSource,\
-    GoogleSource, GeneratorSource, MPRSource, AspwCursorSource, PandasDataframeSource, \
-    SocrataSource
+from generators import *
 from .exceptions import SourceError
 
 from .util import  DelayedOpen, DelayedDownload
@@ -14,7 +12,7 @@ __all__ = [
     RowGenerator,
     SourceError, CsvSource, TsvSource, FixedSource, PartitionSource,
     ExcelSource, GoogleSource, AspwCursorSource, SocrataSource,
-    DelayedOpen, DelayedDownload, RowProxy, GeoRowProxy, GeneratorSource]
+    DelayedOpen, DelayedDownload, RowProxy, GeoRowProxy, GeneratorSource, SelectiveRowGenerator]
 
 try:
     # Only if the underlying fiona and shapely libraries are installed with the [geo] extra
