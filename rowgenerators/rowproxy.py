@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2016 Civic Knowledge. This file is licensed under the terms of the
-# Revised BSD License, included in this distribution as LICENSE.txt
+# MIT License, included in this distribution as LICENSE.txt
 
 """
 A Row proxy provides a dict interface to row data, without having to re-construct a dict for each row.
