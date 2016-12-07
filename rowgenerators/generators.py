@@ -46,14 +46,17 @@ class Source(object):
     Subclasses of Source must override at least _get_row_gen method.
     """
 
-    def __init__(self, spec):
+    def __init__(self, spec=None):
         from copy import deepcopy
 
-        try:
-            self.spec = deepcopy(spec)
-        except TypeError:
-            raise
-            pass
+        if spec is not None:
+            try:
+                self.spec = deepcopy(spec)
+            except TypeError:
+                raise
+                pass
+        else:
+            self.spec = None
 
         self.limit = None # Set externally to limit number of rows produced
 
@@ -647,11 +650,44 @@ class ShapefileSource(GeoSourceBase):
         self.finish()
 
 
+class DataRowGenerator(object):
+    """Returns only rows between the start and end lines, inclusive """
+
+    def __init__(self, seq, start=0, end=None, **kwargs):
+        """
+        An iteratable wrapper that coalesces headers and skips comments
+
+        :param seq: An iterable
+        :param start: The start of data row
+        :param end: The last row number for data
+        :param kwargs: Ignored. Sucks up extra parameters.
+        :return:
+        """
+
+        self.iter = iter(seq)
+        self.start = start
+        self.end = end
+        self.headers = [] # Set externally
+
+        int(self.start) # Throw error if it is not an int
+        assert self.start > 0
+
+
+    def __iter__(self):
+
+        for i, row in enumerate(self.iter):
+
+            if i < self.start or ( self.end is not None and i > self.end):
+                continue
+
+            yield row
+
+
 class SelectiveRowGenerator(object):
     """Proxies an iterator to remove headers, comments, blank lines from the row stream.
     The header will be emitted first, and comments are avilable from properties """
 
-    def __init__(self, seq, start=0, headers=[], comments=[], end=[], **kwargs):
+    def __init__(self, seq, start=0, headers=[], comments=[], end=[], load_headers=True, **kwargs):
         """
         An iteratable wrapper that coalesces headers and skips comments
 
@@ -669,6 +705,8 @@ class SelectiveRowGenerator(object):
         self.header_lines = headers
         self.comment_lines = comments
         self.end = end
+
+        self.load_headers = load_headers
 
         self.headers = []
         self.comments = []
@@ -717,7 +755,8 @@ class SelectiveRowGenerator(object):
         for i, row in enumerate(self.iter):
 
             if i in self.header_lines:
-                self.headers.append(row)
+                if self.load_headers:
+                    self.headers.append(row)
             elif i in self.comment_lines:
                 self.comments.append(row)
             elif i == self.start:
