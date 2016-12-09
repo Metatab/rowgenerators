@@ -89,6 +89,19 @@ class BasicTests(unittest.TestCase):
 
             self.assertEquals(int(sd['n_rows']), len(list(gen)))
 
+    def test_inspect(self):
+
+        from rowgenerators import enumerate_contents
+        from rowgenerators import SourceSpec
+
+        cache = cache_fs()
+
+        spec = SourceSpec(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip#renter_cost_excel07.xlsx')
+        spec = SourceSpec(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip')
+
+        for spec in enumerate_contents(spec, cache):
+            print spec.url_str()
+
 
 if __name__ == '__main__':
     unittest.main()

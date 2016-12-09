@@ -19,10 +19,10 @@ from six.moves.urllib.request import urlopen
 
 from fs.zipfs import ZipFS
 from fs.zipfs import ZipOpenError
-from ambry.util.ambrys3 import AmbryS3FS
+from .s3 import AltValidationS3FS
 
-from ambry_sources.exceptions import ConfigurationError, DownloadError, MissingCredentials
-from ambry_sources.util import copy_file_or_flo, parse_url_to_dict
+from rowgenerators.exceptions import ConfigurationError, DownloadError, MissingCredentials
+from .util import copy_file_or_flo, parse_url_to_dict
 
 from generators import GoogleSource, CsvSource, TsvSource, FixedSource, ExcelSource, PartitionSource,\
     SourceError,  ShapefileSource, SocrataSource
@@ -141,8 +141,6 @@ def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
     :return:
     """
 
-
-
     # FIXME Not sure what is going on here, but in multiproccessing mode,
     # the 'try' version of opening the file can fail with an error about the file being missing or corrupy
     # but the second successedes. However, the second will faile in test environments that
@@ -189,6 +187,11 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback):
     import requests
     from fs.errors import ResourceNotFoundError
 
+    def copy_callback(read, total):
+        callback('copy_file',read, total)
+
+    callback('download', url, 0)
+
     if url.startswith('s3:'):
         s3 = get_s3(url, account_accessor)
         pd = parse_url_to_dict(url)
@@ -196,7 +199,7 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback):
         try:
             with cache_fs.open(cache_path, 'wb') as fout:
                 with s3.open(urllib.unquote_plus(pd['path']), 'rb') as fin:
-                    copy_file_or_flo(fin, fout, cb=callback)
+                    copy_file_or_flo(fin, fout, cb=copy_callback)
         except ResourceNotFoundError:
             raise ResourceNotFoundError("Failed to find path '{}' in S3 FS '{}' ".format(pd['path'], s3))
 
@@ -217,8 +220,7 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback):
                     total_len += len(buf)
 
                     if callback:
-                        callback(len(buf), total_len)
-
+                        copy_callback(len(buf), total_len)
 
     else:
 
@@ -232,7 +234,7 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback):
             r.raw.read = functools.partial(r.raw.read, decode_content=True)
 
         with cache_fs.open(cache_path, 'wb') as f:
-            copy_file_or_flo(r.raw, f, cb=callback)
+            copy_file_or_flo(r.raw, f, cb=copy_callback)
 
         assert cache_fs.exists(cache_path)
 
@@ -252,6 +254,7 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
     import os.path
     import time
     from fs.errors import NoSysPathError, ResourceInvalidError
+
 
     parsed = urlparse(url)
 
@@ -290,9 +293,6 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
         # FIXME should check for MP operation and raise if there would be
         # contention. Mem  caches are only for testing with single processes
         lock = _NoOpFileLock()
-
-
-
 
     with lock:
         if cache_fs.exists(cache_path):
@@ -375,7 +375,7 @@ def get_s3(url, account_accessor):
             .format(pd['netloc'], ', '.join(missing_credentials)),
             location=pd['netloc'], required_credentials=['access', 'secret'], )
 
-    s3 = AmbryS3FS(
+    s3 = AltValidationS3FS(
         bucket=pd['netloc'],
         #prefix=pd['path'],
         aws_access_key=aws_access_key,
@@ -430,14 +430,25 @@ class _NoOpFileLock(object):
     def release(self):
         pass
 
+def enumerate_contents(base_spec, cache_fs, callback = None):
+    """Inspect the URL, and if it is a container ( ZIP Or Excel ) inspect each of the contained
+    files. Yields all of the lefel-level URLs"""
+    from rowgenerators import SourceSpec
 
-def inspect(ss, cache_fs):
+    if not isinstance(base_spec, SourceSpec):
+        base_spec = SourceSpec(url=base_spec)
+
+    for s in inspect(base_spec, cache_fs, callback=callback):
+        for s2 in inspect(s, cache_fs, callback=callback):
+                yield s2
+
+def inspect(ss, cache_fs, callback=None):
     """Return a list of possible extensions to the url, such as files within a ZIP archive, or
     worksheets in a spreadsheet"""
 
     from copy import deepcopy
 
-    cache_path, download_time = download(ss.url, cache_fs)
+    cache_path, download_time = download(ss.url, cache_fs, callback=callback)
 
     def walk_all(fs):
 
@@ -458,10 +469,7 @@ def inspect(ss, cache_fs):
                 ss2.file = e.strip('/')
                 l.append(ss2)
 
-            if len(l) > 1:
-                return l
-            else:
-                return None  # Automatically get the first one
+            return l
 
         elif ss.filetype in ('xls', 'xlsx') and ss.segment is None:
             src = get_source(ss, cache_fs)
@@ -471,10 +479,7 @@ def inspect(ss, cache_fs):
                 ss2.segment = seg
                 l.append(ss2)
 
-            if len(l) > 1:
-                return l
-            else:
-                return None # Automatically get the first one
+            return l
 
     if ss.urlfiletype in ('xls', 'xlsx') and ss.file is None and ss.segment is None:
         src = get_source(ss, cache_fs)
@@ -485,9 +490,6 @@ def inspect(ss, cache_fs):
             ss2.segment = seg
             l.append(ss2)
 
-        if len(l) > 1:
-            return l
-        else:
-            return None # Automatically get the first one
+        return l
 
-    return None
+    return [deepcopy(ss)]

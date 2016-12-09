@@ -839,3 +839,6 @@ class AspwCursorSource(Source):
 
         self.finish()
 
+import sys
+__all__ = [k for k in sys.modules[__name__].__dict__.keys()
+           if not k.startswith('_') and k not in ('sys', 'util','petl', 'copy_file_or_flo')]

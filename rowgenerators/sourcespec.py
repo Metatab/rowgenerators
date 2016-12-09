@@ -247,13 +247,16 @@ class SourceSpec(object):
     @property
     def file_name(self):
         from os.path import basename, splitext, sep
+        from six.moves.urllib.parse import  quote, unquote
+        import re
+
         url = self.url
         second_sep = ''
 
         parts = parse_url_to_dict(self.url)
         path, ext = splitext(basename(parts['path']))
 
-        path = path.replace(sep, '-')
+        path = unquote(path)
 
         file = self.file
         segment =  self.segment
@@ -270,7 +273,7 @@ class SourceSpec(object):
             path += second_sep
             path += segment
 
-        return path
+        return re.sub(r'[^\w-]','-',path)
 
     def __str__(self):
         return str(self.__dict__)
