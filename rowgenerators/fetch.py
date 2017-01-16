@@ -5,31 +5,27 @@ Copyright (c) 2015 Civic Knowledge. This file is licensed under the terms of the
 Revised BSD License, included in this distribution as LICENSE.txt
 """
 
-import functools
-import hashlib
-from os.path import join
-import re
 import ssl
-
-from requests import HTTPError
-
-import six
-from six.moves.urllib.parse import urlparse
-from six.moves.urllib.request import urlopen
 
 from fs.zipfs import ZipFS
 from fs.zipfs import ZipOpenError
-from .s3 import AltValidationS3FS
+from .generators import *
+from six.moves.urllib.parse import urlparse
+from six.moves.urllib.request import urlopen
+from .util import DelayedOpen, DelayedDownload
 
+import functools
+import hashlib
+import re
+import six
+from os.path import join
+from requests import HTTPError
 from rowgenerators.exceptions import ConfigurationError, DownloadError, MissingCredentials
+from .s3 import AltValidationS3FS
 from .util import copy_file_or_flo, parse_url_to_dict
 
-from generators import GoogleSource, CsvSource, TsvSource, FixedSource, ExcelSource, PartitionSource,\
-    SourceError,  ShapefileSource, SocrataSource
 
-from util import DelayedOpen, DelayedDownload
-
-def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd=None, callback=None):
+def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
     """
     Download a file from a URL and return it wrapped in a row-generating acessor object.
 
@@ -52,6 +48,7 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
     def do_download():
         return download(spec.url, cache_fs, account_accessor, clean=clean, logger=logger, callback=callback)
 
+
     if spec.urltype == 'file':
 
         from fs.opener import fsopen
@@ -64,7 +61,7 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         # FIXME! should not need to copy the files
         cache_fs.setcontents(cache_path, fsopen(fs_path, mode='rb'))
 
-    elif spec.urltype not in ('gs', 'socrata'): # FIXME. Need to clean up the logic for gs types.
+    elif spec.proto not in ('gs', 'socrata'): # FIXME. Need to clean up the logic for gs types.
         try:
             cache_path, download_time = do_download()
             spec.download_time = download_time
@@ -89,11 +86,17 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
             # was extracted
             file_type = spec.get_filetype(fstor.path)
 
-    elif spec.urltype == 'gs':
-        fstor = get_gs(spec.url, spec.segment, account_accessor)
+    elif spec.proto == 'gs':
+
+        spec.encoding = 'utf8'
+        url = GooglePublicSource.download_url(spec)
+        fstor = DelayedDownload(url, cache_fs)
         file_type = 'gs'
 
-    elif spec.urltype == 'socrata':
+        # Case for using authentication. TBD
+        #fstor = get_gs(spec.url, spec.segment, account_accessor)
+
+    elif spec.proto == 'socrata':
         spec.encoding = 'utf8'
         url = SocrataSource.download_url(spec)
         fstor = DelayedDownload(url, cache_fs)
@@ -107,7 +110,7 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         spec._filetype = file_type
 
     TYPE_TO_SOURCE_MAP = {
-        'gs': GoogleSource,
+        'gs': GooglePublicSource,
         'csv': CsvSource,
         'tsv': TsvSource,
         'fixed': FixedSource,
@@ -181,16 +184,18 @@ def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
     return fstor
 
 
-def _download(url, cache_fs, cache_path, account_accessor, logger, callback):
+def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None):
 
     import urllib
     import requests
     from fs.errors import ResourceNotFoundError
 
     def copy_callback(read, total):
-        callback('copy_file',read, total)
+        if callback:
+            callback('copy_file',read, total)
 
-    callback('download', url, 0)
+    if callback:
+        callback('download', url, 0)
 
     if url.startswith('s3:'):
         s3 = get_s3(url, account_accessor)
@@ -263,7 +268,7 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
 
     # If there is a query, hash it and add it to the path
     if parsed.query:
-        hash = hashlib.sha224(parsed.query).hexdigest()
+        hash = hashlib.sha224(parsed.query.encode('utf8')).hexdigest()
         cache_path = os.path.join(cache_path, hash)
 
     if not cache_fs.exists(cache_path):
@@ -388,7 +393,13 @@ def get_s3(url, account_accessor):
 
 
 def get_gs(url, segment, account_acessor):
-
+    """
+    Old code for accessing google spreadsheets, with authentication
+    :param url:
+    :param segment:
+    :param account_acessor:
+    :return:
+    """
     import gspread
     from oauth2client.client import SignedJwtAssertionCredentials
     from gspread.exceptions import WorksheetNotFound

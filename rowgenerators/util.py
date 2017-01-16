@@ -76,7 +76,7 @@ class DelayedDownload(DelayedOpen):
         self._account_accessor = account_accessor
 
     def _download(self):
-        from fetch import download
+        from .fetch import download
 
         self._path , _ = download(self._url, self._fs, self._account_accessor, logger=self._logger)
 
@@ -143,9 +143,10 @@ def parse_url_to_dict(url):
 
     p = urlparse(url)
 
+    #  '+' indicates that the scheme has a scheme extension
     if '+' in p.scheme:
 
-        scheme, scheme_extension = p.scheme.split('+')
+        scheme_extension, scheme = p.scheme.split('+')
 
     else:
         scheme = p.scheme
@@ -166,8 +167,9 @@ def parse_url_to_dict(url):
     }
 
 def unparse_url_dict(d):
-    if 'hostname' in d and d['hostname']:
-        host_port = d['hostname']
+
+    if 'netloc' in d and d['netloc']:
+        host_port = d['netloc']
     else:
         host_port = ''
 
@@ -187,6 +189,9 @@ def unparse_url_dict(d):
 
     url = '{}://{}/{}'.format(d.get('scheme', 'http'),
                               host_port, d.get('path', '').lstrip('/'))
+
+    if d.get('scheme_extension'):
+        url = d['scheme_extension']+'+'+url
 
     if 'query' in d and d['query']:
         url += '?' + d['query']

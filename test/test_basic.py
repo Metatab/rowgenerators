@@ -26,6 +26,7 @@ class BasicTests(unittest.TestCase):
         from rowgenerators import SourceSpec, RowGenerator
         from copy import deepcopy
 
+
         ss = SourceSpec(url='http://foobar.com/a/b.csv')
         self.assertIsNone(ss.file)
         self.assertIsNone(ss.segment)
@@ -67,11 +68,13 @@ class BasicTests(unittest.TestCase):
             'http://example.com/foo/archive.zip',
             'http://example.com/foo/archive.zip#file.xlsx',
             'http://example.com/foo/archive.zip#file.xlsx;0',
-            'http+socrata://example.com/foo/archive.zip'
+            'socrata+http://example.com/foo/archive.zip'
         ):
             self.assertEqual(url,SourceSpec(url=url).url_str() )
             self.assertEqual(url,SourceSpec(url=url).dict['url'])
             self.assertEquals(1, len(SourceSpec(url=url).dict))
+
+        url='socrata+http://example.com/foo/archive.zip'
 
     def test_run_sources(self):
         from rowgenerators import  RowGenerator
@@ -84,8 +87,6 @@ class BasicTests(unittest.TestCase):
                 continue
 
             gen = RowGenerator(cache=cache, **sd)
-
-            print sd['name'], sd['url']
 
             self.assertEquals(int(sd['n_rows']), len(list(gen)))
 
@@ -100,7 +101,17 @@ class BasicTests(unittest.TestCase):
         spec = SourceSpec(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip')
 
         for spec in enumerate_contents(spec, cache):
-            print spec.url_str()
+            print(spec.url_str())
+
+    def test_google(self):
+        from rowgenerators import SourceSpec, GooglePublicSource
+        spec = SourceSpec(url='gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w')
+
+        self.assertEquals('gs',spec.proto)
+        self.assertEquals('gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/',spec.url)
+        self.assertEquals('https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/export?format=csv',GooglePublicSource.download_url(spec))
+
+        self.assertEquals(12004, len(list(spec.get_generator(cache_fs()))))
 
 
 if __name__ == '__main__':

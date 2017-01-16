@@ -9,7 +9,7 @@ The SourceSpec defines what kind of a source file to fetch and how to process it
 from .exceptions import SpecError
 from six import text_type
 import hashlib
-from util import parse_url_to_dict, unparse_url_dict
+from .util import parse_url_to_dict, unparse_url_dict
 
 
 class SourceSpec(object):
@@ -65,6 +65,7 @@ class SourceSpec(object):
             pass
 
         self.name = name
+        self.proto = None
         self.url = url
         self._urltype = urltype
         self._internalurltype = False # Set if the _urltype is set from the url
@@ -89,6 +90,8 @@ class SourceSpec(object):
         if self.url:
             parts = parse_url_to_dict(self.url)
 
+            self.proto = parts['scheme']
+
             if parts['fragment']:
 
                 if self.file:
@@ -111,6 +114,7 @@ class SourceSpec(object):
             if parts['scheme_extension']:
                 self._urltype = parts['scheme_extension']
                 self._internalurltype = True
+                self.proto = parts['scheme_extension']
 
             del parts['fragment']
             del parts['scheme_extension']
@@ -202,6 +206,12 @@ class SourceSpec(object):
         else:
             return self.urlfiletype
 
+    @property
+    def netloc(self):
+        """Return the netlocatino part of the URL"""
+        p = parse_url_to_dict(self.url)
+        return p['netloc']
+
     def is_archive_url(self):
         return self.urlfiletype in ('zip',)
 
@@ -223,10 +233,7 @@ class SourceSpec(object):
         parts = parse_url_to_dict(self.url)
         del parts['fragment']
 
-        if self.urltype in ('socrata'):
-            parts['scheme'] = parts['scheme']+'+'+self.urltype
-
-        url  = unparse_url_dict(parts)
+        url = unparse_url_dict(parts)
 
         file = file if file is not None else self.file
         segment = segment if segment is not None else self.segment
@@ -241,6 +248,10 @@ class SourceSpec(object):
         if segment is not None:
             url += second_sep
             url += segment
+
+        # The scheme_extension is removed from self.url, so unparse_url_dict won't put it back
+        if self._internalurltype:
+            url = self._urltype + '+' + url
 
         return url
 

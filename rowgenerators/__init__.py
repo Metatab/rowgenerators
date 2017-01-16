@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from generators import *
+from .generators import *
 from .exceptions import SourceError
 
 from .util import DelayedOpen, DelayedDownload
-from sourcespec import SourceSpec
-from rowproxy import RowProxy, GeoRowProxy
-from fetch import enumerate_contents, inspect
-from exceptions import *
+from .sourcespec import SourceSpec
+from .rowproxy import RowProxy, GeoRowProxy
+from .fetch import enumerate_contents, inspect
+from .exceptions import *
 import sys
 
 __all__ = [k for k in sys.modules[__name__].__dict__.keys()

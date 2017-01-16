@@ -7,10 +7,8 @@ import petl
 
 import six
 
-from util import copy_file_or_flo
-
+from .util import copy_file_or_flo
 from .exceptions import SourceError
-
 from .sourcespec import SourceSpec
 
 
@@ -29,6 +27,10 @@ class RowGenerator(SourceSpec):
                                            urlfiletype, encoding,
                                            file, segment, columns,
                                            **kwargs)
+
+    @property
+    def path(self):
+        return self.url
 
     def __iter__(self):
 
@@ -291,8 +293,7 @@ class CsvSource(SourceFile):
 
                         yield row
                 except Exception as e:
-                    raise
-                    from ambry_sources.sources.exceptions import SourceError
+
                     raise SourceError(str(type(e)) + ';' + e.message + "; line={}".format(i))
 
         else:
@@ -517,8 +518,8 @@ class ExcelSource(SourceFile):
         return excel_date
 
 
-class GoogleSource(SourceFile):
-    """Generate rows from a Google spreadsheet source
+class GoogleAuthenticatedSource(SourceFile):
+    """Generate rows from a Google spreadsheet source that requires authentication
 
     To read a GoogleSpreadsheet, you'll need to have an account entry for google_spreadsheets, and the
     spreadsheet must be shared with the client email defined in the credentials.
@@ -540,6 +541,17 @@ class GoogleSource(SourceFile):
             yield row
 
         self.finish()
+
+
+class GooglePublicSource(CsvSource):
+
+    url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv'
+
+    @classmethod
+    def download_url(cls, spec):
+
+        return cls.url_template.format(key=spec.netloc)
+
 
 
 class GeoSourceBase(SourceFile):
@@ -701,8 +713,8 @@ class SelectiveRowGenerator(object):
         """
 
         self.iter = iter(seq)
-        self.start = start
-        self.header_lines = headers
+        self.start = start if start else 1
+        self.header_lines = headers if isinstance(headers, (tuple, list)) else [ int(e) for e in headers.split(',') if e]
         self.comment_lines = comments
         self.end = end
 
