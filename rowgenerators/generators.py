@@ -701,8 +701,9 @@ class SelectiveRowGenerator(object):
         """
 
         self.iter = iter(seq)
-        self.start = start
+        self.start = start if start else 0
         self.header_lines = headers
+        assert isinstance(headers, (tuple, list)), str(headers)
         self.comment_lines = comments
         self.end = end
 
@@ -712,7 +713,8 @@ class SelectiveRowGenerator(object):
         self.comments = []
 
         int(self.start) # Throw error if it is not an int
-        assert self.start > 0
+
+        #assert self.start > 0
 
 
     @property
@@ -761,7 +763,6 @@ class SelectiveRowGenerator(object):
                 self.comments.append(row)
             elif i == self.start:
                 break
-
 
         if self.headers:
             yield self.coalesce_headers

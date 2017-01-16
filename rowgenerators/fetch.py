@@ -29,7 +29,7 @@ from generators import GoogleSource, CsvSource, TsvSource, FixedSource, ExcelSou
 
 from util import DelayedOpen, DelayedDownload
 
-def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd=None, callback=None):
+def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
     """
     Download a file from a URL and return it wrapped in a row-generating acessor object.
 
@@ -59,7 +59,13 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         syspath = spec.url.replace('file://','')
         cache_path = syspath.replace('/','_').strip('_')
 
+        if not syspath:
+            raise IOError("Could not get syspath from url '{}' ".format(spec.url))
+
         fs_path = os.path.join(cwd,  syspath)
+
+        if not os.path.exists(fs_path):
+            raise IOError("File path '{}' does not exist ".format(fs_path))
 
         # FIXME! should not need to copy the files
         cache_fs.setcontents(cache_path, fsopen(fs_path, mode='rb'))
@@ -142,8 +148,8 @@ def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
     """
 
     # FIXME Not sure what is going on here, but in multiproccessing mode,
-    # the 'try' version of opening the file can fail with an error about the file being missing or corrupy
-    # but the second successedes. However, the second will faile in test environments that
+    # the 'try' version of opening the file can fail with an error about the file being missing or corrupt
+    # but the second succeedes. However, the second will fail in test environments that
     # have a memory cache.
     try:
         fs = ZipFS(cache_fs.open(cache_path, 'rb'))
@@ -181,16 +187,18 @@ def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
     return fstor
 
 
-def _download(url, cache_fs, cache_path, account_accessor, logger, callback):
+def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None):
 
     import urllib
     import requests
     from fs.errors import ResourceNotFoundError
 
     def copy_callback(read, total):
-        callback('copy_file',read, total)
+        if callback:
+            callback('copy_file',read, total)
 
-    callback('download', url, 0)
+    if callback:
+        callback('download', url, 0)
 
     if url.startswith('s3:'):
         s3 = get_s3(url, account_accessor)
@@ -447,6 +455,10 @@ def inspect(ss, cache_fs, callback=None):
     worksheets in a spreadsheet"""
 
     from copy import deepcopy
+    from rowgenerators import SourceSpec
+
+    if not isinstance(ss, SourceSpec):
+        ss = SourceSpec(url=ss)
 
     cache_path, download_time = download(ss.url, cache_fs, callback=callback)
 

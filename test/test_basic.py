@@ -102,6 +102,23 @@ class BasicTests(unittest.TestCase):
         for spec in enumerate_contents(spec, cache):
             print spec.url_str()
 
+    def test_zip(self):
+
+        from rowgenerators import enumerate_contents, RowGenerator, SourceError
+
+        z = 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip'
+        cache = cache_fs()
+
+        for e in enumerate_contents(z,  cache):
+            print e.url_str()
+            gen = RowGenerator(**e.dict)
+            try:
+                print len(list(gen))
+            except SourceError as e:
+                print e
+            except UnicodeDecodeError as e:
+                print e
+
 
 if __name__ == '__main__':
     unittest.main()

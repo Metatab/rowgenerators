@@ -89,6 +89,9 @@ class SourceSpec(object):
         if self.url:
             parts = parse_url_to_dict(self.url)
 
+            if not parts['scheme']:
+                parts['scheme'] = 'file'
+
             if parts['fragment']:
 
                 if self.file:
