@@ -9,6 +9,7 @@ import six
 
 from .util import copy_file_or_flo
 from .exceptions import SourceError
+
 from .sourcespec import SourceSpec
 
 
@@ -276,6 +277,7 @@ class CsvSource(SourceFile):
 
         from contextlib import closing
         import six
+        from .exceptions import SourceError
 
         self.start()
 
@@ -294,7 +296,7 @@ class CsvSource(SourceFile):
                         yield row
                 except Exception as e:
 
-                    raise SourceError(str(type(e)) + ';' + e.message + "; line={}".format(i))
+                    raise SourceError(six.text_type(type(e)) + ';' + str(e) + "; line={}".format(i))
 
         else:
             import unicodecsv as csv
@@ -307,7 +309,7 @@ class CsvSource(SourceFile):
             # Need to copy the file, since it may be in a Zip file
 
             import tempfile
-            from ambry_sources.util import copy_file_or_flo
+            from .util import copy_file_or_flo
 
             fout = tempfile.NamedTemporaryFile(delete=False)
 

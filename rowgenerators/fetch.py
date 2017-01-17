@@ -48,7 +48,6 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
     def do_download():
         return download(spec.url, cache_fs, account_accessor, clean=clean, logger=logger, callback=callback)
 
-
     if spec.urltype == 'file':
 
         from fs.opener import fsopen
@@ -59,6 +58,8 @@ def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None,
         fs_path = os.path.join(cwd,  syspath)
 
         # FIXME! should not need to copy the files
+
+
         cache_fs.setcontents(cache_path, fsopen(fs_path, mode='rb'))
 
     elif spec.proto not in ('gs', 'socrata'): # FIXME. Need to clean up the logic for gs types.

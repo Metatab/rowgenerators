@@ -116,6 +116,7 @@ class SourceSpec(object):
                 self._internalurltype = True
                 self.proto = parts['scheme_extension']
 
+
             del parts['fragment']
             del parts['scheme_extension']
 
@@ -233,7 +234,7 @@ class SourceSpec(object):
         parts = parse_url_to_dict(self.url)
         del parts['fragment']
 
-        url = unparse_url_dict(parts)
+        url  = unparse_url_dict(parts)
 
         file = file if file is not None else self.file
         segment = segment if segment is not None else self.segment
@@ -258,7 +259,7 @@ class SourceSpec(object):
     @property
     def file_name(self):
         from os.path import basename, splitext, sep
-        from six.moves.urllib.parse import  quote, unquote
+        from six.moves.urllib.parse import quote, unquote
         import re
 
         url = self.url

@@ -5,7 +5,7 @@ Revised BSD License, included in this distribution as LICENSE.txt
 """
 
 
-from six import string_types
+from six import string_types, text_type
 import os
 
 
@@ -61,7 +61,7 @@ class DelayedOpen(object):
         try:
             return self.syspath
         except NoSysPathError:
-            return "Delayed Open: {}; {} ".format(str(self._fs), str(self._path))
+            return "Delayed Open: {}; {} ".format(text_type(self._fs), text_type(self._path))
 
 class DelayedDownload(DelayedOpen):
     """An extension of DelayedOpen that also delays downloading the file"""
@@ -174,7 +174,7 @@ def unparse_url_dict(d):
         host_port = ''
 
     if 'port' in d and d['port']:
-        host_port += ':' + str(d['port'])
+        host_port += ':' + text_type(d['port'])
 
     user_pass = ''
     if 'username' in d and d['username']:
@@ -186,9 +186,13 @@ def unparse_url_dict(d):
     if user_pass:
         host_port = '{}@{}'.format(user_pass, host_port)
 
-
-    url = '{}://{}/{}'.format(d.get('scheme', 'http'),
-                              host_port, d.get('path', '').lstrip('/'))
+    if d.get('scheme') and host_port:
+        url = '{}://{}/{}'.format(d['scheme'],host_port, d.get('path', '').lstrip('/'))
+    elif d.get('path'):
+        # It's possible just a local file url.
+        url = d['path']
+    else:
+        url = ''
 
     if d.get('scheme_extension'):
         url = d['scheme_extension']+'+'+url

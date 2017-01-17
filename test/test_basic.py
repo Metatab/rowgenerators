@@ -24,6 +24,7 @@ class BasicTests(unittest.TestCase):
 
     def test_source_spec_url(self):
         from rowgenerators import SourceSpec, RowGenerator
+        from rowgenerators.util import parse_url_to_dict, unparse_url_dict
         from copy import deepcopy
 
 
@@ -74,7 +75,6 @@ class BasicTests(unittest.TestCase):
             self.assertEqual(url,SourceSpec(url=url).dict['url'])
             self.assertEquals(1, len(SourceSpec(url=url).dict))
 
-        url='socrata+http://example.com/foo/archive.zip'
 
     def test_run_sources(self):
         from rowgenerators import  RowGenerator
@@ -112,6 +112,23 @@ class BasicTests(unittest.TestCase):
         self.assertEquals('https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/export?format=csv',GooglePublicSource.download_url(spec))
 
         self.assertEquals(12004, len(list(spec.get_generator(cache_fs()))))
+
+    def test_zip(self):
+
+        from rowgenerators import enumerate_contents, RowGenerator, SourceError
+
+        z = 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip'
+        cache = cache_fs()
+
+        for c in enumerate_contents(z,  cache):
+            print(c.dict)
+            gen = RowGenerator(**c.dict)
+            try:
+                print(len(list(gen)))
+            except SourceError as e:
+                print("ERROR", c.name, e)
+            except UnicodeDecodeError as e:
+                print("UERROR", c.name, e)
 
 
 if __name__ == '__main__':
