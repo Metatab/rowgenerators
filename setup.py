@@ -54,7 +54,15 @@ setup(
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=packages,
-    install_requires=[x for x in reversed([str(x.req) for x in install_requires])],
+    install_requires=[
+        'fs == 0.5.4',
+        'boto',
+        'requests',
+        'petl',
+        'livestats',
+        'filelock',
+
+    ],
     author=ambry_meta.__author__,
     author_email='eric@civicknowledge.com',
     url='https://github.com/CivicKnowledge/rowgenerator.git',

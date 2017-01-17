@@ -1,7 +1,3 @@
+.
 
-fs==0.5.4
-boto
-requests
-petl
-livestats
-filelock
+
