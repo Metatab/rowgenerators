@@ -6,14 +6,97 @@
 The SourceSpec defines what kind of a source file to fetch and how to process it.
 """
 
-from .exceptions import SpecError
-from six import text_type
 import hashlib
+from rowgenerators.util import parse_url_to_dict, unparse_url_dict
+from six import text_type
+from .exceptions import SpecError
 from .util import parse_url_to_dict, unparse_url_dict
+
+def decompose_url(url, force_archive = None):
+    """Decompose and classify a URL, returning the downloadable reference, internal file references, and API
+    access URLS. """
+
+    from os.path import splitext
+
+
+    parts = parse_url_to_dict(url)
+
+    proto = parts['scheme_extension'] if parts.get('scheme_extension') \
+            else { 'https': 'http','':'file'}.get(parts['scheme'],parts['scheme'])
+
+    def file_ext(v):
+        try:
+            return splitext(v)[1][1:]
+        except IndexError:
+            return None
+
+    is_archive = file_ext(parts['path']) in ('zip',) or force_archive
+
+    file = segment = None
+
+    if parts['fragment']:
+
+        frag_parts = parts['fragment'].split(';')
+
+        # An archive file might have an inner Excel file, and that file can have
+        # a segment.
+        if is_archive and frag_parts:
+            if len(frag_parts) == 2:
+                file = frag_parts[0]
+                segment = frag_parts[1]
+            else:
+                file = frag_parts[0]
+        elif frag_parts:
+            segment = frag_parts[0]
+
+    del parts['fragment']
+    del parts['scheme_extension']
+
+    url = unparse_url_dict(parts)
+
+    if proto == 'gs':
+        url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv'
+        download_url = url_template.format(key=parts['netloc']) # netloc is case-sensitive, hostname is forced lower.
+        if segment:
+            download_url += "?gid={}".format(segment)
+    elif proto == 'socrata':
+        download_url = url + '/rows.csv'
+    else:
+        download_url = url
+
+    if is_archive:
+        if file:
+            format = file_ext(file)
+        else:
+            file_maybe, ext = splitext(parts['path'])
+            format_maybe = file_ext(file_maybe)
+            if format_maybe in ('csv','xls','xlsx'):
+                format = format_maybe
+                file='.*\.'+format
+            else:
+                format = None
+
+    else:
+        format = None
+
+    if not format and proto in ('gs','socrata',):
+        format = 'csv'
+    elif not format:
+        format = file_ext(parts['path'])
+
+    return dict(
+        url=url,
+        download_url=download_url,
+        proto=proto,
+        is_archive=is_archive,
+        archive_file=file,
+        file_segment=segment,
+        file_format=format
+    )
 
 
 class SourceSpec(object):
-    def __init__(self, url, name=None, urltype=None, filetype=None, urlfiletype=None,
+    def __init__(self, url, name=None, urltype=None, filetype=None, format=None, urlfiletype=None,
                  encoding=None, file=None, segment=None, columns=None, **kwargs):
         """
 
@@ -29,13 +112,15 @@ class SourceSpec(object):
         :param sheet: A reference to a worksheet in a spreadsheet. May be a string or a number
         :param urltype: One of http, https, gs, socrata. Forces how the URL is interpreted. Only 'socrata' is really
         needed
-        :param filetype: Forces the file type, which is usually taked from the file extension. May be any
+        :param format: Forces the file type, which is usually taked from the file extension. May be any
         typical extension string.
         :param urlfiletype: Like filetype, but for when the URL refers to a zip archive.
         :param encoding: The file encoding.
         :param columns: A list or tuple of ColumnSpec objects, for FixedSource
         :param kwargs: Unused. Provided to make it easy to load a record from a dict.
         :return:
+
+        `format` is the deprecated version of format
 
         The segment may have one or two parameters. If it contains a ';', there are two parameters. The
         first will identify a spreadsheet file in an archive, and the second identifies a worksheet in the
@@ -58,25 +143,34 @@ class SourceSpec(object):
 
         assert not isinstance(columns, dict)
 
-
         try:
             assert not isinstance(columns[0], dict)
         except:
             pass
 
         self.name = name
-        self.proto = None
-        self.url = url
+        self.columns = columns
+        self.encoding = encoding if encoding else None
         self._urltype = urltype
         self._internalurltype = False # Set if the _urltype is set from the url
         self._urlfiletype = urlfiletype
-        self._filetype = filetype
-        self.encoding = encoding if encoding else None
-        self.columns = columns
-        self.file = file
-        self.segment = segment
+        self._format =  format or filetype
+        self._file = file
+        self._segment = segment
 
         self.download_time = None  # Set externally
+
+        if url:
+
+            self.__dict__.update(decompose_url(url, force_archive=self._urlfiletype in ('zip',)))
+        else:
+            self.url = None
+            self.download_url = None,
+            self.proto = None,
+            self.is_archive = None,
+            self.archive_file = None,
+            self.file_segment = None,
+            self.file_format = None
 
         if not self.name:
             raw_name = '{}#{}{}'.format(self.url,
@@ -87,40 +181,7 @@ class SourceSpec(object):
 
             self.name = hashlib.md5(raw_name).hexdigest()
 
-        if self.url:
-            parts = parse_url_to_dict(self.url)
 
-            self.proto = parts['scheme']
-
-            if parts['fragment']:
-
-                if self.file:
-                    raise SpecError("'file' specification conflicts with fragment in URL")
-
-                if self.segment:
-                    raise SpecError("'sheet' specification conflicts with fragment in URL")
-
-                frag_parts = parts['fragment'].split(';')
-
-                if self.is_archive_url() and frag_parts:
-                    if len(frag_parts) == 2:
-                        self.file = frag_parts[0]
-                        self.segment = frag_parts[1]
-                    else:
-                        self.file = frag_parts[0]
-                elif frag_parts:
-                    self.segment = frag_parts[0]
-
-            if parts['scheme_extension']:
-                self._urltype = parts['scheme_extension']
-                self._internalurltype = True
-                self.proto = parts['scheme_extension']
-
-
-            del parts['fragment']
-            del parts['scheme_extension']
-
-            self.url = unparse_url_dict(parts)
 
 
     def __deepcopy__(self, o):
@@ -133,7 +194,7 @@ class SourceSpec(object):
                 segment=self.segment,
                 urltype=self._urltype,
                 urlfiletype=self._urlfiletype,
-                filetype=self._filetype,
+                format=self.format,
                 encoding=self.encoding,
                 columns=self.columns
             )
@@ -146,41 +207,32 @@ class SourceSpec(object):
                 file=self.file,
                 urltype=self._urltype,
                 urlfiletype=self._urlfiletype,
-                filetype=self._filetype,
+                format=self.format,
                 encoding=self.encoding,
                 columns=self.columns
             )
 
-    def get_filetype(self, file_path):
-        """Determine the format of the source file, by reporting the file extension"""
-        from os.path import splitext
 
-        # The filetype is explicitly specified
-        if self._filetype:
-            return self._filetype.lower()
 
-        root, ext = splitext(file_path)
+    @property
+    def file(self):
+        return self._file or self.archive_file
 
-        return ext[1:].lower()
+    @file.setter
+    def file(self,v):
+        self._file = v
+
+    @property
+    def segment(self):
+        return self._segment or self.file_segment
+
+    @segment.setter
+    def segment(self,v):
+        self._segment = v
 
     @property
     def urltype(self):
-
-        if self._urltype:
-            return self._urltype
-
-        if not self.url:
-            return None
-
-        parts = parse_url_to_dict(self.url)
-
-        if parts['scheme'] in ('http', 'gs', 'socrata', 'file'):
-            return parts['scheme']
-
-        if self.url.startswith('https'):
-            return 'http'
-
-        return 'file'
+        return self.proto
 
     @property
     def urlfiletype(self):
@@ -196,16 +248,19 @@ class SourceSpec(object):
         return ext[1:].lower()
 
     @property
-    def filetype(self):
+    def format(self):
 
-        if self._filetype:
-            return self._filetype
-
-        elif self.file:
-            return self.get_filetype(self.file)
+        if self._format:
+            return self._format
 
         else:
-            return self.urlfiletype
+            return self.file_format
+
+
+
+    @format.setter
+    def format(self, v):
+        self._filetype = v
 
     @property
     def netloc(self):
@@ -222,9 +277,9 @@ class SourceSpec(object):
             from fs.opener import fsopendir
             cache = fsopendir('temp://')
 
-        from rowgenerators.fetch import get_source
+        from rowgenerators.fetch import get_generator
 
-        return get_source(self, cache)
+        return get_generator(self, cache)
 
     def url_str(self, file=None, segment=None):
         from .util import parse_url_to_dict, unparse_url_dict
@@ -234,7 +289,7 @@ class SourceSpec(object):
         parts = parse_url_to_dict(self.url)
         del parts['fragment']
 
-        url  = unparse_url_dict(parts)
+        url = unparse_url_dict(parts)
 
         file = file if file is not None else self.file
         segment = segment if segment is not None else self.segment
@@ -251,15 +306,15 @@ class SourceSpec(object):
             url += segment
 
         # The scheme_extension is removed from self.url, so unparse_url_dict won't put it back
-        if self._internalurltype:
-            url = self._urltype + '+' + url
+        if self.proto != parts['scheme']:
+            url = self.proto + '+' + url
 
         return url
 
     @property
     def file_name(self):
         from os.path import basename, splitext, sep
-        from six.moves.urllib.parse import quote, unquote
+        from six.moves.urllib.parse import unquote
         import re
 
         url = self.url
@@ -308,10 +363,12 @@ class SourceSpec(object):
         else:
             file_filetype = None
 
-        if self._filetype and self._filetype != file_filetype:
-            d['filetype'] = self._filetype
+        if self.format:
+            d['format'] = self.format
 
         if self.encoding:
             d['encoding'] = self.encoding
 
         return d
+
+

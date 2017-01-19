@@ -12,6 +12,8 @@ class RowGeneratorError(Exception):
 class SourceError(RowGeneratorError):
     pass
 
+class TextEncodingError(SourceError):
+    pass
 
 class SpecError(RowGeneratorError):
     pass

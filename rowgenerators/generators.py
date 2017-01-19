@@ -8,7 +8,7 @@ import petl
 import six
 
 from .util import copy_file_or_flo
-from .exceptions import SourceError
+from .exceptions import TextEncodingError, SourceError
 
 from .sourcespec import SourceSpec
 
@@ -17,14 +17,14 @@ class RowGenerator(SourceSpec):
     """Primary generator object. It's actually a SourceSpec fetches a Source
      then proxies the iterator"""
 
-    def __init__(self, url, cache=None, name=None, urltype=None, filetype=None,
+    def __init__(self, url, cache=None, name=None, urltype=None, filetype=None, format=None,
                  urlfiletype=None, encoding=None, file=None,
                  segment=None, columns=None, **kwargs):
 
         self.cache = cache
         self.headers = None
 
-        super(RowGenerator, self).__init__(url, name, urltype, filetype,
+        super(RowGenerator, self).__init__(url, name, urltype, filetype, format,
                                            urlfiletype, encoding,
                                            file, segment, columns,
                                            **kwargs)
@@ -116,7 +116,7 @@ class SourceFile(Source):
     Subclasses of SourceFile must override at lease _get_row_gen method.
     """
 
-    def __init__(self, spec, fstor):
+    def __init__(self, spec, dflo):
         """
 
         :param fstor: A File-like object for the file, already opened.
@@ -124,17 +124,13 @@ class SourceFile(Source):
         """
         super(SourceFile, self).__init__(spec)
 
-        self._fstor = fstor
+        self._dflo = dflo
         self._headers = None  # Reserved for subclasses that extract headers from data stream
         self._datatypes = None # If set, an array of the datatypes for each column, derived from the source
 
     @property
     def path(self):
-        return self._fstor.path
-
-    @property
-    def syspath(self):
-        return self._fstor.syspath
+        return self._dflo.path
 
     @property
     def children(self):
@@ -180,7 +176,7 @@ class SocrataSource(Source):
 
     @classmethod
     def download_url(cls, spec):
-        return spec.url + '/rows.csv'
+                return spec.url + '/rows.csv'
 
     @property
     def _meta(self):
@@ -272,88 +268,55 @@ class PandasDataframeSource(Source):
 class CsvSource(SourceFile):
     """Generate rows from a CSV source"""
 
+    delimiter = ','
+
     def __iter__(self):
         """Iterate over all of the lines in the file"""
-
-        from contextlib import closing
+        import io
         import six
-        from .exceptions import SourceError
-
-        self.start()
-
         if six.PY3:
             import csv
-            f = self._fstor.open('rtU', encoding=(self.spec.encoding or 'utf8'))
-            reader = csv.reader(f)
 
-            with closing(f):
-
-                i = 0
-                try:
-                    for row in reader:
-                        i += 1
-
-                        yield row
-                except Exception as e:
-
-                    raise SourceError(six.text_type(type(e)) + ';' + str(e) + "; line={}".format(i))
-
+            mode = 'rtU'
         else:
             import unicodecsv as csv
-
-            # What a mess. In the PyFS interface, The 'b' option conflicts with the 'U' open,and
-            # readline is hardcoded to use '\n' anyway.
-            # BTW, the need for both may result from the file being saved on a mac. If all else fails,
-            # try loading it into a spreadsheet format and save with normal line endings.
-
-            # Need to copy the file, since it may be in a Zip file
-
-            import tempfile
-            from .util import copy_file_or_flo
-
-            fout = tempfile.NamedTemporaryFile(delete=False)
-
-            with self._fstor.open('rb') as fin:
-                copy_file_or_flo(fin, fout)
-
-            fout.close()
-
-            with open(fout.name, 'rbU') as f:
-
-                if self.spec.encoding:
-                    reader = csv.reader(f, encoding=self.spec.encoding)
-                else:
-                    reader = csv.reader(f)
-
-                i = 0
-                try:
-                    for row in reader:
-                        i += 1
-                        yield row
-                except Exception as e:
-                    raise
-                    from ambry_sources.sources.exceptions import SourceError
-                    raise SourceError(str(type(e)) + ';' + e.message + "; line={}".format(i))
-
-                finally:
-                    import os
-                    os.remove(fout.name)
-
-        self.finish()
+            mode = 'rbU'
 
 
-class TsvSource(SourceFile):
-    """Generate rows from a TSV (tab separated value) source"""
-
-    def __iter__(self):
-        """Iterate over all of the lines in the file"""
+        reader = csv.reader(self._dflo.open(mode),delimiter=self.delimiter)
 
         self.start()
 
-        for i, row in enumerate(petl.io.csv.fromtsv(self._fstor, self.spec.encoding)):
-            yield row
+        i = 0
+        try:
+            for row in reader:
+                yield row
+                i+=1
+        except UnicodeDecodeError as e:
+
+            raise TextEncodingError(six.text_type(type(e)) + ';' + six.text_type(e) + "; line={}".format(i))
+        except TypeError:
+            raise
+        except csv.Error:
+            # The error is that the underlying handle should return strings, not bytes,
+            # but always using the TextIOWrapper has other problems, and the error only occurs
+            # for CSV files loaded from Zip files.
+            self._dflo.close()
+            reader = csv.reader(io.TextIOWrapper(self._dflo.open(mode)), delimiter=self.delimiter)
+            for i, row in enumerate(reader):
+                yield row
+
 
         self.finish()
+
+        self._dflo.close()
+
+
+class TsvSource(CsvSource):
+    """Generate rows from a TSV (tab separated value) source"""
+
+    delimiter = ','
+
 
 
 class FixedSource(SourceFile):
@@ -370,7 +333,6 @@ class FixedSource(SourceFile):
         from .exceptions import SourceError
 
         super(FixedSource, self).__init__(spec, fstor)
-
 
     def make_fw_row_parser(self):
 
@@ -415,80 +377,58 @@ class FixedSource(SourceFile):
 class ExcelSource(SourceFile):
     """Generate rows from an excel file"""
 
+    @staticmethod
+    def srow_to_list(row_num, s):
+        """Convert a sheet row to a list"""
+
+        values = []
+
+        try:
+            for col in range(s.ncols):
+                values.append(s.cell(row_num, col).value)
+        except:
+            raise
+
+        return values
+
     def __iter__(self):
         """Iterate over all of the lines in the file"""
+        from xlrd import open_workbook
+
+        f = self._dflo.open('rb')
 
         self.start()
 
-        for i, row in enumerate(self._get_row_gen()):
+        file_contents=f.read()
 
+        wb = open_workbook(filename=self._dflo.path, file_contents=file_contents)
+
+        try:
+            s = wb.sheets()[int(self.spec.segment) if self.spec.segment else 0]
+        except ValueError:  # Segment is the workbook name, not the number
+            s = wb.sheet_by_name(self.spec.segment)
+
+        for i in range(0, s.nrows):
+            row = self.srow_to_list(i, s)
             if i == 0:
                 self._headers = row
-
             yield row
 
         self.finish()
 
-    @property
-    def _spath(self):
-        from fs.errors import NoSysPathError
-
-        try:
-            return self._fstor.syspath
-
-        except NoSysPathError:
-            # There is no sys path when the file is in a ZipFile, or other non-traditional filesystem.
-            sub_file = self._fstor.sub_cache()
-
-            if not sub_file.exists(self.spec.name):
-
-                with self._fstor.open(mode='rb') as f_in, sub_file.open(self.spec.name, mode='wb') as f_out:
-                    copy_file_or_flo(f_in, f_out)
-
-            spath = sub_file.getsyspath(self.spec.name)
-
-            return spath
-
-    def _get_row_gen(self):
-        from fs.errors import NoSysPathError
-
-        return self.excel_iter(self._spath, self.spec.segment)
-
-    def excel_iter(self, file_name, segment):
-        from xlrd import open_workbook
-
-        def srow_to_list(row_num, s):
-            """Convert a sheet row to a list"""
-
-            values = []
-
-            try:
-                for col in range(s.ncols):
-                    values.append(s.cell(row_num, col).value)
-            except:
-                raise
-
-            return values
-
-        wb = open_workbook(file_name)
-
-        try:
-            s = wb.sheets()[int(segment) if segment else 0]
-        except ValueError: # Segment is the workbook name, not the number
-            s = wb.sheet_by_name(segment)
-
-        for i in range(0, s.nrows):
-            row = srow_to_list(i, s)
-            yield row
+        self._dflo.close()
 
     @property
     def children(self):
         from xlrd import open_workbook
 
-        wb = open_workbook(self._spath)
+        wb = open_workbook(filename=self._dflo.path, file_contents=self._dflo.open('rb').read())
 
-        return wb.sheet_names()
+        sheets = wb.sheet_names()
 
+        self._dflo.close()
+
+        return sheets
 
     @staticmethod
     def make_excel_date_caster(file_name):

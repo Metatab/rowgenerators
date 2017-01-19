@@ -9,80 +9,26 @@ from six import string_types, text_type
 import os
 
 
+class DelayedFlo(object):
+    """Holds functions to open and close a flike-like object"""
 
-class DelayedOpen(object):
-    """A Lightweight wrapper to delay opening a PyFilesystem object until is it used. It is needed because
-    The open() command on a filesystem directory, to produce the file object, also opens the file
-    """
-    def __init__(self, fs, path, mode='r', container=None, account_accessor=None):
+    def __init__(self, path, open_f, flo_f, close_f):
+        self.path = path
+        self.open_f = open_f
+        self.flo_f = flo_f
+        self.close_f = close_f
+        self.memo = None
+        self.message = None # Set externally for debugging
 
-        self._fs = fs
-        self._path = path
-        self._mode = mode
-        self._container = container
-        self._account_accessor = account_accessor
+    def open(self, mode):
+        self.memo = self.open_f(mode)
+        return self.flo_f(self.memo)
 
-    def open(self, mode=None, encoding=None):
-        return self._fs.open(self._path, mode if mode else self._mode, encoding=encoding)
+    def close(self):
+        if self.memo:
+            self.close_f(self.memo)
 
-    @property
-    def syspath(self):
-        return self._fs.getsyspath(self._path)
 
-    def sub_cache(self):
-        """Return a fs directory associated with this file """
-        import os.path
-
-        if self._container:
-            fs, container_path = self._container
-
-            dir_path = os.path.join(container_path + '_')
-
-            fs.makedir(dir_path, recursive=True, allow_recreate=True)
-
-            return fs.opendir(dir_path)
-
-        else:
-
-            dir_path = os.path.join(self._path+'_')
-
-            self._fs.makedir(dir_path, recursive=True, allow_recreate=True)
-
-            return self._fs.opendir(dir_path)
-
-    @property
-    def path(self):
-        return self._path
-
-    def __str__(self):
-
-        from fs.errors import NoSysPathError
-
-        try:
-            return self.syspath
-        except NoSysPathError:
-            return "Delayed Open: {}; {} ".format(text_type(self._fs), text_type(self._path))
-
-class DelayedDownload(DelayedOpen):
-    """An extension of DelayedOpen that also delays downloading the file"""
-
-    def __init__(self, url, fs,  mode='r', logger = None, container=None, account_accessor=None):
-
-        self._url = url
-        self._logger = logger
-        self._fs = fs
-        self._mode = mode
-        self._container = container
-        self._account_accessor = account_accessor
-
-    def _download(self):
-        from .fetch import download
-
-        self._path , _ = download(self._url, self._fs, self._account_accessor, logger=self._logger)
-
-    def open(self, mode=None, encoding=None):
-        self._download()
-        return super(DelayedDownload, self).open(mode=mode, encoding=encoding)
 
 def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
     """ Copy a file name or file-like-object to another file name or file-like object"""

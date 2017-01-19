@@ -3,8 +3,9 @@
 from .generators import *
 from .exceptions import SourceError
 
-from .util import DelayedOpen, DelayedDownload
+from .util import DelayedFlo
 from .sourcespec import SourceSpec
+from rowgenerators.sourcespec import decompose_url
 from .rowproxy import RowProxy, GeoRowProxy
 from .fetch import enumerate_contents, inspect
 from .exceptions import *

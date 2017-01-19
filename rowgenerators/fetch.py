@@ -7,131 +7,121 @@ Revised BSD License, included in this distribution as LICENSE.txt
 
 import ssl
 
-from fs.zipfs import ZipFS
-from fs.zipfs import ZipOpenError
-from .generators import *
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.request import urlopen
-from .util import DelayedOpen, DelayedDownload
 
 import functools
 import hashlib
 import re
 import six
+from fs.zipfs import ZipFS
+from fs.zipfs import ZipOpenError
 from os.path import join
-from requests import HTTPError
-from rowgenerators.exceptions import ConfigurationError, DownloadError, MissingCredentials
+from rowgenerators import decompose_url
+from rowgenerators.exceptions import ConfigurationError, MissingCredentials
+from .exceptions import SourceError
+from .generators import *
 from .s3 import AltValidationS3FS
+from .util import DelayedFlo
 from .util import copy_file_or_flo, parse_url_to_dict
 
 
-def get_source(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
-    """
-    Download a file from a URL and return it wrapped in a row-generating acessor object.
-
-    :param cwd: Current working directory, for relative file:: urls.
-    :param spec: A SourceSpec that describes the source to fetch.
-    :param cache_fs: A pyfilesystem filesystem to use for caching downloaded files.
-    :param account_accessor: A callable to return the username and password to use for access FTP and S3 URLs.
-    :param clean: Delete files in cache and re-download.
-    :param logger: A logger, for logging.
-    :param callback: A callback, called while reading files in download. signatire is f(read_len, total_len)
-
-    :return: a SourceFile object.
-    """
-    from fs.zipfs import ZipOpenError
-    import os
-
-    # FIXME. urltype should be moved to reftype.
+def download_and_cache(url, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
 
 
-    def do_download():
-        return download(spec.url, cache_fs, account_accessor, clean=clean, logger=logger, callback=callback)
+    parts = decompose_url(url)
 
-    if spec.urltype == 'file':
-
-        from fs.opener import fsopen
-
-        syspath = spec.url.replace('file://','')
-        cache_path = syspath.replace('/','_').strip('_')
-
-        fs_path = os.path.join(cwd,  syspath)
-
-        # FIXME! should not need to copy the files
-
-
-        cache_fs.setcontents(cache_path, fsopen(fs_path, mode='rb'))
-
-    elif spec.proto not in ('gs', 'socrata'): # FIXME. Need to clean up the logic for gs types.
-        try:
-            cache_path, download_time = do_download()
-            spec.download_time = download_time
-        except HTTPError as e:
-            raise DownloadError("Failed to download {}; {}".format(spec.url, e))
+    if parts['proto'] == 'file':
+        parts['cache_path'] = parts['url']
+        parts['download_time'] = None
     else:
-        cache_path, download_time = None, None
+        parts['cache_path'], parts['download_time'] = download(parts['download_url'], cache_fs, account_accessor,
+                                                           clean=clean, logger=logger, callback=callback)
 
-    if spec.urlfiletype == 'zip':
-        try:
-            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.file)
-        except ZipOpenError:
-            # Try it again
-            cache_fs.remove(cache_path)
-            cache_path, spec.download_time = do_download()
-            fstor = extract_file_from_zip(cache_fs, cache_path, spec.url, spec.file)
+    parts['sys_path'] = cache_fs.getsyspath(parts['cache_path'])
 
-        if spec.file:
-            file_type = spec.get_filetype(spec.file)
-        else:
-            # The zip archive only has one file, or only the first one
-            # was extracted
-            file_type = spec.get_filetype(fstor.path)
+    return parts
 
-    elif spec.proto == 'gs':
 
-        spec.encoding = 'utf8'
-        url = GooglePublicSource.download_url(spec)
-        fstor = DelayedDownload(url, cache_fs)
-        file_type = 'gs'
+def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
+    """Download the container for a source spec and return a DelayedFlo object for opening, closing
+      and accessing the container"""
+    from copy import deepcopy
+    from zipfile import ZipFile
 
-        # Case for using authentication. TBD
-        #fstor = get_gs(spec.url, spec.segment, account_accessor)
+    import io
+    import re
 
-    elif spec.proto == 'socrata':
-        spec.encoding = 'utf8'
-        url = SocrataSource.download_url(spec)
-        fstor = DelayedDownload(url, cache_fs)
-        file_type = 'socrata'
+    spec = deepcopy(spec)
+
+    d = download_and_cache(spec.url, cache_fs)
+
+    if spec.is_archive:
+
+        def _open(mode='rU'):
+            zf = ZipFile(d['sys_path'])
+
+            nl = list(zf.namelist())
+
+            if spec.file:
+                # The archive file names can be regular expressions
+                real_name = list([e for e in nl if re.search(spec.file, e)
+                                   and not (e.startswith('__') or e.startswith('.'))
+                                 ]
+                                 ) or nl
+            else:
+                real_name = nl[0]
+
+            flo = zf.open(real_name.pop(0), 'rU') # Ingore the input mode -- it's always rU
+            return (zf, flo)
+
+        def _close(f):
+            f[1].close()
+            f[0].close()
+
+        df = DelayedFlo( d['sys_path'],
+                         _open,
+                         lambda m: m[1],
+                         _close)
 
     else:
-        fstor = DelayedOpen(cache_fs, cache_path, 'rb')
-        file_type = spec.get_filetype(fstor.path)
 
-    if file_type != spec.filetype:
-        spec._filetype = file_type
+        def _open(mode='rbU'):
+            return io.open(d['sys_path'], mode,
+                           encoding=spec.encoding if spec.encoding else None)
+
+        def _close(f):
+            f.close()
+
+        df = DelayedFlo(d['sys_path'],
+                        _open,
+                        lambda m: m,
+                        _close)
+
+    if spec.proto in ('gs', 'socrata'):
+        spec.encoding = 'utf8'
 
     TYPE_TO_SOURCE_MAP = {
-        'gs': GooglePublicSource,
+        'gs': CsvSource,
         'csv': CsvSource,
+        'socrata': CsvSource,
         'tsv': TsvSource,
         'fixed': FixedSource,
         'txt': FixedSource,
         'xls': ExcelSource,
         'xlsx': ExcelSource,
-        'partition': PartitionSource,
-        'shape': ShapefileSource,
-        'socrata': SocrataSource
+        'shape': ShapefileSource
     }
 
-    cls = TYPE_TO_SOURCE_MAP.get(spec.filetype)
+    cls = TYPE_TO_SOURCE_MAP.get(spec.format)
 
     if cls is None:
         raise SourceError(
-            "Failed to determine file type for source '{}'; unknown type '{}' "
-            .format(spec.name, file_type))
+            "Failed to determine file type for source '{}'; unknown format '{}' "
+            .format(spec.name, spec.format))
 
 
-    return cls(spec, fstor)
+    return cls(spec, df)
 
 
 def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
@@ -483,8 +473,8 @@ def inspect(ss, cache_fs, callback=None):
 
             return l
 
-        elif ss.filetype in ('xls', 'xlsx') and ss.segment is None:
-            src = get_source(ss, cache_fs)
+        elif ss.format in ('xls', 'xlsx') and ss.segment is None:
+            src = get_generator(ss, cache_fs)
             l = []
             for seg in src.children:
                 ss2 = deepcopy(ss)
@@ -494,7 +484,7 @@ def inspect(ss, cache_fs, callback=None):
             return l
 
     if ss.urlfiletype in ('xls', 'xlsx') and ss.file is None and ss.segment is None:
-        src = get_source(ss, cache_fs)
+        src = get_generator(ss, cache_fs)
 
         l = []
         for seg in src.children:
@@ -505,3 +495,4 @@ def inspect(ss, cache_fs, callback=None):
         return l
 
     return [deepcopy(ss)]
+

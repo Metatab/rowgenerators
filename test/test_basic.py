@@ -59,8 +59,10 @@ class BasicTests(unittest.TestCase):
                        'url': 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip#excel/renter_cost_excel07.xlsx',
                        '_urltype': None,
                        '_filetype': 'xlsx',
-                       'file': 'excel/renter_cost_excel07.xlsx',
-                       'segment': None,
+                       '_file': 'excel/renter_cost_excel07.xlsx',
+                       '_segment': None,
+                       'file_segment': None,
+                       'archive_file': None,
                        'columns':None, 'headers': None}
 
         self.assertIsNone(ss.segment)
@@ -73,8 +75,10 @@ class BasicTests(unittest.TestCase):
         ):
             self.assertEqual(url,SourceSpec(url=url).url_str() )
             self.assertEqual(url,SourceSpec(url=url).dict['url'])
-            self.assertEquals(1, len(SourceSpec(url=url).dict))
+            self.assertEquals(2, len(SourceSpec(url=url).dict))
 
+
+        print(SourceSpec(url='socrata+http://chhs.data.ca.gov/api/views/tthg-z4mf').__dict__)
 
     def test_run_sources(self):
         from rowgenerators import  RowGenerator
@@ -83,12 +87,21 @@ class BasicTests(unittest.TestCase):
 
         for sd in sources():
             # Don't have the column map yet.
-            if sd['name'] in ('simple_fixed',):
+            if sd['name'] in ('simple_fixed','facilities'):
                 continue
 
             gen = RowGenerator(cache=cache, **sd)
 
-            self.assertEquals(int(sd['n_rows']), len(list(gen)))
+            rows = list(gen)
+
+
+            try:
+                self.assertEquals(int(sd['n_rows']), len(rows))
+            except Exception as e:
+                print('---')
+                print(sd['name'], e)
+                print(rows[0])
+                print(rows[-1])
 
     def test_inspect(self):
 
@@ -129,6 +142,58 @@ class BasicTests(unittest.TestCase):
                 print("ERROR", c.name, e)
             except UnicodeDecodeError as e:
                 print("UERROR", c.name, e)
+
+    def test_url_decompose(self):
+
+        from rowgenerators import decompose_url
+        from csv import DictReader
+        with open(data_path('decomp_urls.csv')) as f:
+            r = DictReader(f)
+            for d in r:
+                url = d['in_url']
+                del d['in_url']
+                d['is_archive'] = d['is_archive'] == 'True'
+                d  = {k: v if v else None for k, v in d.items()}
+                du = {k: v if v else None for k, v in decompose_url(url).items()}
+                print(url)
+                self.assertEquals(d, du )
+
+    def test_d_and_c(self):
+        from csv import DictReader
+        from rowgenerators.fetch import download_and_cache
+        from fs.opener import fsopendir
+        from os.path import isfile
+
+        cache = fsopendir('temp://', create_dir=True)
+
+        with open(data_path('sources.csv')) as f:
+            for e in DictReader(f):
+                d = download_and_cache(e['url'], cache)
+
+                self.assertTrue(isfile(d['sys_path']))
+
+    def test_delayed_flo(self):
+        from csv import DictReader
+        from rowgenerators.fetch import get_generator
+        from fs.opener import fsopendir
+        from os.path import isfile
+        from rowgenerators import SourceSpec
+
+        cache = fsopendir('/tmp/delayedflo', create_dir=True)
+
+        success = []
+
+        with open(data_path('sources.csv')) as f:
+            for e in DictReader(f):
+
+                if e['name'] in ('simple_fixed',):
+                    continue
+
+                s = SourceSpec(**e)
+
+                d = get_generator(s, cache)
+
+                print(s.url, len(list(d)))
 
 
 if __name__ == '__main__':

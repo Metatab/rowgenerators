@@ -25,12 +25,10 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
 
 # Avoiding import so we don't execute __init__.py, which has imports
 # that aren't installed until after installation.
-ambry_meta = imp.load_source('_meta', 'rowgenerators/__meta__.py')
+ambry_meta = imp.load_source('_meta', 'rowgenerators/_meta.py')
 
 packages = find_packages()
 
-
-install_requires = parse_requirements('requirements.txt', session=uuid.uuid1())
 
 classifiers = [
     'Development Status :: 4 - Beta',
