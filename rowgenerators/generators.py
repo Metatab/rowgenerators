@@ -315,7 +315,7 @@ class CsvSource(SourceFile):
 class TsvSource(CsvSource):
     """Generate rows from a TSV (tab separated value) source"""
 
-    delimiter = ','
+    delimiter = '\t'
 
 
 

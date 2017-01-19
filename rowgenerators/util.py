@@ -147,3 +147,21 @@ def unparse_url_dict(d):
         url += '?' + d['query']
 
     return url
+
+def get_cache():
+    """Return the path to a file cache"""
+
+    from fs.osfs import OSFS
+    from fs.appfs import UserDataFS
+    import os
+
+    cache_dir = os.getenv("METAPACK_CACHE", None)
+
+    if cache_dir:
+        return OSFS(cache_dir)
+    else:
+        return UserDataFS('metapack')
+
+
+
+

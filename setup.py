@@ -53,7 +53,7 @@ setup(
     long_description=readme,
     packages=packages,
     install_requires=[
-        'fs == 0.5.4',
+        'fs >= 2',
         'boto',
         'requests',
         'petl',

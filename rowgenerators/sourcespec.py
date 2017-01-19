@@ -8,7 +8,7 @@ The SourceSpec defines what kind of a source file to fetch and how to process it
 
 import hashlib
 from rowgenerators.util import parse_url_to_dict, unparse_url_dict
-from six import text_type
+from six import text_type, string_types
 from .exceptions import SpecError
 from .util import parse_url_to_dict, unparse_url_dict
 
@@ -52,7 +52,6 @@ def decompose_url(url, force_archive = None):
     del parts['fragment']
     del parts['scheme_extension']
 
-    url = unparse_url_dict(parts)
 
     if proto == 'gs':
         url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv'
@@ -60,9 +59,12 @@ def decompose_url(url, force_archive = None):
         if segment:
             download_url += "?gid={}".format(segment)
     elif proto == 'socrata':
-        download_url = url + '/rows.csv'
+        download_url = unparse_url_dict(parts) + '/rows.csv'
     else:
-        download_url = url
+        download_url = unparse_url_dict(parts)
+
+    if  (proto == 'http' and 'tthg-z4mf'  in download_url):
+        raise Exception()
 
     if is_archive:
         if file:
@@ -161,7 +163,6 @@ class SourceSpec(object):
         self.download_time = None  # Set externally
 
         if url:
-
             self.__dict__.update(decompose_url(url, force_archive=self._urlfiletype in ('zip',)))
         else:
             self.url = None
@@ -196,7 +197,8 @@ class SourceSpec(object):
                 urlfiletype=self._urlfiletype,
                 format=self.format,
                 encoding=self.encoding,
-                columns=self.columns
+                columns=self.columns,
+                proto=self.proto
             )
         except SpecError as e:
             # Guess that its a conflict of the file or segment param with the url
@@ -209,7 +211,8 @@ class SourceSpec(object):
                 urlfiletype=self._urlfiletype,
                 format=self.format,
                 encoding=self.encoding,
-                columns=self.columns
+                columns=self.columns,
+                proto=self.proto
             )
 
 
@@ -272,11 +275,6 @@ class SourceSpec(object):
         return self.urlfiletype in ('zip',)
 
     def get_generator(self, cache=None):
-
-        if cache is None:
-            from fs.opener import fsopendir
-            cache = fsopendir('temp://')
-
         from rowgenerators.fetch import get_generator
 
         return get_generator(self, cache)

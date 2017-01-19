@@ -12,33 +12,33 @@ from six.moves.urllib.request import urlopen
 
 import functools
 import hashlib
-import re
-import six
-from fs.zipfs import ZipFS
-from fs.zipfs import ZipOpenError
+
 from os.path import join
 from rowgenerators import decompose_url
-from rowgenerators.exceptions import ConfigurationError, MissingCredentials
-from .exceptions import SourceError
+from rowgenerators.exceptions import MissingCredentials
 from .generators import *
 from .s3 import AltValidationS3FS
 from .util import DelayedFlo
 from .util import copy_file_or_flo, parse_url_to_dict
 
 
-def download_and_cache(url, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
+def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
 
+    from .util import get_cache
 
-    parts = decompose_url(url)
+    parts = {}
 
-    if parts['proto'] == 'file':
-        parts['cache_path'] = parts['url']
+    if spec.proto == 'file':
+        parts['cache_path'] = spec.url
         parts['download_time'] = None
+        parts['sys_path'] = parts['cache_path']
     else:
-        parts['cache_path'], parts['download_time'] = download(parts['download_url'], cache_fs, account_accessor,
+        cache_fs = cache_fs or get_cache()
+        parts['cache_path'], parts['download_time'] = download(spec.download_url, cache_fs, account_accessor,
                                                            clean=clean, logger=logger, callback=callback)
 
-    parts['sys_path'] = cache_fs.getsyspath(parts['cache_path'])
+        parts['sys_path'] = cache_fs.getsyspath(parts['cache_path'])
+
 
     return parts
 
@@ -54,10 +54,11 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
 
     spec = deepcopy(spec)
 
-    d = download_and_cache(spec.url, cache_fs)
+    d = download_and_cache(spec, cache_fs)
 
     if spec.is_archive:
 
+        # Create a DelayedFlo for the file in a ZIP file. We might have to find the file first, though
         def _open(mode='rU'):
             zf = ZipFile(d['sys_path'])
 
@@ -79,10 +80,7 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
             f[1].close()
             f[0].close()
 
-        df = DelayedFlo( d['sys_path'],
-                         _open,
-                         lambda m: m[1],
-                         _close)
+        df = DelayedFlo( d['sys_path'], _open, lambda m: m[1], _close)
 
     else:
 
@@ -93,10 +91,7 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
         def _close(f):
             f.close()
 
-        df = DelayedFlo(d['sys_path'],
-                        _open,
-                        lambda m: m,
-                        _close)
+        df = DelayedFlo(d['sys_path'], _open, lambda m: m, _close)
 
     if spec.proto in ('gs', 'socrata'):
         spec.encoding = 'utf8'
@@ -120,66 +115,16 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
             "Failed to determine file type for source '{}'; unknown format '{}' "
             .format(spec.name, spec.format))
 
+    print(spec.__dict__)
 
     return cls(spec, df)
-
-
-def extract_file_from_zip(cache_fs, cache_path, url, fn_pattern=None):
-    """
-    For a zip archive, return the first file if no file_name is specified as a fragment in the url,
-     or if a file_name is specified, use it as a regex to find a file in the archive
-
-    :param cache_fs:
-    :param cache_path:
-    :param url:
-    :return:
-    """
-
-    # FIXME Not sure what is going on here, but in multiproccessing mode,
-    # the 'try' version of opening the file can fail with an error about the file being missing or corrupy
-    # but the second successedes. However, the second will faile in test environments that
-    # have a memory cache.
-    try:
-        fs = ZipFS(cache_fs.open(cache_path, 'rb'))
-    except ZipOpenError:
-        fs = ZipFS(cache_fs.getsyspath(cache_path))
-
-    fstor = None
-
-    def walk_all(fs):
-        return [join(e[0], x) for e in fs.walk() for x in e[1]]
-
-    if not fn_pattern and '#' in url:
-        _, fn_pattern = url.split('#')
-
-    if not fn_pattern:
-        first = walk_all(fs)[0]
-        fstor = DelayedOpen(fs, first, 'rU', container=(cache_fs, cache_path))
-
-    else:
-
-        for file_name in walk_all(fs):
-
-            if '_MACOSX' in file_name:
-                continue
-
-            if re.search(fn_pattern, file_name):
-
-                fstor = DelayedOpen(fs, file_name, 'rb', container=(cache_fs, cache_path))
-                break
-
-        if not fstor:
-            raise ConfigurationError(
-                "Failed to get file for pattern '{}' from archive {}".format(fn_pattern, fs))
-
-    return fstor
 
 
 def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None):
 
     import urllib
     import requests
-    from fs.errors import ResourceNotFoundError
+    from fs.errors import ResourceNotFound
 
     def copy_callback(read, total):
         if callback:
@@ -196,8 +141,8 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None
             with cache_fs.open(cache_path, 'wb') as fout:
                 with s3.open(urllib.unquote_plus(pd['path']), 'rb') as fin:
                     copy_file_or_flo(fin, fout, cb=copy_callback)
-        except ResourceNotFoundError:
-            raise ResourceNotFoundError("Failed to find path '{}' in S3 FS '{}' ".format(pd['path'], s3))
+        except ResourceNotFound:
+            raise ResourceNotFound("Failed to find path '{}' in S3 FS '{}' ".format(pd['path'], s3))
 
     elif url.startswith('ftp:'):
         from contextlib import closing
@@ -249,8 +194,8 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
     """
     import os.path
     import time
-    from fs.errors import NoSysPathError, ResourceInvalidError
-
+    from fs.errors import DirectoryExpected, NoSysPath, ResourceInvalid, DirectoryExists
+    from .util import get_cache
 
     parsed = urlparse(url)
 
@@ -265,26 +210,28 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
     if not cache_fs.exists(cache_path):
 
         try:
-            cache_fs.makedir(os.path.dirname(cache_path), recursive=True, allow_recreate=True)
-        except ResourceInvalidError as e:
+            cache_fs.makedirs(os.path.dirname(cache_path),  recreate=True)
+        except DirectoryExpected as e:
+
             # Probably b/c the dir name is already a file
             dn = os.path.dirname(cache_path)
             bn = os.path.basename(cache_path)
             for i in range(10):
                 try:
                     cache_path = os.path.join(dn+str(i), bn)
-
-                    cache_fs.makedir(os.path.dirname(cache_path), recursive=True, allow_recreate=True)
+                    cache_fs.makedirs(os.path.dirname(cache_path))
                     break
-                except ResourceInvalidError:
+                except DirectoryExpected:
                     continue
+                except DirectoryExists:
+                    print ('!!!',cache_fs.getsyspath(cache_path) )
                 raise e
 
     try:
         from filelock import FileLock
         lock = FileLock(cache_fs.getsyspath(cache_path + '.lock'))
 
-    except NoSysPathError:
+    except NoSysPath:
         # mem: caches, and others, don't have sys paths.
         # FIXME should check for MP operation and raise if there would be
         # contention. Mem  caches are only for testing with single processes
@@ -295,7 +242,7 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
             if clean:
                 try:
                     cache_fs.remove(cache_path)
-                except ResourceInvalidError:
+                except ResourceInvalid:
                     pass  # Well, we tried.
             else:
                 return cache_path, None

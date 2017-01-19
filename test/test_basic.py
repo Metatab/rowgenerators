@@ -1,7 +1,7 @@
 import unittest
-
-from fs.opener import fsopendir
-
+from rowgenerators.fetch import get_generator
+from rowgenerators import SourceSpec
+from fs.tempfs import TempFS
 def data_path(v):
     from os.path import dirname, join
     d = dirname(__file__)
@@ -161,25 +161,22 @@ class BasicTests(unittest.TestCase):
     def test_d_and_c(self):
         from csv import DictReader
         from rowgenerators.fetch import download_and_cache
-        from fs.opener import fsopendir
+
         from os.path import isfile
 
-        cache = fsopendir('temp://', create_dir=True)
+        cache = TempFS()
 
         with open(data_path('sources.csv')) as f:
             for e in DictReader(f):
-                d = download_and_cache(e['url'], cache)
+                d = download_and_cache(SourceSpec(**e), cache)
 
                 self.assertTrue(isfile(d['sys_path']))
 
     def test_delayed_flo(self):
         from csv import DictReader
-        from rowgenerators.fetch import get_generator
-        from fs.opener import fsopendir
-        from os.path import isfile
-        from rowgenerators import SourceSpec
 
-        cache = fsopendir('/tmp/delayedflo', create_dir=True)
+
+        cache = TempFS()
 
         success = []
 

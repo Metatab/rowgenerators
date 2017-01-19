@@ -6,9 +6,9 @@ the Revised BSD License, included in this distribution as LICENSE.txt
 
 """
 
-from fs.s3fs import S3FS
 
-class AltValidationS3FS(S3FS):
+
+class AltValidationS3FS(object):
     def _s3bukt(self):
         """ Overrides the original _s3bukt method to get the bucket without vlaidation when
         the return to the original validation is not a 404.
