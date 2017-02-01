@@ -29,9 +29,8 @@ def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logg
 
     parts = {}
 
-
     if spec.proto == 'file':
-        parts['cache_path'] = spec.download_url
+        parts['cache_path'] = parse_url_to_dict(spec.download_url)['path']
         parts['download_time'] = None
         parts['sys_path'] = parts['cache_path']
     else:

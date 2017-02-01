@@ -141,7 +141,9 @@ def unparse_url_dict(d, **kwargs):
         url = '{}://{}/{}'.format(d['scheme'],host_port, d.get('path', '').lstrip('/'))
     elif d.get('path'):
         # It's possible just a local file url.
-        url = 'file://'+(d['path'][1:] if d['path'].startswith('/') else d['path'])
+        # This isn't the standard file: url form, which is specified to have a :// and a host part,
+        # like 'file://localhost/etc/config', but that form can't handle relative URLs ( which don't start with '/')
+        url = 'file:'+d['path']
     else:
         url = ''
 

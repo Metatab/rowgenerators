@@ -23,6 +23,33 @@ def cache_fs():
 
 class BasicTests(unittest.TestCase):
 
+    def compare_dict(self, a, b):
+        from metatab.util import flatten
+        fa = set('{}={}'.format(k, v) for k, v in flatten(a));
+        fb = set('{}={}'.format(k, v) for k, v in flatten(b));
+
+        # The declare lines move around a lot, and rarely indicate an error
+        fa = {e for e in fa if not e.startswith('declare=')}
+        fb = {e for e in fb if not e.startswith('declare=')}
+
+        errors = len(fa - fb) + len(fb - fa)
+
+        if errors:
+            print("=== ERRORS ===")
+
+        if len(fa - fb):
+            print("In b but not a")
+            for e in sorted(fa - fb):
+                print('    ', e)
+
+        if len(fb - fa):
+            print("In a but not b")
+            for e in sorted(fb - fa):
+                print('    ', e)
+
+        self.assertEqual(0, errors)
+
+
     def test_source_spec_url(self):
         from rowgenerators import SourceSpec, RowGenerator
         from rowgenerators.util import parse_url_to_dict, unparse_url_dict
@@ -209,8 +236,10 @@ class BasicTests(unittest.TestCase):
                 try:
                     self.assertEquals(d, du)
                 except AssertionError:
+                    print("VVVVV")
                     print(json.dumps(d, indent=4))
                     print(json.dumps(du, indent=4))
+                    print("^^^^")
                     #raise
 
     def test_urls(self):
@@ -224,6 +253,7 @@ class BasicTests(unittest.TestCase):
         with open(data_path('url_classes.csv')) as f, open('/tmp/url_classes.csv', 'w') as f_out:
             w = None;
             r = DictReader(f)
+            errors = 0
             for i, d in enumerate(r):
                 url = d['in_url']
 
@@ -242,11 +272,12 @@ class BasicTests(unittest.TestCase):
                 do = {k: str(v) if v else None for k, v in do.items()}# str() turns True into 'True'
 
                 try:
-                    self.assertEquals(d, do)
-                except AssertionError:
-                    print(json.dumps(d, indent=4))
-                    print(json.dumps(do, indent=4))
-                    raise
+                    self.compare_dict(d, do)
+                except AssertionError as e:
+                    errors += 1
+                    #raise
+
+            self.assertEqual(0, errors)
 
 if __name__ == '__main__':
     unittest.main()

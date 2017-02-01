@@ -6,12 +6,13 @@
 from __future__ import print_function
 
 from os.path import splitext, basename, join
-from rowgenerators.util import parse_url_to_dict, unparse_url_dict
+from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
 
 
 def file_ext(v):
     """Split of the extension of a filename, without throwing an exception of there is no extension. Does not
-    return the leading '.' """
+    return the leading '.'
+    :param v: """
 
     try:
         v = splitext(v)[1][1:]
@@ -23,7 +24,9 @@ def file_ext(v):
 # DEPRECATED. Use Url() instead.
 def decompose_url(url, force_archive=None):
     """Decompose and classify a URL, returning the downloadable reference, internal file references, and API
-    access URLS. """
+    access URLS.
+    :param force_archive:
+    :param url: """
 
     uo = Url(url, force_archive=force_archive)
 
@@ -54,7 +57,7 @@ class Url(object):
 
     def __init__(self, url, **kwargs):
 
-        self.url = url
+        self.url = reparse_url(url)
         self.parts = self.url_parts(self.url, **kwargs)
 
         self.proto = kwargs.get('proto')
@@ -68,7 +71,7 @@ class Url(object):
         self.file_segment = kwargs.get('file_segment')
 
         if not self.proto:
-            self.proto = extract_proto(url)
+            self.proto = extract_proto(self.url)
 
         self._process_fragment()
         self._process_download_url()
@@ -107,7 +110,10 @@ class Url(object):
     @classmethod
     def decompose_fragment(cls, frag, is_archive):
 
-        frag_parts = frag.split(';')
+        # noinspection PyUnresolvedReferences
+        from six.moves.urllib.parse import unquote_plus
+
+        frag_parts = unquote_plus(frag).split(';')
 
         file = segment = None
 
@@ -184,6 +190,7 @@ class GoogleProtoCsvUrl(Url):
 
         url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv'
 
+        # noinspection PyUnresolvedReferences
         self.download_url = url_template.format(
             key=self.parts.netloc)  # netloc is case-sensitive, hostname is forced lower.
 
@@ -198,7 +205,7 @@ class GoogleProtoCsvUrl(Url):
         if self.download_format is None:
             self.download_format = file_ext(self.download_file)
 
-        self.target_file = self.download_file # _process_target() file will use this self.target_file
+        self.target_file = self.download_file  # _process_target() file will use this self.target_file
 
 
 class SocrataUrl(Url):
@@ -212,9 +219,7 @@ class SocrataUrl(Url):
     def match(cls, url, **kwargs):
         return extract_proto(url) == 'socrata'
 
-
     def _process_download_url(self):
-
         self.download_url = unparse_url_dict(self.parts.__dict__,
                                              scheme_extension=False,
                                              fragment=False,
@@ -225,7 +230,7 @@ class SocrataUrl(Url):
         if self.download_format is None:
             self.download_format = file_ext(self.download_file)
 
-        self.target_file = self.download_file # _process_target() file will use this self.target_file
+        self.target_file = self.download_file  # _process_target() file will use this self.target_file
 
 
 class CkanUrl(Url):
@@ -258,6 +263,10 @@ class ZipUrl(Url):
 
     def _process_target_file(self):
 
+        for ext in ('csv','xls','xlsx'):
+            if self.download_file.endswith('.'+ext+'.zip'):
+                self.target_file = self.download_file.replace('.zip','')
+
         if not self.target_file:
             self.target_file = basename(self.download_url)
 
@@ -271,8 +280,7 @@ class ExcelUrl(Url):
     @classmethod
     def match(cls, url, **kwargs):
         parts = parse_url_to_dict(url)
-        format = file_ext(parts['path'])
-        return format in ('xls', 'xlsx')
+        return file_ext(parts['path']) in ('xls', 'xlsx')
 
 
 url_handlers = [
