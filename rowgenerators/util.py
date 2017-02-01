@@ -99,6 +99,13 @@ def parse_url_to_dict(url):
         scheme = p.scheme
         scheme_extension = None
 
+    if scheme == '':
+        scheme = 'file'
+
+    if scheme == 'file' and url.startswith('file://') and not url.startswith('file:///') :
+        # We'll assume that the file urls never have a hostname, and the file:// is an error.
+        return parse_url_to_dict(url.replace('file://', 'file:'))
+
     return {
         'scheme': scheme,
         'scheme_extension': scheme_extension,

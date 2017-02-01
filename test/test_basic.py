@@ -212,35 +212,6 @@ class BasicTests(unittest.TestCase):
 
                 print(s.url, len(list(d)))
 
-    def test_url_decompose(self):
-
-        from rowgenerators import decompose_url
-        from csv import DictReader, DictWriter
-        import json
-        with open(data_path('decomp_urls.csv')) as f, open('/tmp/decomp_urls.csv', 'w') as f_out:
-            w = None;
-            r = DictReader(f)
-            for i, d in enumerate(r):
-                url = d['in_url']
-
-                d['is_archive'] = d['is_archive'] == 'True'
-                d = {k: v if v else None for k, v in d.items()}
-                du = {k: v if v else None for k, v in decompose_url(url).items()}
-
-                if w is None:
-                    w = DictWriter(f_out, fieldnames=['in_url'] + list(du.keys()))
-                    w.writeheader()
-                du['in_url'] = url
-                w.writerow(du)
-
-                try:
-                    self.assertEquals(d, du)
-                except AssertionError:
-                    print("VVVVV")
-                    print(json.dumps(d, indent=4))
-                    print(json.dumps(du, indent=4))
-                    print("^^^^")
-                    #raise
 
     def test_urls(self):
 
@@ -251,7 +222,7 @@ class BasicTests(unittest.TestCase):
         headers="in_url url download_url download_file target_file proto download_format target_format is_archive encoding file_segment".split()
 
         with open(data_path('url_classes.csv')) as f, open('/tmp/url_classes.csv', 'w') as f_out:
-            w = None;
+            w = None
             r = DictReader(f)
             errors = 0
             for i, d in enumerate(r):
@@ -278,6 +249,23 @@ class BasicTests(unittest.TestCase):
                     #raise
 
             self.assertEqual(0, errors)
+
+    def test_parse_file_urls(self):
+        from rowgenerators.util import parse_url_to_dict, unparse_url_dict
+        urls = [
+            ('file:foo/bar/baz','foo/bar/baz','file:foo/bar/baz'),
+            ('file:/foo/bar/baz', '/foo/bar/baz','file:/foo/bar/baz'),
+            ('file://foo/bar/baz', 'foo/bar/baz','file:foo/bar/baz'),
+            ('file:///foo/bar/baz', '/foo/bar/baz','file:/foo/bar/baz'),
+
+        ]
+
+        for i,o,u in urls:
+            p = parse_url_to_dict(i)
+            self.assertEqual(o, p['path'])
+            self.assertEqual(u, unparse_url_dict(p))
+            self.assertEqual(o, parse_url_to_dict(u)['path'])
+
 
 if __name__ == '__main__':
     unittest.main()
