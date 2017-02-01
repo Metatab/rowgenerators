@@ -61,6 +61,11 @@ setup(
         'filelock',
 
     ],
+    entry_points={
+        'console_scripts': [
+            'rowgen=rowgenerators.cli:rowgen',
+        ],
+    },
     author=ambry_meta.__author__,
     author_email='eric@civicknowledge.com',
     url='https://github.com/CivicKnowledge/rowgenerator.git',

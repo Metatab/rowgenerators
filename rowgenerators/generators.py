@@ -12,7 +12,8 @@ from .exceptions import TextEncodingError, SourceError
 
 from .sourcespec import SourceSpec
 
-
+# HACK This should probably not be derived from SourceSpec. It should be it's own
+# class heirarchy, and use __new__ for a polymorphic constructor
 class RowGenerator(SourceSpec):
     """Primary generator object. It's actually a SourceSpec fetches a Source
      then proxies the iterator"""
@@ -20,6 +21,22 @@ class RowGenerator(SourceSpec):
     def __init__(self, url, cache=None, name=None, urltype=None, filetype=None, format=None,
                  urlfiletype=None, encoding=None, file=None,
                  segment=None, columns=None, **kwargs):
+        """
+
+        :param url:
+        :param cache:
+        :param name:
+        :param urltype:
+        :param filetype:
+        :param format:
+        :param urlfiletype:
+        :param encoding:
+        :param file:
+        :param segment:
+        :param columns:
+        :param kwargs: Sucks up other keyword args so dicts can be expanded into the arg list.
+        :return:
+        """
 
         self.cache = cache
         self.headers = None
@@ -28,6 +45,8 @@ class RowGenerator(SourceSpec):
                                            urlfiletype, encoding,
                                            file, segment, columns,
                                            **kwargs)
+
+
 
     @property
     def path(self):
@@ -99,10 +118,6 @@ class Source(object):
 
         self.finish()
 
-    def _get_row_gen(self):
-        """ Returns generator over all rows of the source. """
-        raise NotImplementedError('Subclasses of SourceFile must provide a _get_row_gen() method')
-
     def start(self):
         pass
 
@@ -151,7 +166,6 @@ class GeneratorSource(Source):
 
     def __iter__(self):
         """ Iterate over all of the lines in the generator. """
-        # TODO (kazbek): Isn't returning self.gen from _get_row_gen method a better choice? Try it.
 
         self.start()
 
@@ -276,24 +290,22 @@ class CsvSource(SourceFile):
         import six
         if six.PY3:
             import csv
-
             mode = 'rtU'
         else:
             import unicodecsv as csv
             mode = 'rbU'
-
 
         reader = csv.reader(self._dflo.open(mode),delimiter=self.delimiter)
 
         self.start()
 
         i = 0
+
         try:
             for row in reader:
                 yield row
                 i+=1
         except UnicodeDecodeError as e:
-
             raise TextEncodingError(six.text_type(type(e)) + ';' + six.text_type(e) + "; line={}".format(i))
         except TypeError:
             raise
@@ -301,10 +313,12 @@ class CsvSource(SourceFile):
             # The error is that the underlying handle should return strings, not bytes,
             # but always using the TextIOWrapper has other problems, and the error only occurs
             # for CSV files loaded from Zip files.
+            raise
             self._dflo.close()
-            reader = csv.reader(io.TextIOWrapper(self._dflo.open(mode)), delimiter=self.delimiter)
-            for i, row in enumerate(reader):
-                yield row
+
+        except Exception as e:
+            print('HERE')
+            raise
 
 
         self.finish()
@@ -316,7 +330,6 @@ class TsvSource(CsvSource):
     """Generate rows from a TSV (tab separated value) source"""
 
     delimiter = '\t'
-
 
 
 class FixedSource(SourceFile):
@@ -460,6 +473,25 @@ class ExcelSource(SourceFile):
         return excel_date
 
 
+class MetapackSource(SourceFile):
+
+
+    def __init__(self, spec, dflo):
+        super().__init__(spec, dflo)
+
+        # General formats are:
+        #  .../metadata.csv
+        #  .../package.zip
+        #  .../package.zip#metadata.csv
+        #  .../package.xls
+        #  .../package.xls#meta
+
+
+        # So, if is_archive is set and archive_file is not, archive_file is metadata.csv
+        # if format == .xls/.xlsx, and archive file is not set, archive file is meta
+
+
+
 class GoogleAuthenticatedSource(SourceFile):
     """Generate rows from a Google spreadsheet source that requires authentication
 
@@ -493,7 +525,6 @@ class GooglePublicSource(CsvSource):
     def download_url(cls, spec):
 
         return cls.url_template.format(key=spec.netloc)
-
 
 
 class GeoSourceBase(SourceFile):
@@ -547,9 +578,6 @@ class ShapefileSource(GeoSourceBase):
         # last column is wkt value.
         columns.append({'name': 'geometry', 'type': 'geometry_type'})
         return columns
-
-    def _get_row_gen(self):
-        return iter(self)
 
     @property
     def headers(self):
@@ -728,16 +756,28 @@ class SelectiveRowGenerator(object):
         for row in self.iter:
             yield row
 
-# Ancient Mystery Sources!
-# Not actually mysteries, but should be moved back into Ambry
 
-class PartitionSource(SourceFile):
-    """Generate rows from a partition. """
+class DictRowGenerator(object):
+    """Constructed on a RowGenerator, returns dicts from the second and subsequent rows, using the
+    first row as dict keys. """
 
-    def _get_row_gen(self):
-        # TODO: Where is self.bundle definition?
-        for row in self.bundle.library.partition(self.spec.url).stream():
-            yield row
+
+
+    def __init__(self, rg):
+        self._rg = rg
+
+    def __iter__(self):
+        from six import text_type
+
+        headers = None
+
+        for row in self._rg:
+            if not headers:
+                headers = [ text_type(e).strip() for e in row ]
+                continue
+
+            yield dict(zip(headers, row))
+
 
 
 class MPRSource(Source):

@@ -9,6 +9,7 @@ import ssl
 
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.request import urlopen
+from six import string_types
 
 import functools
 import hashlib
@@ -19,17 +20,18 @@ from rowgenerators.exceptions import MissingCredentials
 from .generators import *
 from .s3 import AltValidationS3FS
 from .util import DelayedFlo
-from .util import copy_file_or_flo, parse_url_to_dict
-
-
+from .util import copy_file_or_flo, parse_url_to_dict, unparse_url_dict
+from rowgenerators.urls import file_ext
+from requests import HTTPError
 def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
 
     from .util import get_cache
 
     parts = {}
 
+
     if spec.proto == 'file':
-        parts['cache_path'] = spec.url
+        parts['cache_path'] = spec.download_url
         parts['download_time'] = None
         parts['sys_path'] = parts['cache_path']
     else:
@@ -42,6 +44,31 @@ def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logg
 
     return parts
 
+
+def get_file_from_zip(d, spec):
+
+    from zipfile import ZipFile
+    import re
+
+    zf = ZipFile(d['sys_path'])
+
+    nl = list(zf.namelist())
+
+    if spec.file:
+        names = list([e for e in nl if re.search(spec.file, e)
+                      and not (e.startswith('__') or e.startswith('.'))
+                      ])
+        if len(names) > 0:
+            return names[0]
+
+    if spec.segment:
+        try:
+            return nl[int(spec.segment)]
+
+        except (IndexError, ValueError):
+            pass
+
+    return nl[0]
 
 def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
     """Download the container for a source spec and return a DelayedFlo object for opening, closing
@@ -56,50 +83,17 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
 
     d = download_and_cache(spec, cache_fs)
 
-    if spec.is_archive:
+    if spec.format == 'zip':
+        # Details of file are known; will have to open it first
 
-        # Create a DelayedFlo for the file in a ZIP file. We might have to find the file first, though
-        def _open(mode='rU'):
-            zf = ZipFile(d['sys_path'])
-
-            nl = list(zf.namelist())
-
-            if spec.file:
-                # The archive file names can be regular expressions
-                real_name = list([e for e in nl if re.search(spec.file, e)
-                                   and not (e.startswith('__') or e.startswith('.'))
-                                 ]
-                                 ) or nl
-            else:
-                real_name = nl[0]
-
-            flo = zf.open(real_name.pop(0), 'rU') # Ingore the input mode -- it's always rU
-            return (zf, flo)
-
-        def _close(f):
-            f[1].close()
-            f[0].close()
-
-        df = DelayedFlo( d['sys_path'], _open, lambda m: m[1], _close)
-
-    else:
-
-        def _open(mode='rbU'):
-            return io.open(d['sys_path'], mode,
-                           encoding=spec.encoding if spec.encoding else None)
-
-        def _close(f):
-            f.close()
-
-        df = DelayedFlo(d['sys_path'], _open, lambda m: m, _close)
-
-    if spec.proto in ('gs', 'socrata'):
-        spec.encoding = 'utf8'
+        spec.file = get_file_from_zip(d, spec)
+        spec.format = file_ext(spec.file)
 
     TYPE_TO_SOURCE_MAP = {
         'gs': CsvSource,
         'csv': CsvSource,
         'socrata': CsvSource,
+        'metapack': MetapackSource,
         'tsv': TsvSource,
         'fixed': FixedSource,
         'txt': FixedSource,
@@ -113,9 +107,55 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
     if cls is None:
         raise SourceError(
             "Failed to determine file type for source '{}'; unknown format '{}' "
-            .format(spec.name, spec.format))
+                .format(spec.name, spec.format))
 
-    print(spec.__dict__)
+    if spec.is_archive:
+
+        # Create a DelayedFlo for the file in a ZIP file. We might have to find the file first, though
+        def _open(mode='rU', encoding=None):
+            zf = ZipFile(d['sys_path'])
+
+            nl = list(zf.namelist())
+
+            if spec.file:
+                # The archive file names can be regular expressions
+                real_name = (list([e for e in nl if re.search(spec.file, e)
+                                   and not (e.startswith('__') or e.startswith('.'))
+                                 ]
+                                 ) or nl)[0]
+            else:
+                real_name = nl[0]
+
+            if 'b' in mode:
+                flo = zf.open(real_name, 'rU')
+            else:
+                flo = io.TextIOWrapper(zf.open(real_name, 'rU'),
+                                       encoding=spec.encoding if spec.encoding else 'utf8')
+
+            return (zf, flo)
+
+        def _close(f):
+            f[1].close()
+            f[0].close()
+
+        df = DelayedFlo( d['sys_path'], _open, lambda m: m[1], _close)
+
+    else:
+
+        def _open(mode='rbU'):
+            if 'b' in mode:
+                return io.open(d['sys_path'], mode)
+            else:
+                return io.open(d['sys_path'], mode,
+                               encoding=spec.encoding if spec.encoding else 'utf8')
+
+        def _close(f):
+            f.close()
+
+        df = DelayedFlo(d['sys_path'], _open, lambda m: m, _close)
+
+    if spec.proto in ('gs', 'socrata'):
+        spec.encoding = 'utf8'
 
     return cls(spec, df)
 
@@ -165,6 +205,7 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None
 
     else:
 
+
         r = requests.get(url, stream=True)
         r.raise_for_status()
 
@@ -196,6 +237,8 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
     import time
     from fs.errors import DirectoryExpected, NoSysPath, ResourceInvalid, DirectoryExists
     from .util import get_cache
+
+    assert isinstance(url, string_types)
 
     parsed = urlparse(url)
 
@@ -252,6 +295,9 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
 
             return cache_path, time.time()
 
+        except HTTPError as e:
+            raise SourceError("Failed to download: {}".format(e))
+
         except (KeyboardInterrupt, Exception):
             # This is really important -- its really bad to have partly downloaded
             # files being confused with fully downloaded ones.
@@ -262,6 +308,9 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
                 cache_fs.remove(cache_path)
 
             raise
+
+
+
 
     assert False, 'Should never get here'
 
@@ -290,7 +339,7 @@ def get_s3(url, account_accessor):
     # https://pypi.python.org/pypi/backports.ssl_match_hostname
     def _new_match_hostname(cert, hostname):
         if hostname.endswith('.s3.amazonaws.com'):
-            pos = hostname.find('.s3.amazonaws.com')
+            pos = hostname.find_first('.s3.amazonaws.com')
             hostname = hostname[:pos].replace('.', '') + hostname[pos:]
         return _old_match_hostname(cert, hostname)
 
@@ -394,28 +443,40 @@ def enumerate_contents(base_spec, cache_fs, callback = None):
 def inspect(ss, cache_fs, callback=None):
     """Return a list of possible extensions to the url, such as files within a ZIP archive, or
     worksheets in a spreadsheet"""
+    from zipfile import ZipFile
+    from os.path import basename
 
     from copy import deepcopy
 
-    cache_path, download_time = download(ss.url, cache_fs, callback=callback)
+    d = download_and_cache(ss, cache_fs, callback=callback)
 
-    def walk_all(fs):
+    print("Inspecting: format={} file={} segment={} url={}".format(ss.format, ss.file, ss.segment, ss.rebuild_url()))
 
-        return [join(e[0], x) for e in fs.walk() for x in e[1]
-                if not (e[0].startswith('/__') or e[0].startswith('.'))]
+    if ss.format == 'zip':
 
-    if ss.urlfiletype == 'zip':
-
-        try:
-            fs = ZipFS(cache_fs.open(cache_path, 'rb'))
-        except ZipOpenError:
-            fs = ZipFS(cache_fs.getsyspath(cache_path))
+        zf = ZipFile(cache_fs.getsyspath(d['cache_path']))
 
         if ss.file is None:
             l = []
-            for e in walk_all(fs):
+
+            for e in zf.infolist():
+
+                if basename(e.filename).startswith('__') or basename(e.filename).startswith('.'):
+                    continue
+
+                # I really don't understand external_attr, but no one else seems to either,
+                # so we're just hacking here.
+                # e.external_attr>>31&1 works when the archive has external attrs set, and a dir heirarchy
+                # e.external_attr==0 works in cases where there are no external attrs set
+                # e.external_attr==32 is true for some single-file archives.
+                is_file = bool(e.external_attr>>31&1 or e.external_attr==0 or e.external_attr==32)
+
+                if not is_file:
+                    print("Not a File!",e.external_attr )
+                    continue
+
                 ss2 = deepcopy(ss)
-                ss2.file = e.strip('/')
+                ss2.file = e.filename.strip('/')
                 l.append(ss2)
 
             return l
@@ -430,11 +491,13 @@ def inspect(ss, cache_fs, callback=None):
 
             return l
 
-    if ss.urlfiletype in ('xls', 'xlsx') and ss.file is None and ss.segment is None:
+    if ss.format in ('xls', 'xlsx') and ss.segment is None:
+
         src = get_generator(ss, cache_fs)
 
         l = []
         for seg in src.children:
+
             ss2 = deepcopy(ss)
             ss2.segment = seg
             l.append(ss2)

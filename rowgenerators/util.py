@@ -85,9 +85,10 @@ def parse_url_to_dict(url):
     with properties.
 
     """
-    from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit
+    from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, unquote_plus
+    from six import text_type
 
-    p = urlparse(url)
+    p = urlparse(text_type(url))
 
     #  '+' indicates that the scheme has a scheme extension
     if '+' in p.scheme:
@@ -105,14 +106,18 @@ def parse_url_to_dict(url):
         'path': p.path,
         'params': p.params,
         'query': p.query,
-        'fragment': p.fragment,
+        'fragment': unquote_plus(p.fragment) if p.fragment else None,
         'username': p.username,
         'password': p.password,
         'hostname': p.hostname,
         'port': p.port
     }
 
-def unparse_url_dict(d):
+def unparse_url_dict(d, **kwargs):
+
+    from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, quote_plus
+
+    d.update(kwargs)
 
     if 'netloc' in d and d['netloc']:
         host_port = d['netloc']
@@ -136,7 +141,7 @@ def unparse_url_dict(d):
         url = '{}://{}/{}'.format(d['scheme'],host_port, d.get('path', '').lstrip('/'))
     elif d.get('path'):
         # It's possible just a local file url.
-        url = d['path']
+        url = 'file://'+(d['path'][1:] if d['path'].startswith('/') else d['path'])
     else:
         url = ''
 
@@ -146,22 +151,50 @@ def unparse_url_dict(d):
     if 'query' in d and d['query']:
         url += '?' + d['query']
 
+    if d.get('fragment'):
+        url += '#' + quote_plus(d['fragment'])
+
+
     return url
 
-def get_cache():
+
+def reparse_url(url, **kwargs):
+
+    return unparse_url_dict(parse_url_to_dict(url), **kwargs)
+
+# From http://stackoverflow.com/a/2597440
+class Bunch(object):
+  def __init__(self, adict):
+    self.__dict__.update(adict)
+
+
+
+def get_cache(cache_name='rowgen'):
     """Return the path to a file cache"""
 
     from fs.osfs import OSFS
     from fs.appfs import UserDataFS
     import os
 
-    cache_dir = os.getenv("METAPACK_CACHE", None)
+    env_var = (cache_name+'_cache').upper()
+
+    cache_dir = os.getenv(env_var, None)
 
     if cache_dir:
         return OSFS(cache_dir)
     else:
-        return UserDataFS('metapack')
+        return UserDataFS(cache_name.lower())
 
+def clean_cache(cache_name='rowgen'):
+    import datetime
 
+    cache = get_cache(cache_name)
 
+    for step in cache.walk.info():
+        details = cache.getdetails(step[0])
+        mod = details.modified
+        now = datetime.datetime.now(tz=mod.tzinfo)
+        age = (now - mod).total_seconds()
+        if age > (60 * 60 * 4) and details.is_file:
+            cache.remove(step[0])
 
