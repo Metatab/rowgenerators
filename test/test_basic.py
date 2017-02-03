@@ -219,7 +219,7 @@ class BasicTests(unittest.TestCase):
         from rowgenerators.urls import get_handler, Url
         import json
 
-        headers="in_url url download_url download_file target_file proto download_format target_format is_archive encoding file_segment".split()
+        headers="in_url url download_url download_file target_file scheme proto download_format target_format is_archive encoding file_segment".split()
 
         with open(data_path('url_classes.csv')) as f, open('/tmp/url_classes.csv', 'w') as f_out:
             w = None

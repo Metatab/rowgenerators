@@ -317,7 +317,6 @@ class CsvSource(SourceFile):
             self._dflo.close()
 
         except Exception as e:
-            print('HERE')
             raise
 
 

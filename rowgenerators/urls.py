@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-from os.path import splitext, basename, join
+from os.path import splitext, basename, join, dirname
 from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
 
 
@@ -49,6 +49,15 @@ def extract_proto(url):
         else {'https': 'http', '': 'file'}.get(parts['scheme'], parts['scheme'])
 
 
+def url_is_absolute(ref):
+
+    u = Url(ref)
+
+    if u.scheme in ('http','https'):
+        return True
+
+
+
 class Url(object):
     """Base class for URL Managers"""
 
@@ -60,6 +69,7 @@ class Url(object):
         self.url = reparse_url(url)
         self.parts = self.url_parts(self.url, **kwargs)
 
+        self.scheme = kwargs.get('scheme', self.parts.scheme)
         self.proto = kwargs.get('proto')
         self.is_archive = kwargs.get('is_archive')
         self.download_url = kwargs.get('download_url')
@@ -105,7 +115,6 @@ class Url(object):
         if not self.target_format:
             self.target_format = self.download_format
 
-        assert self.target_format, self.url
 
     @classmethod
     def decompose_fragment(cls, frag, is_archive):
@@ -157,6 +166,15 @@ class Url(object):
         """Return a suitable generator for this url"""
         raise NotImplementedError
 
+    def component_url(self, s):
+
+        sp = parse_url_to_dict(s)
+
+        if sp['netloc']:
+            return s
+
+        return reparse_url(self.url, path=join(dirname(s.path), sp['path']))
+
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, self.download_url)
 
@@ -170,6 +188,14 @@ class GeneralUrl(Url):
     @classmethod
     def match(cls, url, **kwargs):
         return True
+
+    def component_url(self, s):
+        sp = parse_url_to_dict(s)
+
+        if sp['netloc']:
+            return s
+
+        return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']))
 
 
 class GoogleProtoCsvUrl(Url):
@@ -273,6 +299,13 @@ class ZipUrl(Url):
         if self.target_format is None:
             self.target_format = file_ext(self.target_file)
 
+    def component_url(self, s):
+
+        if url_is_absolute(s):
+            return s
+
+        return reparse_url(self.url, fragment=s)
+
 
 class ExcelUrl(Url):
     download_format = None  # Must be xls or xlsx
@@ -282,6 +315,42 @@ class ExcelUrl(Url):
         parts = parse_url_to_dict(url)
         return file_ext(parts['path']) in ('xls', 'xlsx')
 
+    def component_url(self, s):
+
+        if url_is_absolute(s):
+            return s
+
+        return reparse_url(self.url, fragment=s)
+
+
+
+class S3AuthUrl(Url):
+    """Access a Google spreadheet as a CSV format download"""
+
+    def __init__(self, url, **kwargs):
+
+        super(S3AuthUrl, self).__init__(url,proto='s3')
+
+    @classmethod
+    def match(cls, url, **kwargs):
+        return extract_proto(url) == 's3'
+
+    def _process_download_url(self):
+
+        url_template = 'https://{bucket}.s3.amazonaws.com/{path}'
+
+        # noinspection PyUnresolvedReferences
+        self.download_url = url_template.format(
+            bucket=self.parts.netloc,
+            path=self.parts.path.strip('/'))
+
+        self.download_file = basename(self.download_url)
+
+        if self.download_format is None:
+            self.download_format = file_ext(self.download_file)
+
+
+
 
 url_handlers = [
     CkanUrl,
@@ -289,6 +358,7 @@ url_handlers = [
     GoogleProtoCsvUrl,
     ZipUrl,
     ExcelUrl,
+    S3AuthUrl,
     GeneralUrl
 ]
 

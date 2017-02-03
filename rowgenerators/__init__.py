@@ -9,7 +9,9 @@ from .urls import decompose_url
 from .rowproxy import RowProxy, GeoRowProxy
 from .fetch import enumerate_contents, inspect
 from .exceptions import *
+from .urls import *
 import sys
+
 
 __all__ = [k for k in sys.modules[__name__].__dict__.keys()
            if not k.startswith('_') and
