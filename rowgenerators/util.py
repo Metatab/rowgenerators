@@ -88,6 +88,8 @@ def parse_url_to_dict(url):
     from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, unquote_plus
     from six import text_type
 
+    assert url is not None
+
     p = urlparse(text_type(url))
 
     #  '+' indicates that the scheme has a scheme extension
@@ -123,6 +125,8 @@ def parse_url_to_dict(url):
 def unparse_url_dict(d, **kwargs):
 
     from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, quote_plus
+
+    d = dict(d.items())
 
     d.update(kwargs)
 
@@ -207,3 +211,34 @@ def clean_cache(cache_name='rowgen'):
         if age > (60 * 60 * 4) and details.is_file:
             cache.remove(step[0])
 
+# From http://stackoverflow.com/a/295466
+def slugify(value):
+    """
+    Normalizes string, converts to lowercase, removes non-alpha characters,
+    and converts spaces to hyphens.type(
+    """
+    import re
+    import unicodedata
+    from six import text_type
+    value = text_type(value)
+    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('utf8')
+    value = re.sub(r'[^\w\s-]', '', value).strip().lower()
+    value = re.sub(r'[-\s]+', '-', value)
+    return value
+
+def real_files_in_zf(zf):
+    """Return a list of internal paths of real files in a zip file, based on the 'external_attr' values"""
+    from os.path import basename
+
+    for e in zf.infolist():
+
+        if basename(e.filename).startswith('__') or basename(e.filename).startswith('.'):
+            continue
+
+        # I really don't understand external_attr, but no one else seems to either,
+        # so we're just hacking here.
+        # e.external_attr>>31&1 works when the archive has external attrs set, and a dir heirarchy
+        # e.external_attr==0 works in cases where there are no external attrs set
+        # e.external_attr==32 is true for some single-file archives.
+        if bool(e.external_attr >> 31 & 1 or e.external_attr == 0 or e.external_attr == 32):
+            yield e.filename

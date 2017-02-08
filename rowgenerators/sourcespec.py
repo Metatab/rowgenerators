@@ -6,16 +6,21 @@
 The SourceSpec defines what kind of a source file to fetch and how to process it.
 """
 
-import hashlib
-from rowgenerators.urls import decompose_url, file_ext
-from six import text_type
-from .exceptions import SpecError
-from .util import parse_url_to_dict
 
+from .util import parse_url_to_dict
+from rowgenerators.urls import Url
+from .util import slugify
+from copy import deepcopy
 
 class SourceSpec(object):
-    def __init__(self, url, name=None, urltype=None, filetype=None, format=None, urlfiletype=None,
-                 encoding=None, file=None, segment=None, columns=None, **kwargs):
+
+    # Properties from the internal url that are copied to the SourceSpec
+    url_properties = ['scheme','proto','resource_url','resource_file','resource_format','target_file','target_format',
+                      'encoding','target_segment' ]
+    
+    def __init__(self, url, name=None, proto=None, resource_format=None,
+                 target_file=None, target_segment=None, target_format=None, encoding=None, 
+                 columns=None, **kwargs):
         """
 
         The ``header_lines`` can be a list of header lines, or one of a few special values:
@@ -24,21 +29,24 @@ class SourceSpec(object):
         * False. The header line is not specified, so it should be intuited
         * None or 'none'. There is no header line, and it should not be intuited.
 
-        :param name: An optional name for the source
         :param url:
+        :param name: An optional name for the source
+        :param proto: Either the scheme of the url, or the scheme extension. One of http, https, gs, socrata.
+        Forces how the URL is interpreted.
+        :param target_format: Forces the file format, which may be either the downloaded resource, or an internal file in a
+        ZIP archive. , which is usually taked from the file extension. May be any typical extension string.
+
         :param file: A reference to an internal file in a Zip archive. May a string, or a regular expression.
-        :param sheet: A reference to a worksheet in a spreadsheet. May be a string or a number
-        :param urltype: One of http, https, gs, socrata. Forces how the URL is interpreted. Only 'socrata' is really
-        needed
-        :param format: Forces the file type, which is usually taked from the file extension. May be any
-        typical extension string.
-        :param urlfiletype: Like filetype, but for when the URL refers to a zip archive.
+        :param segment: A reference to a worksheet in a spreadsheet. May be a string or a number
+
+        :param resource_format: The file format of the object the URL points to, such as a ZIP file, which may
+        have internal file of another type.
         :param encoding: The file encoding.
-        :param columns: A list or tuple of ColumnSpec objects, for FixedSource
+
         :param kwargs: Unused. Provided to make it easy to load a record from a dict.
         :return:
 
-        `format` is the deprecated version of format
+
 
         The segment may have one or two parameters. If it contains a ';', there are two parameters. The
         first will identify a spreadsheet file in an archive, and the second identifies a worksheet in the
@@ -46,138 +54,85 @@ class SourceSpec(object):
 
         """
 
-        assert not isinstance(columns, dict)
-
-        try:
-            assert not isinstance(columns[0], dict)
-        except:
-            pass
-
-        self.name = name
-        self.columns = columns
-        self.encoding = encoding if encoding else None
-        self._urltype = urltype
-        self._internalurltype = False # Set if the _urltype is set from the url
-        self._urlfiletype = urlfiletype
-        self._format =  format or filetype
-        self._file = file
-        self._segment = segment
-
-        self.download_time = None  # Set externally
-
-        if url:
-            self.__dict__.update(decompose_url(url, force_archive=self._urlfiletype in ('zip',)))
+        if isinstance(url, Url):
+            self._url = url
         else:
-            self.url = None
-            self.download_url = None,
-            self.proto = None,
-            self.is_archive = None,
-            self.archive_file = None,
-            self.file_segment = None,
-            self.file_format = None
+            self._url = Url(url, proto=proto, resource_format=resource_format,
+                            target_file=target_file, target_segment=target_segment,
+                            target_format=target_format, encoding=encoding)
 
-        if not self.name:
-            raw_name = '{}#{}{}'.format(self.url,
-                                        (self.file if self.file else ''),
-                                        (self.segment if self.segment else ''))
-            if isinstance(raw_name, text_type):
-                raw_name = raw_name.encode('utf-8')
-
-            self.name = hashlib.md5(raw_name).hexdigest()
-
+        self.name = name if name else slugify(url)
+        self.columns = columns
+        self.download_time = None  # Set externally
 
 
     def __deepcopy__(self, o):
-
-        try:
-            return self.__class__(
-                url=self.url,
-                name=self.name,
-                file=self.file,
-                segment=self.segment,
-                urltype=self._urltype,
-                urlfiletype=self._urlfiletype,
-                format=self.format,
-                encoding=self.encoding,
-                columns=self.columns,
-                proto=self.proto
-            )
-        except SpecError as e:
-            # Guess that its a conflict of the file or segment param with the url
-
-            return self.__class__(
-                url=self.url,
-                name=self.name,
-                file=self.file,
-                urltype=self._urltype,
-                urlfiletype=self._urlfiletype,
-                format=self.format,
-                encoding=self.encoding,
-                columns=self.columns,
-                proto=self.proto
-            )
-
+        return type(self)(deepcopy(self._url), name=self.name, columns = self.columns)
 
 
     @property
-    def file(self):
-        return self._file or self.archive_file
-
-    @file.setter
-    def file(self,v):
-        self._file = v
-        self.update_format()
+    def url(self):
+        return self._url.url
 
     @property
-    def segment(self):
-        return self._segment or self.file_segment
-
-    @segment.setter
-    def segment(self,v):
-        self._segment = v
+    def scheme(self):
+        return self._url.scheme
 
     @property
-    def urltype(self):
-        return self.proto
+    def proto(self):
+        return self._url.proto
+
+    @property
+    def resource_url(self):
+        return self._url.resource_url
+
+    @property
+    def resource_file(self):
+        return self._url.resource_file
+
+    @property
+    def resource_format(self):
+        return self._url.resource_format
+
+    @property
+    def target_file(self):
+        return self._url.target_file
+
+    @property
+    def target_format(self):
+        return self._url.target_format
+
+    @property
+    def encoding(self):
+        return self._url.encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._url.encoding = encoding
+
+    @property
+    def target_segment(self):
+        return self._url.target_segment
+
+
+    @property
+    def is_archive(self):
+        return self._url.is_archive
 
     @property
     def urlfiletype(self):
-        from os.path import splitext
+        raise NotImplementedError()
 
-        if self._urlfiletype:
-            return self._urlfiletype
-
-        parts = parse_url_to_dict(self.url)
-
-        root, ext = splitext(parts['path'])
-
-        return ext[1:].lower()
-
-    @property
-    def format(self):
-
-        if self._format:
-            return self._format
-
-        else:
-            return self.file_format
-
-
-    @format.setter
-    def format(self, v):
-        self._format = v
 
     def update_format(self):
-        self.format = file_ext(self.file)
+        raise NotImplementedError()
 
     @property
     def netloc(self):
-        """Return the netlocatino part of the URL"""
-        p = parse_url_to_dict(self.url)
-        return p['netloc']
+        return self._url.parts.netloc
 
     def is_archive_url(self):
-        return self.urlfiletype in ('zip',)
+        raise NotImplementedError()
 
     def get_generator(self, cache=None):
         from rowgenerators.fetch import get_generator
@@ -186,6 +141,7 @@ class SourceSpec(object):
 
     @property
     def file_name(self):
+        raise NotImplementedError()
         from os.path import basename, splitext, sep
         from six.moves.urllib.parse import unquote
         import re
@@ -219,25 +175,26 @@ class SourceSpec(object):
         return str(self.__dict__)
 
     def rebuild_url(self):
+
         from .util import parse_url_to_dict, unparse_url_dict
 
         second_sep = ''
 
-        parts = parse_url_to_dict(self.url)
+        parts = parse_url_to_dict(self._url.url)
         del parts['fragment']
 
         url = unparse_url_dict(parts)
 
-        if self.file is not None or self.segment is not None:
+        if self.target_file is not None or self.target_segment is not None:
             url += '#'
 
-        if self.file is not None:
-            url += self.file
+        if self.target_file is not None:
+            url += self.target_file
             second_sep = ';'
 
-        if self.segment is not None:
+        if self.target_segment is not None:
             url += second_sep
-            url += self.segment
+            url += self.target_segment
 
         return url
 
@@ -245,27 +202,15 @@ class SourceSpec(object):
     @property
     def dict(self):
 
-        d = dict(url=self.url)
-
-        if self._urltype and not self._internalurltype:
-            d['urltype'] = self._urltype
-
-        if self._urlfiletype:
-            d['urlfiletype'] = self._urlfiletype
-
-        if self.file:
-            from os.path import splitext
-            root, ext = splitext(self.file_name)
-            file_filetype = ext[1:].lower()
-        else:
-            file_filetype = None
-
-        if self.format:
-            d['format'] = self.format
-
-        if self.encoding:
-            d['encoding'] = self.encoding
+        d = self._url.dict
+        d['name'] = self.name
 
         return d
+
+    def update(self, **kwargs):
+
+        u = self._url.update(**kwargs)
+
+        return SourceSpec(u, name=self.name, columns=self.columns)
 
 

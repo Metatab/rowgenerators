@@ -18,16 +18,16 @@ class RowGenerator(SourceSpec):
     """Primary generator object. It's actually a SourceSpec fetches a Source
      then proxies the iterator"""
 
-    def __init__(self, url, cache=None, name=None, urltype=None, filetype=None, format=None,
-                 urlfiletype=None, encoding=None, file=None,
-                 segment=None, columns=None, **kwargs):
+    def __init__(self, url, name=None, proto=None, resource_format=None,
+                 target_file=None, target_segment=None, target_format=None, encoding=None,
+                 columns=None,
+                 cache = None, **kwargs):
         """
 
         :param url:
         :param cache:
         :param name:
-        :param urltype:
-        :param filetype:
+        :param proto:
         :param format:
         :param urlfiletype:
         :param encoding:
@@ -41,22 +41,24 @@ class RowGenerator(SourceSpec):
         self.cache = cache
         self.headers = None
 
-        super(RowGenerator, self).__init__(url, name, urltype, filetype, format,
-                                           urlfiletype, encoding,
-                                           file, segment, columns,
-                                           **kwargs)
+
+        super(RowGenerator, self).__init__(url, name=name, proto=proto,
+                                           resource_format=resource_format,
+                                           target_file=target_file, target_segment=target_segment, target_format=target_format,
+                                           encoding=encoding, columns=columns, **kwargs)
 
 
 
     @property
     def path(self):
-        return self.url
+        return self._url
 
     def __iter__(self):
 
         self.generator = self.get_generator(self.cache)
 
         for row in self.generator:
+
             yield row
 
         self.headers = self.generator.headers
@@ -416,9 +418,9 @@ class ExcelSource(SourceFile):
         wb = open_workbook(filename=self._dflo.path, file_contents=file_contents)
 
         try:
-            s = wb.sheets()[int(self.spec.segment) if self.spec.segment else 0]
+            s = wb.sheets()[int(self.spec.target_segment) if self.spec.target_segment else 0]
         except ValueError:  # Segment is the workbook name, not the number
-            s = wb.sheet_by_name(self.spec.segment)
+            s = wb.sheet_by_name(self.spec.target_segment)
 
         for i in range(0, s.nrows):
             row = self.srow_to_list(i, s)

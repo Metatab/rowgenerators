@@ -1,7 +1,11 @@
 import unittest
 from rowgenerators.fetch import get_generator
-from rowgenerators import SourceSpec, decompose_url
+from rowgenerators import SourceSpec
 from fs.tempfs import TempFS
+from copy import deepcopy
+from csv import DictReader, DictWriter
+from rowgenerators.urls import get_handler, Url
+
 def data_path(v):
     from os.path import dirname, join
     d = dirname(__file__)
@@ -23,7 +27,7 @@ def cache_fs():
 
 class BasicTests(unittest.TestCase):
 
-    def compare_dict(self, a, b):
+    def compare_dict(self, name, a, b):
         from metatab.util import flatten
         fa = set('{}={}'.format(k, v) for k, v in flatten(a));
         fb = set('{}={}'.format(k, v) for k, v in flatten(b));
@@ -35,15 +39,15 @@ class BasicTests(unittest.TestCase):
         errors = len(fa - fb) + len(fb - fa)
 
         if errors:
-            print("=== ERRORS ===")
+            print("=== ERRORS for {} ===".format(name))
 
         if len(fa - fb):
-            print("In b but not a")
+            print("In a but not b")
             for e in sorted(fa - fb):
                 print('    ', e)
 
         if len(fb - fa):
-            print("In a but not b")
+            print("In b but not a")
             for e in sorted(fb - fa):
                 print('    ', e)
 
@@ -52,48 +56,34 @@ class BasicTests(unittest.TestCase):
 
     def test_source_spec_url(self):
         from rowgenerators import SourceSpec, RowGenerator
-        from rowgenerators.util import parse_url_to_dict, unparse_url_dict
         from copy import deepcopy
 
-
         ss = SourceSpec(url='http://foobar.com/a/b.csv')
-        self.assertIsNone(ss.file)
-        self.assertIsNone(ss.segment)
+        self.assertEqual('b.csv', ss.target_file)
+        self.assertIsNone(ss.target_segment)
 
         ss = SourceSpec(url='http://foobar.com/a/b.zip#a')
-        self.assertEqual('a',ss.file)
-        self.assertIsNone(ss.segment)
+        print(ss._url)
+        self.assertEqual('a',ss.target_file)
+        self.assertIsNone(ss.target_segment)
 
         ss2 = deepcopy(ss)
-        self.assertEqual(ss.file,ss2.file)
-        self.assertIsNone(ss.segment)
+        self.assertEqual(ss.target_file,ss2.target_file)
+        self.assertIsNone(ss.target_segment)
 
         ss = SourceSpec(url='http://foobar.com/a/b.zip#a;b')
-        self.assertEqual('a',ss.file)
-        self.assertEqual('b',ss.segment)
+        self.assertEqual('a',ss.target_file)
+        self.assertEqual('b',ss.target_segment)
 
         ss2 = deepcopy(ss)
-        self.assertEqual(ss.file,ss2.file)
-        self.assertEqual(ss.segment,ss2.segment)
+        self.assertEqual(ss.target_file,ss2.target_file)
+        self.assertEqual(ss.target_segment,ss2.target_segment)
 
         ss = RowGenerator(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip#renter_cost_excel07.xlsx')
-        self.assertEqual('renter_cost_excel07.xlsx', ss.file)
+        self.assertEqual('renter_cost_excel07.xlsx', ss.target_file)
 
         ss2 = deepcopy(ss)
-        self.assertEqual(ss.file, ss2.file)
-
-        ss.__dict__ = {'name': 'mz_with_zip_xl',
-                       'encoding': None,
-                       'url': 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip#excel/renter_cost_excel07.xlsx',
-                       '_urltype': None,
-                       '_filetype': 'xlsx',
-                       '_file': 'excel/renter_cost_excel07.xlsx',
-                       '_segment': None,
-                       'file_segment': None,
-                       'archive_file': None,
-                       'columns':None, 'headers': None}
-
-        self.assertIsNone(ss.segment)
+        self.assertEqual(ss.target_file, ss2.target_file)
 
         for url in (
             'http://example.com/foo/archive.zip',
@@ -116,10 +106,11 @@ class BasicTests(unittest.TestCase):
             if sd['name'] in ('simple_fixed','facilities'):
                 continue
 
+            ss = SourceSpec(**sd)
+
             gen = RowGenerator(cache=cache, **sd)
 
             rows = list(gen)
-
 
             try:
                 self.assertEquals(int(sd['n_rows']), len(rows))
@@ -131,23 +122,21 @@ class BasicTests(unittest.TestCase):
 
     def test_inspect(self):
 
-        from rowgenerators import enumerate_contents
-        from rowgenerators import SourceSpec
+        from rowgenerators import enumerate_contents, inspect
 
         cache = cache_fs()
 
-        spec = SourceSpec(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip#renter_cost_excel07.xlsx')
         spec = SourceSpec(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip')
 
-        for spec in enumerate_contents(spec, cache):
-            print(spec.download_url)
+        for spec in inspect(spec, cache):
+            print(spec.resource_url)
 
     def test_google(self):
         from rowgenerators import SourceSpec, GooglePublicSource
         spec = SourceSpec(url='gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w')
 
         self.assertEquals('gs',spec.proto)
-        self.assertEquals('gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w',spec.url)
+        self.assertEquals('gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/', spec.url)
         self.assertEquals('https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/export?format=csv',GooglePublicSource.download_url(spec))
 
         self.assertEquals(12004, len(list(spec.get_generator(cache_fs()))))
@@ -160,12 +149,13 @@ class BasicTests(unittest.TestCase):
         cache = cache_fs()
 
         for c in enumerate_contents(z,  cache):
-            print(c.rebuild_url())
 
-            if c.format in ('foo','txt'):
+            print(c.url)
+
+            if c.target_format in ('foo','txt'):
                 continue
 
-            gen = RowGenerator(url=c.rebuild_url())
+            gen = RowGenerator(url=c.url)
             try:
                 print(len(list(gen)))
             except (UnicodeDecodeError, TextEncodingError) as e:
@@ -173,7 +163,6 @@ class BasicTests(unittest.TestCase):
             except SourceError as e:
                 print("ERROR", c.name, e)
                 raise
-
 
 
     def test_d_and_c(self):
@@ -194,8 +183,8 @@ class BasicTests(unittest.TestCase):
         from csv import DictReader
 
         cache = TempFS()
-
         success = []
+        errors = []
 
         with open(data_path('sources.csv')) as f:
             for e in DictReader(f):
@@ -208,24 +197,23 @@ class BasicTests(unittest.TestCase):
 
                 s = SourceSpec(**e)
 
+                print(s.dict)
+
                 d = get_generator(s, cache)
 
-                print(s.url, len(list(d)))
-
+                print(s._url, len(list(d)))
 
     def test_urls(self):
 
-        from csv import DictReader, DictWriter
-        from rowgenerators.urls import get_handler, Url
-        import json
-
-        headers="in_url url download_url download_file target_file scheme proto download_format target_format is_archive encoding file_segment".split()
+        headers="in_url url resource_url resource_file target_file scheme proto resource_format target_format " \
+                "is_archive encoding target_segment".split()
 
         with open(data_path('url_classes.csv')) as f, open('/tmp/url_classes.csv', 'w') as f_out:
             w = None
             r = DictReader(f)
             errors = 0
             for i, d in enumerate(r):
+
                 url = d['in_url']
 
                 o = Url(url)
@@ -237,18 +225,68 @@ class BasicTests(unittest.TestCase):
                     w = DictWriter(f_out, fieldnames= headers)
                     w.writeheader()
                 do['in_url'] = url
+                do['is_archive'] = o.is_archive
                 w.writerow(do)
 
                 d = {k: v if v else None for k, v in d.items()}
                 do = {k: str(v) if v else None for k, v in do.items()}# str() turns True into 'True'
 
-                try:
-                    self.compare_dict(d, do)
+                # a is the gague data from url_classes.csv
+                # b is the test object.
+
+                try:                     # A, B
+                    self.compare_dict(url, d, do)
                 except AssertionError as e:
                     errors += 1
                     #raise
 
             self.assertEqual(0, errors)
+
+        with open(data_path('url_classes.csv')) as f:
+
+            r = DictReader(f)
+            for i, d in enumerate(r):
+
+                u1 = Url(d['in_url'])
+
+        with open(data_path('url_classes.csv')) as f:
+
+            r = DictReader(f)
+            for i, d in enumerate(r):
+                u1 = Url(d['in_url'])
+                d1 = u1.__dict__.copy()
+                d2 = deepcopy(u1).__dict__.copy()
+
+                # The parts will be different Bunch objects
+                del d1['parts']
+                del d2['parts']
+
+                self.assertEqual(d1, d2)
+
+                self.assertEqual(d1, u1.dict)
+
+        for us in ("http://example.com/foo.zip", "http://example.com/foo.zip#a;b"):
+            u = Url(us, encoding='utf-8')
+            u2 = u.update(target_file='bingo.xls', target_segment='1')
+
+            self.assertEqual('utf-8',u2.dict['encoding'])
+            self.assertEqual('bingo.xls', u2.dict['target_file'])
+            self.assertEqual('1', u2.dict['target_segment'])
+
+
+    def test_url_update(self):
+
+        u1 = Url('http://example.com/foo.zip')
+
+        self.assertEqual('http://example.com/foo.zip#bar.xls',u1.rebuild_url(target_file='bar.xls'))
+        self.assertEqual('http://example.com/foo.zip#0', u1.rebuild_url(target_segment=0))
+        self.assertEqual('http://example.com/foo.zip#bar.xls%3B0', u1.rebuild_url(target_file='bar.xls', target_segment=0))
+
+        u2 = u1.update(target_file='bar.xls')
+
+        self.assertEqual('bar.xls',u2.target_file)
+        self.assertEqual('xls', u2.target_format)
+
 
     def test_parse_file_urls(self):
         from rowgenerators.util import parse_url_to_dict, unparse_url_dict
@@ -257,7 +295,6 @@ class BasicTests(unittest.TestCase):
             ('file:/foo/bar/baz', '/foo/bar/baz','file:/foo/bar/baz'),
             ('file://foo/bar/baz', 'foo/bar/baz','file:foo/bar/baz'),
             ('file:///foo/bar/baz', '/foo/bar/baz','file:/foo/bar/baz'),
-
         ]
 
         for i,o,u in urls:

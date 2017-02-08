@@ -14,12 +14,11 @@ from six import string_types
 import functools
 import hashlib
 
-from os.path import join
-from rowgenerators import decompose_url
+
 from rowgenerators.exceptions import MissingCredentials
 from .generators import *
 from .s3 import AltValidationS3FS
-from .util import DelayedFlo
+from .util import DelayedFlo, real_files_in_zf
 from .util import copy_file_or_flo, parse_url_to_dict, unparse_url_dict
 from rowgenerators.urls import file_ext
 from requests import HTTPError
@@ -30,16 +29,15 @@ def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logg
     parts = {}
 
     if spec.proto == 'file':
-        parts['cache_path'] = parse_url_to_dict(spec.download_url)['path']
+        parts['cache_path'] = parse_url_to_dict(spec.resource_url)['path']
         parts['download_time'] = None
         parts['sys_path'] = parts['cache_path']
     else:
         cache_fs = cache_fs or get_cache()
-        parts['cache_path'], parts['download_time'] = download(spec.download_url, cache_fs, account_accessor,
+        parts['cache_path'], parts['download_time'] = download(spec.resource_url, cache_fs, account_accessor,
                                                            clean=clean, logger=logger, callback=callback)
 
         parts['sys_path'] = cache_fs.getsyspath(parts['cache_path'])
-
 
     return parts
 
@@ -53,16 +51,16 @@ def get_file_from_zip(d, spec):
 
     nl = list(zf.namelist())
 
-    if spec.file:
-        names = list([e for e in nl if re.search(spec.file, e)
+    if spec.target_file:
+        names = list([e for e in nl if re.search(spec.target_file, e)
                       and not (e.startswith('__') or e.startswith('.'))
                       ])
         if len(names) > 0:
             return names[0]
 
-    if spec.segment:
+    if spec.target_segment:
         try:
-            return nl[int(spec.segment)]
+            return nl[int(spec.target_segment)]
 
         except (IndexError, ValueError):
             pass
@@ -78,15 +76,12 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
     import io
     import re
 
-    spec = deepcopy(spec)
-
     d = download_and_cache(spec, cache_fs)
 
-    if spec.format == 'zip':
-        # Details of file are known; will have to open it first
-
-        spec.file = get_file_from_zip(d, spec)
-        spec.format = file_ext(spec.file)
+    if spec.resource_format == 'zip':
+        # Details of file are unknown; will have to open it first
+        target_file = get_file_from_zip(d, spec)
+        spec = spec.update(target_file=target_file)
 
     TYPE_TO_SOURCE_MAP = {
         'gs': CsvSource,
@@ -101,12 +96,12 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
         'shape': ShapefileSource
     }
 
-    cls = TYPE_TO_SOURCE_MAP.get(spec.format)
+    cls = TYPE_TO_SOURCE_MAP.get(spec.target_format)
 
     if cls is None:
         raise SourceError(
             "Failed to determine file type for source '{}'; unknown format '{}' "
-                .format(spec.name, spec.format))
+                .format(spec.name, spec.target_format))
 
     if spec.is_archive:
 
@@ -116,14 +111,23 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
 
             nl = list(zf.namelist())
 
-            if spec.file:
+            if spec.target_file:
                 # The archive file names can be regular expressions
-                real_name = (list([e for e in nl if re.search(spec.file, e)
+                real_file_names = list([e for e in nl if re.search(spec.target_file, e)
                                    and not (e.startswith('__') or e.startswith('.'))
-                                 ]
-                                 ) or nl)[0]
+                                 ])
+
+                if real_file_names:
+                    real_name = real_file_names[0]
+                else:
+                    raise SourceError("Didn't find target_file '{}' in  '{}' ".format(spec.target_file, d['sys_path']))
             else:
-                real_name = nl[0]
+                real_file_names = real_files_in_zf
+
+                if real_file_names:
+                    real_name = real_file_names[0]
+                else:
+                    raise SourceError("Can't find target file in '{}' ".format(spec.target_file, d['sys_path']))
 
             if 'b' in mode:
                 flo = zf.open(real_name, 'rU')
@@ -152,9 +156,6 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
             f.close()
 
         df = DelayedFlo(d['sys_path'], _open, lambda m: m, _close)
-
-    if spec.proto in ('gs', 'socrata'):
-        spec.encoding = 'utf8'
 
     return cls(spec, df)
 
@@ -439,6 +440,8 @@ def enumerate_contents(base_spec, cache_fs, callback = None):
         for s2 in inspect(s, cache_fs, callback=callback):
                 yield s2
 
+
+
 def inspect(ss, cache_fs, callback=None):
     """Return a list of possible extensions to the url, such as files within a ZIP archive, or
     worksheets in a spreadsheet"""
@@ -449,38 +452,26 @@ def inspect(ss, cache_fs, callback=None):
 
     d = download_and_cache(ss, cache_fs, callback=callback)
 
-    print("Inspecting: format={} file={} segment={} url={}".format(ss.format, ss.file, ss.segment, ss.rebuild_url()))
+    if callback:
+        callback("Inspecting: format={} file={} segment={} url={}".format(
+                 ss.target_format, ss.target_file, ss.target_segment, ss.rebuild_url()))
 
-    if ss.format == 'zip':
+    if ss.is_archive and ss.target_file is None:
 
         zf = ZipFile(cache_fs.getsyspath(d['cache_path']))
 
-        if ss.file is None:
+        if ss.target_file is None :
             l = []
 
-            for e in zf.infolist():
+            for file_name in real_files_in_zf(zf):
 
-                if basename(e.filename).startswith('__') or basename(e.filename).startswith('.'):
-                    continue
+                ss2 = ss.update(target_file=file_name)
 
-                # I really don't understand external_attr, but no one else seems to either,
-                # so we're just hacking here.
-                # e.external_attr>>31&1 works when the archive has external attrs set, and a dir heirarchy
-                # e.external_attr==0 works in cases where there are no external attrs set
-                # e.external_attr==32 is true for some single-file archives.
-                is_file = bool(e.external_attr>>31&1 or e.external_attr==0 or e.external_attr==32)
-
-                if not is_file:
-                    print("Not a File!",e.external_attr )
-                    continue
-
-                ss2 = deepcopy(ss)
-                ss2.file = e.filename.strip('/')
                 l.append(ss2)
 
             return l
 
-        elif ss.format in ('xls', 'xlsx') and ss.segment is None:
+        elif ss.target_format in ('xls', 'xlsx') and ss.target_segment is None:
             src = get_generator(ss, cache_fs)
             l = []
             for seg in src.children:
@@ -490,7 +481,7 @@ def inspect(ss, cache_fs, callback=None):
 
             return l
 
-    if ss.format in ('xls', 'xlsx') and ss.segment is None:
+    if ss.target_format in ('xls', 'xlsx') and ss.target_segment is None:
 
         src = get_generator(ss, cache_fs)
 

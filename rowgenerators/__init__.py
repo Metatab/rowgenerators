@@ -5,7 +5,6 @@ from .exceptions import SourceError
 
 from .util import DelayedFlo, get_cache
 from .sourcespec import SourceSpec
-from .urls import decompose_url
 from .rowproxy import RowProxy, GeoRowProxy
 from .fetch import enumerate_contents, inspect
 from .exceptions import *
