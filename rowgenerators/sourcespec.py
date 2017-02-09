@@ -9,7 +9,7 @@ The SourceSpec defines what kind of a source file to fetch and how to process it
 
 from .util import parse_url_to_dict
 from rowgenerators.urls import Url
-from .util import slugify
+from uuid import uuid4
 from copy import deepcopy
 
 class SourceSpec(object):
@@ -61,7 +61,7 @@ class SourceSpec(object):
                             target_file=target_file, target_segment=target_segment,
                             target_format=target_format, encoding=encoding)
 
-        self.name = name if name else slugify(url)
+        self.name = name if name else str(uuid4())
         self.columns = columns
         self.download_time = None  # Set externally
 
@@ -172,31 +172,11 @@ class SourceSpec(object):
         return re.sub(r'[^\w-]','-',path)
 
     def __str__(self):
-        return str(self.__dict__)
+        return "<{} {}>".format(self.__class__.__name__, self.rebuild_url())
 
     def rebuild_url(self):
 
-        from .util import parse_url_to_dict, unparse_url_dict
-
-        second_sep = ''
-
-        parts = parse_url_to_dict(self._url.url)
-        del parts['fragment']
-
-        url = unparse_url_dict(parts)
-
-        if self.target_file is not None or self.target_segment is not None:
-            url += '#'
-
-        if self.target_file is not None:
-            url += self.target_file
-            second_sep = ';'
-
-        if self.target_segment is not None:
-            url += second_sep
-            url += self.target_segment
-
-        return url
+        return self._url.rebuild_url()
 
 
     @property

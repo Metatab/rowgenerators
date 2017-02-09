@@ -126,10 +126,16 @@ class BasicTests(unittest.TestCase):
 
         cache = cache_fs()
 
-        spec = SourceSpec(url='http://public.source.civicknowledge.com/example.com/sources/test_data.zip')
+        us = 'http://www.sandiegocounty.gov/content/dam/sdc/hhsa/programs/phs/CHS/Community%20Profiles/MCH_2010-2013.xlsx'
 
-        for spec in inspect(spec, cache):
-            print(spec.resource_url)
+        ss = SourceSpec(us)
+
+        print(ss.update(target_segment='foo'))
+        print(ss._url.rebuild_url(target_segment='foo'))
+        return
+
+        for spec in inspect(ss, cache, callback=print):
+            print(spec)
 
     def test_google(self):
         from rowgenerators import SourceSpec, GooglePublicSource

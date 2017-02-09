@@ -15,23 +15,22 @@ import functools
 import hashlib
 
 
+from os.path import abspath
 from rowgenerators.exceptions import MissingCredentials
 from .generators import *
 from .s3 import AltValidationS3FS
-from .util import DelayedFlo, real_files_in_zf
-from .util import copy_file_or_flo, parse_url_to_dict, unparse_url_dict
-from rowgenerators.urls import file_ext
+from .util import DelayedFlo, real_files_in_zf, copy_file_or_flo, parse_url_to_dict, unparse_url_dict, get_cache
 from requests import HTTPError
+
 def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
 
-    from .util import get_cache
 
     parts = {}
 
     if spec.proto == 'file':
         parts['cache_path'] = parse_url_to_dict(spec.resource_url)['path']
         parts['download_time'] = None
-        parts['sys_path'] = parts['cache_path']
+        parts['sys_path'] = abspath(parts['cache_path'])
     else:
         cache_fs = cache_fs or get_cache()
         parts['cache_path'], parts['download_time'] = download(spec.resource_url, cache_fs, account_accessor,
@@ -167,8 +166,9 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None
     from fs.errors import ResourceNotFound
 
     def copy_callback(read, total):
-        if callback:
-            callback('copy_file',read, total)
+        #if callback:
+        #    callback('copy_file',read, total)
+        pass
 
     if callback:
         callback('download', url, 0)
@@ -441,7 +441,6 @@ def enumerate_contents(base_spec, cache_fs, callback = None):
                 yield s2
 
 
-
 def inspect(ss, cache_fs, callback=None):
     """Return a list of possible extensions to the url, such as files within a ZIP archive, or
     worksheets in a spreadsheet"""
@@ -464,10 +463,7 @@ def inspect(ss, cache_fs, callback=None):
             l = []
 
             for file_name in real_files_in_zf(zf):
-
-                ss2 = ss.update(target_file=file_name)
-
-                l.append(ss2)
+                l.append(ss.update(target_file=file_name))
 
             return l
 
@@ -475,8 +471,8 @@ def inspect(ss, cache_fs, callback=None):
             src = get_generator(ss, cache_fs)
             l = []
             for seg in src.children:
-                ss2 = deepcopy(ss)
-                ss2.segment = seg
+
+                ss2 = ss.update(target_segment=seg)
                 l.append(ss2)
 
             return l
@@ -487,9 +483,7 @@ def inspect(ss, cache_fs, callback=None):
 
         l = []
         for seg in src.children:
-
-            ss2 = deepcopy(ss)
-            ss2.segment = seg
+            ss2 = ss.update(target_segment=seg)
             l.append(ss2)
 
         return l

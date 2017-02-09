@@ -242,3 +242,5 @@ def real_files_in_zf(zf):
         # e.external_attr==32 is true for some single-file archives.
         if bool(e.external_attr >> 31 & 1 or e.external_attr == 0 or e.external_attr == 32):
             yield e.filename
+
+

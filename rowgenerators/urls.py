@@ -8,7 +8,6 @@ from __future__ import print_function
 from os.path import splitext, basename, join, dirname
 from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
 
-
 def file_ext(v):
     """Split of the extension of a filename, without throwing an exception of there is no extension. Does not
     return the leading '.'
@@ -185,7 +184,7 @@ class Url(object):
         return url
 
     def __repr__(self):
-        return "<{} {}>".format(self.__class__.__name__, self.resource_url)
+        return "<{} {}>".format(self.__class__.__name__, self.rebuild_url())
 
     def update(self,**kwargs):
         """Returns a new Url object, possibly with some of the paroperties replaced"""
@@ -211,8 +210,6 @@ class Url(object):
         return o
 
     def rebuild_url(self, target_file=None, target_segment=None):
-
-        from .util import parse_url_to_dict, unparse_url_dict
 
         tf = target_file if target_file else self.target_file
         ts = target_segment if (target_segment or target_segment == 0) else self.target_segment
@@ -270,6 +267,24 @@ class GeneralUrl(Url):
 
         return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']))
 
+
+class WebPageUrl(Url):
+    """A URL for webpages, not for data"""
+
+    def __init__(self, url, **kwargs):
+        super(GeneralUrl, self).__init__(url, **kwargs)
+
+    @classmethod
+    def match(cls, url, **kwargs):
+        return True
+
+    def component_url(self, s):
+        sp = parse_url_to_dict(s)
+
+        if sp['netloc']:
+            return s
+
+        return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']))
 
 class GoogleProtoCsvUrl(Url):
     """Access a Google spreadheet as a CSV format download"""
@@ -377,7 +392,6 @@ class ZipUrl(Url):
         else:
             self.target_file = self.target_segment = None
 
-
     def _process_target_file(self):
 
         # Handles the case of file.csv.zip, etc.
@@ -387,7 +401,6 @@ class ZipUrl(Url):
 
         if self.target_file and not self.target_format:
             self.target_format = file_ext(self.target_file)
-
 
 
     def component_url(self, s):
@@ -412,6 +425,13 @@ class ExcelUrl(Url):
             return s
 
         return reparse_url(self.url, fragment=s)
+
+    def rebuild_url(self, target_file=None, target_segment=None):
+
+        ts = target_segment if (target_segment or target_segment == 0) else self.target_segment
+
+        return reparse_url(self.url, fragment=ts)
+
 
 
 
