@@ -8,6 +8,7 @@ from __future__ import print_function
 from os.path import splitext, basename, join, dirname
 from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
 
+
 def file_ext(v):
     """Split of the extension of a filename, without throwing an exception of there is no extension. Does not
     return the leading '.'
@@ -15,11 +16,9 @@ def file_ext(v):
 
     try:
         v = splitext(v)[1][1:]
-        return v if v else None
+        return v.lower() if v else None
     except IndexError:
         return None
-
-
 
 
 def extract_proto(url):
@@ -30,12 +29,10 @@ def extract_proto(url):
 
 
 def url_is_absolute(ref):
-
     u = Url(ref)
 
-    if u.scheme in ('http','https'):
+    if u.scheme in ('http', 'https'):
         return True
-
 
 
 class Url(object):
@@ -65,7 +62,8 @@ class Url(object):
         self.resource_file = kwargs.get('resource_file')
         self.resource_format = kwargs.get('resource_format')
         self.target_file = kwargs.get('target_file')
-        self.target_format = kwargs.get('target_format')
+        self.target_format = kwargs.get('target_format').lower() if kwargs.get('target_format') else kwargs.get(
+            'target_format')
         self.encoding = kwargs.get('encoding')
         self.target_segment = kwargs.get('target_segment')
 
@@ -76,12 +74,11 @@ class Url(object):
         self._process_fragment()
         self._process_target_file()
 
-
     @property
     def is_archive(self):
         return self.resource_format in self.archive_formats
 
-    #property
+    # property
     def archive_file(self):
         # Return the name of the archive file, if there is one.
         return self.target_file if self.is_archive and self.download_file != self.target_file else None,
@@ -98,7 +95,6 @@ class Url(object):
 
     def _process_resource_url(self):
 
-
         self.resource_url = unparse_url_dict(self.parts.__dict__,
                                              scheme=self.parts.scheme if self.parts.scheme else 'file',
                                              fragment=False)
@@ -108,9 +104,7 @@ class Url(object):
         if not self.resource_format:
             self.resource_format = file_ext(self.resource_file)
 
-
     def _process_target_file(self):
-
 
         if not self.target_file:
             self.target_file = basename(self.resource_url)
@@ -120,7 +114,6 @@ class Url(object):
 
         if not self.target_format:
             self.target_format = self.resource_format
-
 
     @classmethod
     def decompose_fragment(cls, frag, is_archive):
@@ -186,21 +179,21 @@ class Url(object):
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, self.rebuild_url())
 
-    def update(self,**kwargs):
+    def update(self, **kwargs):
         """Returns a new Url object, possibly with some of the paroperties replaced"""
 
         o = Url(
             self.rebuild_url(target_file=kwargs.get('target_file', self.target_file),
-                             target_segment = kwargs.get('target_segment',self.target_segment)),
-            scheme = kwargs.get('scheme', self.scheme),
-            proto = kwargs.get('proto',self.proto),
-            resource_url = kwargs.get('resource_url',self.resource_url),
-            resource_file = kwargs.get('resource_file',self.resource_file),
-            resource_format = kwargs.get('resource_format',self.resource_format),
-            target_file = kwargs.get('target_file',self.target_file),
-            target_format = kwargs.get('target_format',self.target_format),
-            encoding = kwargs.get('encoding',self.encoding),
-            target_segment = kwargs.get('target_segment',self.target_segment)
+                             target_segment=kwargs.get('target_segment', self.target_segment)),
+            scheme=kwargs.get('scheme', self.scheme),
+            proto=kwargs.get('proto', self.proto),
+            resource_url=kwargs.get('resource_url', self.resource_url),
+            resource_file=kwargs.get('resource_file', self.resource_file),
+            resource_format=kwargs.get('resource_format', self.resource_format),
+            target_file=kwargs.get('target_file', self.target_file),
+            target_format=kwargs.get('target_format', self.target_format),
+            encoding=kwargs.get('encoding', self.encoding),
+            target_segment=kwargs.get('target_segment', self.target_segment)
         )
 
         o._process_resource_url()
@@ -236,10 +229,10 @@ class Url(object):
     def dict(self):
         from operator import itemgetter
 
-        keys = "url scheme proto resource_url resource_file resource_format target_file target_format "\
+        keys = "url scheme proto resource_url resource_file resource_format target_file target_format " \
                "encoding target_segment"
 
-        return dict( (k, v) for k,v in self.__dict__.items() if k in keys)
+        return dict((k, v) for k, v in self.__dict__.items() if k in keys)
 
     def __deepcopy__(self, o):
         d = self.__dict__.copy()
@@ -248,6 +241,7 @@ class Url(object):
 
     def __copy__(self, o):
         return self.__deepcopy__(o)
+
 
 class GeneralUrl(Url):
     """Basic URL, with no special handling or protocols"""
@@ -286,6 +280,7 @@ class WebPageUrl(Url):
 
         return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']))
 
+
 class GoogleProtoCsvUrl(Url):
     """Access a Google spreadheet as a CSV format download"""
 
@@ -295,7 +290,7 @@ class GoogleProtoCsvUrl(Url):
         kwargs['resource_format'] = 'csv'
         kwargs['encoding'] = 'utf8'
         kwargs['proto'] = 'gs'
-        super(GoogleProtoCsvUrl, self).__init__(url,**kwargs)
+        super(GoogleProtoCsvUrl, self).__init__(url, **kwargs)
 
     @classmethod
     def match(cls, url, **kwargs):
@@ -331,13 +326,12 @@ class GoogleProtoCsvUrl(Url):
 
         return reparse_url(self.url, fragment=s)
 
-        url = reparse_url(self.resource_url, query="format=csv&gid="+s)
+        url = reparse_url(self.resource_url, query="format=csv&gid=" + s)
         assert url
         return url
 
 
 class SocrataUrl(Url):
-
     def __init__(self, url, **kwargs):
         kwargs['resource_format'] = 'csv'
         kwargs['encoding'] = 'utf8'
@@ -350,7 +344,6 @@ class SocrataUrl(Url):
         return extract_proto(url) == 'socrata'
 
     def _process_resource_url(self):
-
         self.resource_url = unparse_url_dict(self.parts.__dict__,
                                              scheme_extension=False,
                                              fragment=False,
@@ -395,13 +388,12 @@ class ZipUrl(Url):
     def _process_target_file(self):
 
         # Handles the case of file.csv.zip, etc.
-        for ext in ('csv','xls','xlsx'):
-            if self.resource_file.endswith('.'+ext+ '.zip'):
+        for ext in ('csv', 'xls', 'xlsx'):
+            if self.resource_file.endswith('.' + ext + '.zip'):
                 self.target_file = self.resource_file.replace('.zip', '')
 
         if self.target_file and not self.target_format:
             self.target_format = file_ext(self.target_file)
-
 
     def component_url(self, s):
 
@@ -420,19 +412,15 @@ class ExcelUrl(Url):
         return file_ext(parts['path']) in ('xls', 'xlsx')
 
     def component_url(self, s):
-
         if url_is_absolute(s):
             return s
 
         return reparse_url(self.url, fragment=s)
 
     def rebuild_url(self, target_file=None, target_segment=None):
-
         ts = target_segment if (target_segment or target_segment == 0) else self.target_segment
 
         return reparse_url(self.url, fragment=ts)
-
-
 
 
 class S3AuthUrl(Url):
@@ -440,14 +428,13 @@ class S3AuthUrl(Url):
 
     def __init__(self, url, **kwargs):
         kwargs['proto'] = 's3'
-        super(S3AuthUrl, self).__init__(url,**kwargs)
+        super(S3AuthUrl, self).__init__(url, **kwargs)
 
     @classmethod
     def match(cls, url, **kwargs):
         return extract_proto(url) == 's3'
 
     def _process_resource_url(self):
-
         url_template = 'https://{bucket}.s3.amazonaws.com/{path}'
 
         # noinspection PyUnresolvedReferences
@@ -459,8 +446,6 @@ class S3AuthUrl(Url):
 
         if self.resource_format is None:
             self.resource_format = file_ext(self.resource_file)
-
-
 
 
 url_handlers = [

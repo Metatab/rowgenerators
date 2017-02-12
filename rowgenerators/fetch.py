@@ -15,22 +15,30 @@ import functools
 import hashlib
 
 
-from os.path import abspath
+from os.path import abspath, join, exists
 from rowgenerators.exceptions import MissingCredentials
 from .generators import *
 from .s3 import AltValidationS3FS
 from .util import DelayedFlo, real_files_in_zf, copy_file_or_flo, parse_url_to_dict, unparse_url_dict, get_cache
 from requests import HTTPError
 
-def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
-
+def download_and_cache(spec, cache_fs,  account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
 
     parts = {}
 
     if spec.proto == 'file':
         parts['cache_path'] = parse_url_to_dict(spec.resource_url)['path']
         parts['download_time'] = None
-        parts['sys_path'] = abspath(parts['cache_path'])
+
+        if working_dir:
+            parts['sys_path'] = join(working_dir,parts['cache_path'])
+        else:
+            parts['sys_path'] = abspath(parts['cache_path'])
+
+        if not exists(parts['sys_path']):
+            raise IOError("File resource does not exist. '{}'. working_dir='{}'"
+                          .format(spec, working_dir))
+
     else:
         cache_fs = cache_fs or get_cache()
         parts['cache_path'], parts['download_time'] = download(spec.resource_url, cache_fs, account_accessor,
@@ -66,7 +74,7 @@ def get_file_from_zip(d, spec):
 
     return nl[0]
 
-def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=None, cwd='', callback=None):
+def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
     """Download the container for a source spec and return a DelayedFlo object for opening, closing
       and accessing the container"""
     from copy import deepcopy
@@ -75,7 +83,7 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
     import io
     import re
 
-    d = download_and_cache(spec, cache_fs)
+    d = download_and_cache(spec, cache_fs, working_dir=working_dir)
 
     if spec.resource_format == 'zip':
         # Details of file are unknown; will have to open it first
@@ -250,10 +258,13 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
         hash = hashlib.sha224(parsed.query.encode('utf8')).hexdigest()
         cache_path = os.path.join(cache_path, hash)
 
+
     if not cache_fs.exists(cache_path):
 
+        cache_dir = os.path.dirname(cache_path)
+
         try:
-            cache_fs.makedirs(os.path.dirname(cache_path),  recreate=True)
+            cache_fs.makedirs(cache_dir,  recreate=True)
         except DirectoryExpected as e:
 
             # Probably b/c the dir name is already a file

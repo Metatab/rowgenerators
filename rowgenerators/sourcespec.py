@@ -57,9 +57,11 @@ class SourceSpec(object):
         if isinstance(url, Url):
             self._url = url
         else:
-            self._url = Url(url, proto=proto, resource_format=resource_format,
+            self._url = Url(url, proto=proto,
+                            resource_format=resource_format.lower() if resource_format else resource_format,
                             target_file=target_file, target_segment=target_segment,
-                            target_format=target_format, encoding=encoding)
+                            target_format=target_format.lower() if target_format else target_format,
+                            encoding=encoding)
 
         self.name = name if name else str(uuid4())
         self.columns = columns
@@ -134,10 +136,10 @@ class SourceSpec(object):
     def is_archive_url(self):
         raise NotImplementedError()
 
-    def get_generator(self, cache=None):
+    def get_generator(self, cache=None, working_dir=None):
         from rowgenerators.fetch import get_generator
 
-        return get_generator(self, cache)
+        return get_generator(self, cache, working_dir=working_dir)
 
     @property
     def file_name(self):

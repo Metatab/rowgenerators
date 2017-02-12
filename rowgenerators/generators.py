@@ -21,7 +21,9 @@ class RowGenerator(SourceSpec):
     def __init__(self, url, name=None, proto=None, resource_format=None,
                  target_file=None, target_segment=None, target_format=None, encoding=None,
                  columns=None,
-                 cache = None, **kwargs):
+                 cache = None,
+                 working_dir=None,
+                 **kwargs):
         """
 
         :param url:
@@ -40,12 +42,17 @@ class RowGenerator(SourceSpec):
 
         self.cache = cache
         self.headers = None
+        self.working_dir = working_dir
 
 
         super(RowGenerator, self).__init__(url, name=name, proto=proto,
                                            resource_format=resource_format,
-                                           target_file=target_file, target_segment=target_segment, target_format=target_format,
-                                           encoding=encoding, columns=columns, **kwargs)
+                                           target_file=target_file,
+                                           target_segment=target_segment,
+                                           target_format=target_format,
+                                           encoding=encoding,
+                                           columns=columns,
+                                        **kwargs)
 
 
 
@@ -55,7 +62,7 @@ class RowGenerator(SourceSpec):
 
     def __iter__(self):
 
-        self.generator = self.get_generator(self.cache)
+        self.generator = self.get_generator(self.cache, working_dir = self.working_dir)
 
         for row in self.generator:
 
