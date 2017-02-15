@@ -51,13 +51,13 @@ def rowgen():
     parser.add_argument('-H', '--head', default=False, action='store_true',
                         help='Display only the first 20 lines, in tabular format')
 
-    parser.add_argument('-e', '--encoding', default=None, action='store_true',
+    parser.add_argument('-e', '--encoding',
                         help='Force the encoding')
 
-    parser.add_argument('-f', '--format', default=None, action='store_true',
+    parser.add_argument('-f', '--format',
                         help="Force the file format. Typical values are 'csv', 'xls', 'xlsx' ")
 
-    parser.add_argument('-u', '--urlfiletype', default=None, action='store_true',
+    parser.add_argument('-u', '--urlfiletype',
                         help="Force the type of the file downloaded from the url. Equivalent to changing the file extension ")
 
     parser.add_argument('-s', '--start',
@@ -89,10 +89,10 @@ def rowgen():
         prt(tabulate(ss.dict.items()))
         sys.exit(0)
 
-
     if args.enumerate:
         for s in contents:
             print(s.rebuild_url())
+
     elif args.intuit:
         for s in contents:
 
