@@ -55,7 +55,6 @@ class RowGenerator(SourceSpec):
                                         **kwargs)
 
 
-
     @property
     def path(self):
         return self._url
@@ -297,6 +296,7 @@ class CsvSource(SourceFile):
         """Iterate over all of the lines in the file"""
         import io
         import six
+
         if six.PY3:
             import csv
             mode = 'rtU'
