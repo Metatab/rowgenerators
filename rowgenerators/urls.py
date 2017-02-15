@@ -204,8 +204,21 @@ class Url(object):
 
     def rebuild_url(self, target_file=None, target_segment=None):
 
-        tf = target_file if target_file else self.target_file
-        ts = target_segment if (target_segment or target_segment == 0) else self.target_segment
+        if target_file:
+            tf = target_file
+        elif target_file is False:
+            tf = None
+        else:
+            tf = self.target_file
+
+        if target_segment is False:
+            ts = None
+        elif target_segment or target_segment == 0:
+            ts = target_segment
+
+        else:
+            ts = self.target_segment
+
 
         second_sep = ''
 
