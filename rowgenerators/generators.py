@@ -300,11 +300,15 @@ class CsvSource(SourceFile):
         if six.PY3:
             import csv
             mode = 'rtU'
+
+            reader = csv.reader(self._dflo.open(mode), delimiter=self.delimiter)
+
         else:
             import unicodecsv as csv
             mode = 'rbU'
 
-        reader = csv.reader(self._dflo.open(mode),delimiter=self.delimiter)
+            reader = csv.reader(self._dflo.open(mode),delimiter=self.delimiter,
+                            encoding=self.spec.encoding if self.spec.encoding else 'utf-8')
 
         self.start()
 
@@ -315,6 +319,7 @@ class CsvSource(SourceFile):
                 yield row
                 i+=1
         except UnicodeDecodeError as e:
+
             raise TextEncodingError(six.text_type(type(e)) + ';' + six.text_type(e) + "; line={}".format(i))
         except TypeError:
             raise
