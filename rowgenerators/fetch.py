@@ -249,8 +249,13 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
     assert isinstance(url, string_types)
 
     # .decode('utf8'). The fs modulegets upset when given strings, so 
-    # we need to decode to unicode. UTF8 is a WAG. 
-    parsed = urlparse(url.decode('utf8'))
+    # we need to decode to unicode. UTF8 is a WAG.
+    try:
+        parsed = urlparse(url.decode('utf8'))
+    except AttributeError:
+        parsed = urlparse(url)
+
+
 
     # Create a name for the file in the cache, based on the URL
     cache_path = os.path.join(parsed.netloc, parsed.path.strip('/'))
