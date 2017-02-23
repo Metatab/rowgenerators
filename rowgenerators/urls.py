@@ -81,7 +81,7 @@ class Url(object):
     # property
     def archive_file(self):
         # Return the name of the archive file, if there is one.
-        return self.target_file if self.is_archive and self.download_file != self.target_file else None,
+        return self.target_file if self.is_archive and self.resource_file != self.target_file else None
 
     def _process_fragment(self):
 
@@ -209,7 +209,7 @@ class Url(object):
         elif target_file is False:
             tf = None
         else:
-            tf = self.target_file
+            tf = self.archive_file()
 
         if target_segment is False:
             ts = None

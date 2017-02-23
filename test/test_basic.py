@@ -293,8 +293,9 @@ class BasicTests(unittest.TestCase):
         self.assertEqual('bar.xls',u2.target_file)
         self.assertEqual('xls', u2.target_format)
 
-        print(u1.rebuild_url(False, False))
+        self.assertEqual('http://example.com/foo.zip', u1.rebuild_url(False, False))
 
+        self.assertEqual('file:metatadata.csv',Url('file:metatadata.csv').rebuild_url())
 
     def test_parse_file_urls(self):
         from rowgenerators.util import parse_url_to_dict, unparse_url_dict

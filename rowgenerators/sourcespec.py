@@ -67,7 +67,6 @@ class SourceSpec(object):
         self.columns = columns
         self.download_time = None  # Set externally
 
-
     def __deepcopy__(self, o):
         return type(self)(deepcopy(self._url), name=self.name, columns = self.columns)
 
