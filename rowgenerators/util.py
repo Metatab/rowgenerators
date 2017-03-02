@@ -198,10 +198,10 @@ def get_cache(cache_name='rowgen'):
     else:
         return UserDataFS(cache_name.lower())
 
-def clean_cache(cache_name='rowgen'):
+def clean_cache(cache = None, cache_name='rowgen'):
     import datetime
 
-    cache = get_cache(cache_name)
+    cache = cache if cache else get_cache(cache_name)
 
     for step in cache.walk.info():
         details = cache.getdetails(step[0])

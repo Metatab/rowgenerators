@@ -16,6 +16,10 @@ def file_ext(v):
 
     try:
         v = splitext(v)[1][1:]
+
+        if v == '*': # Not a file name, probably a fragment regex
+            return None
+
         return v.lower() if v else None
     except IndexError:
         return None
@@ -172,7 +176,8 @@ class Url(object):
         if sp['netloc']:
             return s
 
-        url = reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']))
+        url = reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']), fragment=sp['fragment'])
+
         assert url
         return url
 
@@ -272,7 +277,8 @@ class GeneralUrl(Url):
         if sp['netloc']:
             return s
 
-        return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']))
+        return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']), fragment=sp['fragment'])
+
 
 
 class WebPageUrl(Url):
@@ -422,6 +428,7 @@ class ExcelUrl(Url):
     @classmethod
     def match(cls, url, **kwargs):
         parts = parse_url_to_dict(url)
+
         return file_ext(parts['path']) in ('xls', 'xlsx')
 
     def component_url(self, s):
