@@ -6,7 +6,7 @@ Revised BSD License, included in this distribution as LICENSE.txt
 """
 
 import ssl
-
+import sys
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.request import urlopen
 from six import string_types
@@ -136,6 +136,10 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
                     real_name = real_file_names[0]
                 else:
                     raise SourceError("Can't find target file in '{}' ".format(spec.target_file, d['sys_path']))
+
+            pyver = sys.version_info.major+ sys.version_info.minor/100.0
+
+            mode = 'rU' if pyver < 3.06 else 'r'
 
             if 'b' in mode:
                 flo = zf.open(real_name, 'r')
