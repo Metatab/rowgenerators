@@ -103,6 +103,7 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
         'shape': ShapefileSource
     }
 
+
     cls = TYPE_TO_SOURCE_MAP.get(spec.target_format)
 
     if cls is None:
@@ -137,9 +138,9 @@ def get_generator(spec, cache_fs,  account_accessor=None, clean=False, logger=No
                     raise SourceError("Can't find target file in '{}' ".format(spec.target_file, d['sys_path']))
 
             if 'b' in mode:
-                flo = zf.open(real_name, 'rU')
+                flo = zf.open(real_name, 'r')
             else:
-                flo = io.TextIOWrapper(zf.open(real_name, 'rU'),
+                flo = io.TextIOWrapper(zf.open(real_name, 'r'),
                                        encoding=spec.encoding if spec.encoding else 'utf8')
 
             return (zf, flo)
