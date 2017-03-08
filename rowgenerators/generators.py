@@ -12,6 +12,7 @@ from .exceptions import TextEncodingError, SourceError
 
 from .sourcespec import SourceSpec
 
+
 # HACK This should probably not be derived from SourceSpec. It should be it's own
 # class heirarchy, and use __new__ for a polymorphic constructor
 class RowGenerator(SourceSpec):
@@ -21,7 +22,7 @@ class RowGenerator(SourceSpec):
     def __init__(self, url, name=None, proto=None, resource_format=None,
                  target_file=None, target_segment=None, target_format=None, encoding=None,
                  columns=None,
-                 cache = None,
+                 cache=None,
                  working_dir=None,
                  **kwargs):
         """
@@ -44,7 +45,6 @@ class RowGenerator(SourceSpec):
         self.headers = None
         self.working_dir = working_dir
 
-
         super(RowGenerator, self).__init__(url, name=name, proto=proto,
                                            resource_format=resource_format,
                                            target_file=target_file,
@@ -52,19 +52,16 @@ class RowGenerator(SourceSpec):
                                            target_format=target_format,
                                            encoding=encoding,
                                            columns=columns,
-                                        **kwargs)
-
+                                           **kwargs)
 
     @property
     def path(self):
         return self._url
 
     def __iter__(self):
-
-        self.generator = self.get_generator(self.cache, working_dir = self.working_dir)
+        self.generator = self.get_generator(self.cache, working_dir=self.working_dir)
 
         for row in self.generator:
-
             yield row
 
         self.headers = self.generator.headers
@@ -76,7 +73,7 @@ class Source(object):
     Subclasses of Source must override at least _get_row_gen method.
     """
 
-    def __init__(self, spec=None):
+    def __init__(self, spec=None, cache = None):
         from copy import deepcopy
 
         if spec is not None:
@@ -88,7 +85,9 @@ class Source(object):
         else:
             self.spec = None
 
-        self.limit = None # Set externally to limit number of rows produced
+        self.cache = cache
+
+        self.limit = None  # Set externally to limit number of rows produced
 
     @property
     def headers(self):
@@ -114,7 +113,7 @@ class Source(object):
         self.start()
 
         if self.limit:
-            for i,row in enumerate(self._get_row_gen()):
+            for i, row in enumerate(self._get_row_gen()):
 
                 if self.limit and i > self.limit:
                     break
@@ -132,6 +131,9 @@ class Source(object):
     def finish(self):
         pass
 
+    def open(self):
+        return self._dflo.open('r')
+
 
 class SourceFile(Source):
     """Base class for accessors that generate rows from a source file
@@ -139,17 +141,17 @@ class SourceFile(Source):
     Subclasses of SourceFile must override at lease _get_row_gen method.
     """
 
-    def __init__(self, spec, dflo):
+    def __init__(self, spec, dflo, cache):
         """
 
         :param fstor: A File-like object for the file, already opened.
         :return:
         """
-        super(SourceFile, self).__init__(spec)
+        super(SourceFile, self).__init__(spec, cache)
 
         self._dflo = dflo
         self._headers = None  # Reserved for subclasses that extract headers from data stream
-        self._datatypes = None # If set, an array of the datatypes for each column, derived from the source
+        self._datatypes = None  # If set, an array of the datatypes for each column, derived from the source
 
     @property
     def path(self):
@@ -162,10 +164,8 @@ class SourceFile(Source):
 
 
 class GeneratorSource(Source):
-
     def __init__(self, spec, generator):
         super(GeneratorSource, self).__init__(spec)
-
 
         self.gen = generator
 
@@ -186,19 +186,19 @@ class GeneratorSource(Source):
 class SocrataSource(Source):
     """Iterates a CSV soruce from the JSON produced by Socrata  """
 
-    def __init__(self, spec, fstor):
+    def __init__(self, spec, fstor, cache):
 
-        super(SocrataSource, self).__init__(spec)
+        super(SocrataSource, self).__init__(spec, cache)
 
         self._socrata_meta = None
 
-        self._download_url = spec.url+'/rows.csv'
+        self._download_url = spec.url + '/rows.csv'
 
         self._csv_source = CsvSource(spec, fstor)
 
     @classmethod
     def download_url(cls, spec):
-                return spec.url + '/rows.csv'
+        return spec.url + '/rows.csv'
 
     @property
     def _meta(self):
@@ -206,7 +206,6 @@ class SocrataSource(Source):
         import requests
 
         if not self._socrata_meta:
-
             r = requests.get(self.spec.url)
 
             r.raise_for_status()
@@ -219,7 +218,7 @@ class SocrataSource(Source):
     def headers(self):
         """Return headers.  """
 
-        return [ c['fieldName'] for c in self._meta['columns'] ]
+        return [c['fieldName'] for c in self._meta['columns']]
 
     datatype_map = {
         'text': 'str',
@@ -241,7 +240,7 @@ class SocrataSource(Source):
 
                 }
                 for c in self._meta.get('columns')
-            ]
+                ]
 
         }
 
@@ -251,8 +250,7 @@ class SocrataSource(Source):
         self.start()
 
         for i, row in enumerate(self._csv_source):
-
-            #if i == 0:
+            # if i == 0:
             #    yield self.headers
 
             yield row
@@ -263,12 +261,10 @@ class SocrataSource(Source):
 class PandasDataframeSource(Source):
     """Iterates a pandas dataframe  """
 
-    def __init__(self, spec, df):
-
-        super(PandasDataframeSource, self).__init__(spec)
+    def __init__(self, spec, df, cache):
+        super(PandasDataframeSource, self).__init__(spec, cache)
 
         self._df = df
-
 
     def __iter__(self):
         import os
@@ -279,9 +275,7 @@ class PandasDataframeSource(Source):
 
         yield ['id'] + list(df.columns)
 
-
         for index, row in df.iterrows():
-
             yield [index] + list(row)
 
         self.finish()
@@ -299,7 +293,7 @@ class CsvSource(SourceFile):
 
         if six.PY3:
             import csv
-            mode = 'rtU'
+            mode = 'r'
 
             reader = csv.reader(self._dflo.open(mode), delimiter=self.delimiter)
 
@@ -307,8 +301,8 @@ class CsvSource(SourceFile):
             import unicodecsv as csv
             mode = 'rbU'
 
-            reader = csv.reader(self._dflo.open(mode),delimiter=self.delimiter,
-                            encoding=self.spec.encoding if self.spec.encoding else 'utf-8')
+            reader = csv.reader(self._dflo.open(mode), delimiter=self.delimiter,
+                                encoding=self.spec.encoding if self.spec.encoding else 'utf-8')
 
         self.start()
 
@@ -317,7 +311,7 @@ class CsvSource(SourceFile):
         try:
             for row in reader:
                 yield row
-                i+=1
+                i += 1
         except UnicodeDecodeError as e:
 
             raise TextEncodingError(six.text_type(type(e)) + ';' + six.text_type(e) + "; line={}".format(i))
@@ -333,7 +327,6 @@ class CsvSource(SourceFile):
         except Exception as e:
             raise
 
-
         self.finish()
 
         self._dflo.close()
@@ -348,7 +341,7 @@ class TsvSource(CsvSource):
 class FixedSource(SourceFile):
     """Generate rows from a fixed-width source"""
 
-    def __init__(self, spec, fstor):
+    def __init__(self, spec, fstor, cache):
         """
 
         Args:
@@ -358,7 +351,7 @@ class FixedSource(SourceFile):
         """
         from .exceptions import SourceError
 
-        super(FixedSource, self).__init__(spec, fstor)
+        super(FixedSource, self).__init__(spec, fstor, cache)
 
     def make_fw_row_parser(self):
 
@@ -376,7 +369,7 @@ class FixedSource(SourceFile):
                 raise SourceError('Fixed width source {} must have start and width values for {} column '
                                   .format(self.spec.name, c.name))
 
-            parts.append('row[{}:{}]'  .format(c.start - 1, c.start + c.width - 1))
+            parts.append('row[{}:{}]'.format(c.start - 1, c.start + c.width - 1))
 
         code = 'lambda row: [{}]'.format(','.join(parts))
 
@@ -394,7 +387,6 @@ class FixedSource(SourceFile):
         parser = self.make_fw_row_parser()
 
         for line in self._fstor.open(mode='r', encoding=self.spec.encoding):
-
             yield [e.strip() for e in parser(line)]
 
         self.finish()
@@ -425,7 +417,7 @@ class ExcelSource(SourceFile):
 
         self.start()
 
-        file_contents=f.read()
+        file_contents = f.read()
 
         wb = open_workbook(filename=self._dflo.path, file_contents=file_contents)
 
@@ -448,7 +440,9 @@ class ExcelSource(SourceFile):
     def children(self):
         from xlrd import open_workbook
 
-        wb = open_workbook(filename=self._dflo.path, file_contents=self._dflo.open('rb').read())
+        f = self._dflo.open('rb')
+
+        wb = open_workbook(filename=self._dflo.path, file_contents=f.read())
 
         sheets = wb.sheet_names()
 
@@ -487,23 +481,20 @@ class ExcelSource(SourceFile):
 
 
 class MetapackSource(SourceFile):
+    def __init__(self, spec, dflo, cache):
+        super().__init__(spec, dflo, cache)
 
 
-    def __init__(self, spec, dflo):
-        super().__init__(spec, dflo)
+    def __iter__(self):
 
-        # General formats are:
-        #  .../metadata.csv
-        #  .../package.zip
-        #  .../package.zip#metadata.csv
-        #  .../package.xls
-        #  .../package.xls#meta
+        from metatab import open_package
 
+        doc = open_package(self.spec.resource_url, cache=self.cache)
 
-        # So, if is_archive is set and archive_file is not, archive_file is metadata.csv
-        # if format == .xls/.xlsx, and archive file is not set, archive file is meta
+        r = doc.resource(self.spec.target_segment)
 
-
+        for row in r:
+            yield row
 
 class GoogleAuthenticatedSource(SourceFile):
     """Generate rows from a Google spreadsheet source that requires authentication
@@ -531,12 +522,10 @@ class GoogleAuthenticatedSource(SourceFile):
 
 
 class GooglePublicSource(CsvSource):
-
     url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv'
 
     @classmethod
     def download_url(cls, spec):
-
         return cls.url_template.format(key=spec.netloc)
 
 
@@ -548,8 +537,8 @@ class GeoSourceBase(SourceFile):
 class ShapefileSource(GeoSourceBase):
     """ Accessor for shapefiles (*.shp) with geo data. """
 
-    def __init__(self, spec, fstor):
-        super(ShapefileSource, self).__init__(spec, fstor)
+    def __init__(self, spec, fstor, cache):
+        super(ShapefileSource, self).__init__(spec, fstor, cache)
 
     def _convert_column(self, shapefile_column):
         """ Converts column from a *.shp file to the column expected by ambry_sources.
@@ -662,17 +651,16 @@ class DataRowGenerator(object):
         self.iter = iter(seq)
         self.start = start
         self.end = end
-        self.headers = [] # Set externally
+        self.headers = []  # Set externally
 
-        int(self.start) # Throw error if it is not an int
+        int(self.start)  # Throw error if it is not an int
         assert self.start > 0
-
 
     def __iter__(self):
 
         for i, row in enumerate(self.iter):
 
-            if i < self.start or ( self.end is not None and i > self.end):
+            if i < self.start or (self.end is not None and i > self.end):
                 continue
 
             yield row
@@ -697,7 +685,7 @@ class SelectiveRowGenerator(object):
 
         self.iter = iter(seq)
         self.start = start if start else 1
-        self.header_lines = headers if isinstance(headers, (tuple, list)) else [ int(e) for e in headers.split(',') if e]
+        self.header_lines = headers if isinstance(headers, (tuple, list)) else [int(e) for e in headers.split(',') if e]
         self.comment_lines = comments
         self.end = end
 
@@ -706,9 +694,8 @@ class SelectiveRowGenerator(object):
         self.headers = []
         self.comments = []
 
-        int(self.start) # Throw error if it is not an int
+        int(self.start)  # Throw error if it is not an int
         assert self.start > 0
-
 
     @property
     def coalesce_headers(self):
@@ -757,12 +744,11 @@ class SelectiveRowGenerator(object):
             elif i == self.start:
                 break
 
-
         if self.headers:
             yield self.coalesce_headers
         else:
             # There is no header, so fake it
-            yield [ 'col'+str(i) for i, _ in enumerate(row)]
+            yield ['col' + str(i) for i, _ in enumerate(row)]
 
         yield row
 
@@ -774,8 +760,6 @@ class DictRowGenerator(object):
     """Constructed on a RowGenerator, returns dicts from the second and subsequent rows, using the
     first row as dict keys. """
 
-
-
     def __init__(self, rg):
         self._rg = rg
 
@@ -786,15 +770,13 @@ class DictRowGenerator(object):
 
         for row in self._rg:
             if not headers:
-                headers = [ text_type(e).strip() for e in row ]
+                headers = [text_type(e).strip() for e in row]
                 continue
 
             yield dict(zip(headers, row))
 
 
-
 class MPRSource(Source):
-
     def __init__(self, spec, datafile, predicate=None, headers=None):
         super(MPRSource, self).__init__(spec)
 
@@ -838,7 +820,7 @@ class AspwCursorSource(Source):
         for i, row in enumerate(self._cursor):
 
             if i == 0:
-                self._headers = [ e[0] for e in self._cursor.getdescription()]
+                self._headers = [e[0] for e in self._cursor.getdescription()]
 
                 yield self._headers
 
@@ -846,6 +828,8 @@ class AspwCursorSource(Source):
 
         self.finish()
 
+
 import sys
+
 __all__ = [k for k in sys.modules[__name__].__dict__.keys()
-           if not k.startswith('_') and k not in ('sys', 'util','petl', 'copy_file_or_flo')]
+           if not k.startswith('_') and k not in ('sys', 'util', 'petl', 'copy_file_or_flo')]

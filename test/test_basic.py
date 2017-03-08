@@ -1,10 +1,16 @@
+from __future__ import print_function
+
 import unittest
-from rowgenerators.fetch import get_generator
-from rowgenerators import SourceSpec
-from fs.tempfs import TempFS
 from copy import deepcopy
 from csv import DictReader, DictWriter
-from rowgenerators.urls import get_handler, Url
+
+from fs.tempfs import TempFS
+
+from rowgenerators import  RowGenerator
+from rowgenerators import SourceSpec
+from rowgenerators.fetch import get_generator
+from rowgenerators.urls import Url
+
 
 def data_path(v):
     from os.path import dirname, join
@@ -22,7 +28,6 @@ def cache_fs():
     from fs.tempfs import TempFS
 
     return TempFS('rowgenerator')
-
 
 
 class BasicTests(unittest.TestCase):
@@ -97,7 +102,7 @@ class BasicTests(unittest.TestCase):
         print(SourceSpec(url='socrata+http://chhs.data.ca.gov/api/views/tthg-z4mf').__dict__)
 
     def test_run_sources(self):
-        from rowgenerators import  RowGenerator
+
 
         cache = cache_fs()
 
@@ -122,7 +127,7 @@ class BasicTests(unittest.TestCase):
 
     def test_inspect(self):
 
-        from rowgenerators import enumerate_contents, inspect
+        from rowgenerators import inspect
 
         cache = cache_fs()
 
@@ -156,7 +161,7 @@ class BasicTests(unittest.TestCase):
 
         for c in enumerate_contents(z,  cache):
 
-            print(c.url)
+            print(c.url, c.encoding)
 
             if c.target_format in ('foo','txt'):
                 continue
@@ -168,7 +173,7 @@ class BasicTests(unittest.TestCase):
                 print("UERROR", c.name, e)
             except SourceError as e:
                 print("ERROR", c.name, e)
-                raise
+
 
 
     def test_d_and_c(self):
@@ -211,7 +216,7 @@ class BasicTests(unittest.TestCase):
 
     def test_urls(self):
 
-        headers="in_url url resource_url resource_file target_file scheme proto resource_format target_format " \
+        headers="in_url class url resource_url resource_file target_file scheme proto resource_format target_format " \
                 "is_archive encoding target_segment".split()
 
         with open(data_path('url_classes.csv')) as f, open('/tmp/url_classes.csv', 'w') as f_out:
@@ -232,6 +237,7 @@ class BasicTests(unittest.TestCase):
                     w.writeheader()
                 do['in_url'] = url
                 do['is_archive'] = o.is_archive
+                do['class'] = o.__class__.__name__
                 w.writerow(do)
 
                 d = {k: v if v else None for k, v in d.items()}
@@ -245,6 +251,7 @@ class BasicTests(unittest.TestCase):
                 except AssertionError as e:
                     errors += 1
                     #raise
+
 
             self.assertEqual(0, errors)
 
@@ -298,7 +305,7 @@ class BasicTests(unittest.TestCase):
         self.assertEqual('file:metatadata.csv',Url('file:metatadata.csv').rebuild_url())
 
     def test_parse_file_urls(self):
-        from rowgenerators.util import parse_url_to_dict, unparse_url_dict
+        from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
         urls = [
             ('file:foo/bar/baz','foo/bar/baz','file:foo/bar/baz'),
             ('file:/foo/bar/baz', '/foo/bar/baz','file:/foo/bar/baz'),
@@ -311,6 +318,31 @@ class BasicTests(unittest.TestCase):
             self.assertEqual(o, p['path'])
             self.assertEqual(u, unparse_url_dict(p))
             self.assertEqual(o, parse_url_to_dict(u)['path'])
+
+        print(reparse_url("metatab+http://library.metatab.org/cdph.ca.gov-county_crosswalk-ca-2#county_crosswalk", scheme_extension=False,fragment=False))
+
+        d = {'netloc': 'library.metatab.org', 'params': '', 'path': '/cdph.ca.gov-county_crosswalk-ca-2',
+             'password': None, 'query': '', 'hostname': 'library.metatab.org', 'fragment': 'county_crosswalk',
+             'resource_format': 'gov-county_crosswalk-ca-2', 'port': None, 'scheme_extension': 'metatab',
+             'proto': 'metatab', 'username': None, 'scheme': 'http'}
+
+        print(unparse_url_dict(d, scheme_extension=False, fragment=False))
+
+    def test_metapack(self):
+        urls = ['metatab+http://library.metatab.org/cdph.ca.gov-county_crosswalk-ca-2#county_crosswalk',
+                'metatab+http://library.metatab.org/zip/cdph.ca.gov-county_crosswalk-ca-2.zip#county_crosswalk',
+                'metatab+http://library.metatab.org/xlsx/cdph.ca.gov-county_crosswalk-ca-2.xlsx#county_crosswalk'
+        ]
+
+        cache = cache_fs()
+
+        for url in urls:
+
+            gen = RowGenerator(cache=cache, url=url)
+
+            rows = list(gen)
+
+            print(url, len(rows))
 
 
 if __name__ == '__main__':

@@ -25,3 +25,6 @@
 "simple_fixed",,,,,"http://public.source.civicknowledge.com/example.com/sources/simple-example.txt","Simple Random Data, fixed width format"
 "gs_rent",,,,12004,"gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w","Renter_cost, in Google Sheets"
 "zip_no_xls","xlsx",,,12004,"http://public.source.civicknowledge.com/example.com/sources/renter_cost_excel07.zip","Rentercost, in single-file zip with no xls extension"
+"county_xwalk",,,,56,"metatab+http://library.metatab.org/cdph.ca.gov-county_crosswalk-ca-2#county_crosswalk","County crosswalk, http"
+"county_xwalk_zip",,,,56,"metatab+http://library.metatab.org/zip/cdph.ca.gov-county_crosswalk-ca-2.zip#county_crosswalk","COunty crosswalk, zip"
+"county_xwalk_xlsx",,,,56,"metatab+http://library.metatab.org/xlsx/cdph.ca.gov-county_crosswalk-ca-2.xlsx#county_crosswalk","County crosswalk, xlsx"

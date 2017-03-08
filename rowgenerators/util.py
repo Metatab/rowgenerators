@@ -150,6 +150,10 @@ def unparse_url_dict(d, **kwargs):
 
     if d.get('scheme') and host_port:
         url = '{}://{}/{}'.format(d['scheme'],host_port, d.get('path', '').lstrip('/'))
+    elif d.get('scheme') in ('mailto', 'file'):
+        url = '{}:{}'.format(d['scheme'], d.get('path', ''))
+    elif d.get('scheme'):
+        url = '{}://{}'.format(d['scheme'], d.get('path', '').lstrip('/'))
     elif d.get('path'):
         # It's possible just a local file url.
         # This isn't the standard file: url form, which is specified to have a :// and a host part,

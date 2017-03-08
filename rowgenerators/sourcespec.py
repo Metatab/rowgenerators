@@ -57,9 +57,11 @@ class SourceSpec(object):
         if isinstance(url, Url):
             self._url = url
         else:
-            self._url = Url(url, proto=proto,
+            self._url = Url(url,
+                            proto=proto,
                             resource_format=resource_format.lower() if resource_format else resource_format,
-                            target_file=target_file, target_segment=target_segment,
+                            target_file=target_file,
+                            target_segment=target_segment,
                             target_format=target_format.lower() if target_format else target_format,
                             encoding=encoding)
 
@@ -134,6 +136,13 @@ class SourceSpec(object):
 
     def is_archive_url(self):
         raise NotImplementedError()
+
+    def download_and_cache(self, spec, cache_fs, account_accessor=None, clean=False, logger=None,
+                           working_dir='', callback=None):
+        from rowgenerators.fetch import  download_and_cache
+
+        return download_and_cache(spec=spec, cache_fs=cache_fs, account_accessor=account_accessor,
+                                  clean=clean, logger=logger, working_dir=working_dir, callback=callback)
 
     def get_generator(self, cache=None, working_dir=None):
         from rowgenerators.fetch import get_generator

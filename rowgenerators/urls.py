@@ -17,7 +17,7 @@ def file_ext(v):
     try:
         v = splitext(v)[1][1:]
 
-        if v == '*': # Not a file name, probably a fragment regex
+        if v == '*':  # Not a file name, probably a fragment regex
             return None
 
         return v.lower() if v else None
@@ -224,7 +224,6 @@ class Url(object):
         else:
             ts = self.target_segment
 
-
         second_sep = ''
 
         parts = parse_url_to_dict(self.url)
@@ -278,7 +277,6 @@ class GeneralUrl(Url):
             return s
 
         return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']), fragment=sp['fragment'])
-
 
 
 class WebPageUrl(Url):
@@ -468,7 +466,48 @@ class S3AuthUrl(Url):
             self.resource_format = file_ext(self.resource_file)
 
 
+class MetatabPackageUrl(Url):
+    """"""
+
+    def __init__(self, url, **kwargs):
+        kwargs['proto'] = 'metatab'
+        super(MetatabPackageUrl, self).__init__(url, **kwargs)
+
+    @classmethod
+    def match(cls, url, **kwargs):
+        return extract_proto(url) == 'metatab'
+
+
+    def _process_resource_url(self):
+
+        from metatab import resolve_package_metadata_url
+
+        # Reminder: this is the HTTP resource, not the Metatab resource
+        self.resource_url = unparse_url_dict(self.parts.__dict__,scheme_extension=False,fragment=False)
+
+        self.resource_format = file_ext(self.resource_url)
+
+        if self.resource_format not in ('zip','xlsx'):
+            self.resource_format = 'csv'
+            self.resource_file = 'metadata.csv'
+            self.resource_url += '/metadata.csv'
+        else:
+            self.resource_file = basename(self.resource_url)
+
+        if self.resource_format == 'xlsx':
+            self.target_file = 'meta'
+        else:
+            self.target_file = 'metadata.csv'
+
+        self.target_format = 'metatab'
+
+    def _process_fragment(self):
+
+        self.target_segment = self.parts.fragment
+
+
 url_handlers = [
+    MetatabPackageUrl,
     CkanUrl,
     SocrataUrl,
     GoogleProtoCsvUrl,
