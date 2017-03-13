@@ -342,7 +342,7 @@ class BasicTests(unittest.TestCase):
 
             rows = list(gen)
 
-            print(url, len(rows))
+            self.assertEquals(59, len(rows))
 
 
 if __name__ == '__main__':
