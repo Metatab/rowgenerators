@@ -287,7 +287,7 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
                 except DirectoryExpected:
                     continue
                 except DirectoryExists:
-                    print('!!!', cache_fs.getsyspath(cache_path))
+                    pass # ? No idea what's supposed to happen here.
                 raise e
 
     try:

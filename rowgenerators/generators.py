@@ -310,6 +310,7 @@ class CsvSource(SourceFile):
 
         try:
             for row in reader:
+
                 yield row
                 i += 1
         except UnicodeDecodeError as e:
@@ -684,7 +685,7 @@ class SelectiveRowGenerator(object):
         """
 
         self.iter = iter(seq)
-        self.start = start if start else 1
+        self.start = start if (start or start is 0) else 1
         self.header_lines = headers if isinstance(headers, (tuple, list)) else [int(e) for e in headers.split(',') if e]
         self.comment_lines = comments
         self.end = end
@@ -695,7 +696,7 @@ class SelectiveRowGenerator(object):
         self.comments = []
 
         int(self.start)  # Throw error if it is not an int
-        assert self.start > 0
+
 
     @property
     def coalesce_headers(self):
