@@ -7,14 +7,131 @@ import petl
 
 import six
 
+from rowgenerators.fetch import download_and_cache, get_file_from_zip
+from rowgenerators.util import real_files_in_zf, DelayedFlo
+
 from .util import copy_file_or_flo
 from .exceptions import TextEncodingError, SourceError
 
 from .sourcespec import SourceSpec
+from os.path import exists
+
+def get_dflo(spec, syspath):
+    import re
+    import io
+    from zipfile import ZipFile
+
+    if spec.is_archive:
+
+        # Create a DelayedFlo for the file in a ZIP file. We might have to find the file first, though
+        def _open(mode='r', encoding=None):
+            zf = ZipFile(syspath)
+
+            nl = list(zf.namelist())
+
+            real_name = None
+
+            if spec.target_file:
+                # The archive file names can be regular expressions
+                real_file_names = list([e for e in nl if re.search(spec.target_file, e)
+                                        and not (e.startswith('__') or e.startswith('.'))
+                                        ])
+
+                if real_file_names:
+                    real_name = real_file_names[0]
+                else:
+                    raise SourceError("Didn't find target_file '{}' in  '{}' ".format(spec.target_file, syspath))
+            else:
+                real_file_names = real_files_in_zf
+
+                if real_file_names:
+                    real_name = real_file_names[0]
+                else:
+                    raise SourceError("Can't find target file in '{}' ".format(spec.target_file, syspath))
+
+            if 'b' in mode:
+                flo = zf.open(real_name, mode.replace('b', ''))
+            else:
+                flo = io.TextIOWrapper(zf.open(real_name, mode),
+                                       encoding=spec.encoding if spec.encoding else 'utf8')
+
+            return (zf, flo)
+
+        def _close(f):
+            f[1].close()
+            f[0].close()
+
+        df = DelayedFlo(syspath, _open, lambda m: m[1], _close)
+
+    else:
+
+        def _open(mode='rbU'):
+            if 'b' in mode:
+                return io.open(syspath, mode)
+            else:
+                return io.open(syspath, mode,
+                               encoding=spec.encoding if spec.encoding else 'utf8')
+
+        def _close(f):
+            f.close()
+
+        df = DelayedFlo(syspath, _open, lambda m: m, _close)
+
+    return df
 
 
-# HACK This should probably not be derived from SourceSpec. It should be it's own
-# class heirarchy, and use __new__ for a polymorphic constructor
+def get_generator(spec, cache_fs, account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
+    """Download the container for a source spec and return a DelayedFlo object for opening, closing
+      and accessing the container"""
+
+    from os.path import dirname
+
+    d = download_and_cache(spec, cache_fs, working_dir=working_dir)
+
+    PROTO_TO_SOURCE_MAP = {
+        'program' : ProgramSource,
+        'ipynb': NotebookSource,
+        'shape': ShapefileSource
+    }
+
+    cls = PROTO_TO_SOURCE_MAP.get(spec.proto)
+
+    if cls:
+        assert working_dir != '/'
+
+        return cls(spec,  d['sys_path'], cache_fs, working_dir=dirname(d['sys_path']))
+
+
+    if spec.resource_format == 'zip' and spec.proto != 'metatab':
+        # Details of file are unknown; will have to open it first
+        target_file = get_file_from_zip(d, spec)
+        spec = spec.update(target_file=target_file)
+
+    TYPE_TO_SOURCE_MAP = {
+        'gs': CsvSource,
+        'csv': CsvSource,
+        'socrata': CsvSource,
+        'metapack': MetapackSource,
+        'tsv': TsvSource,
+        'fixed': FixedSource,
+        'txt': FixedSource,
+        'xls': ExcelSource,
+        'xlsx': ExcelSource,
+        'shape': ShapefileSource,
+        'metatab': MetapackSource,
+        'ipynb': NotebookSource
+    }
+
+    cls = TYPE_TO_SOURCE_MAP.get(spec.target_format)
+
+    if cls is None:
+        raise SourceError(
+            "Failed to determine file type for source '{}'; unknown format '{}' "
+                .format(spec.url, spec.target_format))
+
+    return cls(spec, get_dflo(spec, d['sys_path']), cache_fs)
+
+
 class RowGenerator(SourceSpec):
     """Primary generator object. It's actually a SourceSpec fetches a Source
      then proxies the iterator"""
@@ -24,7 +141,9 @@ class RowGenerator(SourceSpec):
                  columns=None,
                  cache=None,
                  working_dir=None,
+                 generator_args=None,
                  **kwargs):
+
         """
 
         :param url:
@@ -52,19 +171,30 @@ class RowGenerator(SourceSpec):
                                            target_format=target_format,
                                            encoding=encoding,
                                            columns=columns,
+                                           generator_args=generator_args,
                                            **kwargs)
+
+        self.generator = self.get_generator(self.cache, working_dir=self.working_dir)
 
     @property
     def path(self):
         return self._url
 
+
+    @property
+    def is_geo(self):
+        return isinstance(self.generator, GeoSourceBase)
+
     def __iter__(self):
-        self.generator = self.get_generator(self.cache, working_dir=self.working_dir)
 
         for row in self.generator:
+
+            if not self.headers:
+                self.headers = self.generator.headers
+
             yield row
 
-        self.headers = self.generator.headers
+
 
 
 class Source(object):
@@ -73,17 +203,10 @@ class Source(object):
     Subclasses of Source must override at least _get_row_gen method.
     """
 
-    def __init__(self, spec=None, cache = None):
+    def __init__(self, spec=None, cache=None):
         from copy import deepcopy
 
-        if spec is not None:
-            try:
-                self.spec = deepcopy(spec)
-            except TypeError:
-                raise
-                pass
-        else:
-            self.spec = None
+        self.spec = spec
 
         self.cache = cache
 
@@ -310,7 +433,6 @@ class CsvSource(SourceFile):
 
         try:
             for row in reader:
-
                 yield row
                 i += 1
         except UnicodeDecodeError as e:
@@ -485,9 +607,7 @@ class MetapackSource(SourceFile):
     def __init__(self, spec, dflo, cache):
         super().__init__(spec, dflo, cache)
 
-
     def __iter__(self):
-
         from metatab import open_package
 
         doc = open_package(self.spec.resource_url, cache=self.cache)
@@ -496,6 +616,140 @@ class MetapackSource(SourceFile):
 
         for row in r:
             yield row
+
+
+class ProgramSource(Source):
+    """Generate rows from a program. Takes kwargs from the spec to pass into the program. """
+
+    def __init__(self, spec, sys_path, cache, working_dir):
+        from os.path import join, normpath
+        from os import environ
+        import json
+
+        super().__init__(spec, cache)
+
+        assert working_dir
+
+        self.program = normpath(join(working_dir, self.spec.url_parts.path.strip('/')))
+
+        if not exists(self.program):
+            raise SourceError("Program '{}' does not exist".format(self.program))
+
+        self.args = dict(list(self.spec.generator_args.items())+list(self.spec.kwargs.items()))
+
+        self.options = []
+
+        self.properties = {}
+
+        self.env = dict(environ.items())
+
+        for k, v in self.args.items():
+            if k.startswith('--'):
+                # Long options
+                self.options.append("{} {}".format(k,v))
+            elif k.startswith('-'):
+                # Short options
+                self.options.append("{} {}".format(k, v))
+            elif k == k.upper():
+                #ENV vars
+                self.env[k] = k
+            else:
+                # Normal properties, passed in as JSON and as an ENV
+                self.properties[k] = v
+
+        self.env['PROPERTIES'] = json.dumps(self.properties)
+
+
+    def start(self):
+        pass
+
+    def finish(self):
+        pass
+
+    def open(self):
+        pass
+
+    def __iter__(self):
+        import csv
+        import subprocess
+        from io import TextIOWrapper
+        import json
+
+        # SHould probably give the child process the -u option,  http://stackoverflow.com/a/17701672
+        p = subprocess.Popen([self.program] + self.options,
+                        stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                        env = self.env)
+
+        p.stdin.write(json.dumps(self.properties).encode('utf-8'))
+
+        r = csv.reader(TextIOWrapper(p.stdout))
+
+        for row in r:
+            yield row
+
+
+class NotebookSource(Source):
+    """Generate rows from an IPython Notebook. """
+
+    def __init__(self, spec,  sys_path, cache, working_dir):
+        from os.path import join, normpath
+        from os import environ
+        import json
+
+        super().__init__(spec, cache)
+
+        self.sys_path = sys_path
+
+        if not exists(self.sys_path):
+            raise SourceError("Notebook '{}' does not exist".format(self.sys_path))
+
+        self.env = dict(
+            (list(self.spec.generator_args.items()) if self.spec.generator_args else [])  +
+            (list(self.spec.kwargs.items()) if self.spec.kwargs else [] )
+            )
+
+    def start(self):
+        pass
+
+    def finish(self):
+        pass
+
+    def open(self):
+        pass
+
+    def __iter__(self):
+        import csv
+        import subprocess
+        from io import TextIOWrapper
+        import json
+
+        # SHould probably give the child process the -u option,  http://stackoverflow.com/a/17701672
+        p = subprocess.Popen([self.program] + self.options,
+                        stdout=subprocess.PIPE, stdin=subprocess.PIPE,
+                        env = self.env)
+
+        p.stdin.write(json.dumps(self.properties).encode('utf-8'))
+
+        r = csv.reader(TextIOWrapper(p.stdout))
+
+        for row in r:
+            yield row
+
+
+    def execute(self):
+        """Convert the notebook to a python script and execute it, returning the local context
+        as a dict"""
+
+        from nbconvert.exporters import get_exporter
+
+        exporter = get_exporter('python')()
+
+        (script, notebook) = exporter.from_filename(filename=self.sys_path)
+
+        exec(compile(script.replace('# coding: utf-8', ''), 'script', 'exec'), self.env)
+
+        return self.env[self.spec.target_segment]
+
 
 class GoogleAuthenticatedSource(SourceFile):
     """Generate rows from a Google spreadsheet source that requires authentication
@@ -538,8 +792,11 @@ class GeoSourceBase(SourceFile):
 class ShapefileSource(GeoSourceBase):
     """ Accessor for shapefiles (*.shp) with geo data. """
 
-    def __init__(self, spec, fstor, cache):
-        super(ShapefileSource, self).__init__(spec, fstor, cache)
+    def __init__(self, spec, syspath, cache, working_dir):
+        super(ShapefileSource, self).__init__(spec, None, cache)
+
+        self.syspath = syspath
+
 
     def _convert_column(self, shapefile_column):
         """ Converts column from a *.shp file to the column expected by ambry_sources.
@@ -587,7 +844,7 @@ class ShapefileSource(GeoSourceBase):
         """Return headers. This must be run after iteration, since the value that is returned is
         set in iteration """
 
-        return self._headers
+        return list(self._headers)
 
     def __iter__(self):
         """ Returns generator over shapefile rows.
@@ -604,33 +861,58 @@ class ShapefileSource(GeoSourceBase):
 
         import fiona
 
-        from shapely.geometry import shape
+        from shapely.geometry import asShape
         from shapely.wkt import dumps
-        from .spec import ColumnSpec
+        from zipfile import ZipFile
+        from shapely.ops import transform
+        import pyproj
+        from functools  import partial
+
+        layer_index = self.spec.target_segment or 0
+
+        if self.spec.resource_format == 'zip':
+            # Find the SHP file. I thought Fiona used to do this itself ...
+            shp_file = '/'+next(n for n in ZipFile(self.syspath).namelist() if (n.endswith('.shp') or n.endswith('geojson')))
+            vfs = 'zip://{}'.format(self.syspath)
+        else:
+            shp_file = self.syspath
+            vfs = None
+
 
         self.start()
 
-        with fiona.drivers():
-            # retrive full path of the zip and convert it to url
-            virtual_fs = 'zip://{}'.format(self._fstor._fs.zf.filename)
-            layer_index = self.spec.segment or 0
-            with fiona.open('/', vfs=virtual_fs, layer=layer_index) as source:
-                # geometry_type = source.schema['geometry']
-                property_schema = source.schema['properties']
-                self.spec.columns = [ColumnSpec(**c) for c in self._get_columns(property_schema)]
-                self._headers = [x['name'] for x in self._get_columns(property_schema)]
+        with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
 
-                for s in source:
-                    row_data = s['properties']
-                    shp = shape(s['geometry'])
-                    wkt = dumps(shp)
-                    row = [int(s['id'])]
-                    for col_name, elem in six.iteritems(row_data):
-                        row.append(elem)
+            if source.crs.get('init') != 'epsg:4326':
+                # Project back to WGS84
+                o_crs = pyproj.Proj(source.crs)
+                d_crs = pyproj.Proj(init='EPSG:4326')
+                project = partial(pyproj.transform, o_crs, d_crs)
+            else:
+                project = None
 
-                    row.append(wkt)
+            property_schema = source.schema['properties']
 
-                    yield row
+            self.spec.columns = [c for c in self._get_columns(property_schema)]
+            self._headers = [x['name'] for x in self._get_columns(property_schema)]
+
+            yield self.headers
+
+            for s in source:
+
+                row_data = s['properties']
+                shp = asShape(s['geometry'])
+
+                row = [int(s['id'])]
+                for col_name, elem in six.iteritems(row_data):
+                    row.append(elem)
+
+                if project:
+                    row.append(transform(project, shp))
+                else:
+                    row.append(shp)
+
+                yield row
 
         self.finish()
 
@@ -696,7 +978,6 @@ class SelectiveRowGenerator(object):
         self.comments = []
 
         int(self.start)  # Throw error if it is not an int
-
 
     @property
     def coalesce_headers(self):

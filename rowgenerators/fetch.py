@@ -5,37 +5,44 @@ Copyright (c) 2015 Civic Knowledge. This file is licensed under the terms of the
 Revised BSD License, included in this distribution as LICENSE.txt
 """
 
-import ssl
-import sys
-from six.moves.urllib.parse import urlparse
-from six.moves.urllib.request import urlopen
-from six import string_types
-
 import functools
 import hashlib
-
+import ssl
 from os.path import abspath, join, exists
-from rowgenerators.exceptions import MissingCredentials
-from rowgenerators.generators import CsvSource
+
+from requests import HTTPError
+from six import string_types
+from six.moves.urllib.parse import urlparse
+from six.moves.urllib.request import urlopen
+
+from rowgenerators.exceptions import MissingCredentials, SourceError
 from rowgenerators.generators import *
 from .s3 import AltValidationS3FS
-from .util import DelayedFlo, real_files_in_zf, copy_file_or_flo, parse_url_to_dict, unparse_url_dict, get_cache
-from requests import HTTPError
+from .util import real_files_in_zf, copy_file_or_flo, parse_url_to_dict, get_cache
 
 
 def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
+
     parts = {}
 
-    if spec.proto == 'file':
+    working_dir = working_dir if working_dir else ''
+
+    if spec.scheme == 'file':
         parts['cache_path'] = parse_url_to_dict(spec.resource_url)['path']
         parts['download_time'] = None
 
-        if working_dir:
-            parts['sys_path'] = join(working_dir, parts['cache_path'])
-        else:
-            parts['sys_path'] = abspath(parts['cache_path'])
+        locations = ( # What a mess ...
+            parts['cache_path'],
+            parts['cache_path'].lstrip('/'),
+            join(working_dir, parts['cache_path']),
+            abspath(parts['cache_path'].lstrip('/'))
+        )
 
-        if not exists(parts['sys_path']):
+        for l in locations:
+            if exists(l):
+                parts['sys_path'] = l
+                break
+        else:
             raise IOError("File resource does not exist. '{}'. working_dir='{}'"
                           .format(spec, working_dir))
 
@@ -73,105 +80,6 @@ def get_file_from_zip(d, spec):
             pass
 
     return nl[0]
-
-
-def get_dflo(spec, syspath):
-    import re
-    import io
-    from zipfile import ZipFile
-
-    if spec.is_archive:
-
-        # Create a DelayedFlo for the file in a ZIP file. We might have to find the file first, though
-        def _open(mode='r', encoding=None):
-            zf = ZipFile(syspath)
-
-            nl = list(zf.namelist())
-
-            real_name = None
-
-            if spec.target_file:
-                # The archive file names can be regular expressions
-                real_file_names = list([e for e in nl if re.search(spec.target_file, e)
-                                        and not (e.startswith('__') or e.startswith('.'))
-                                        ])
-
-                if real_file_names:
-                    real_name = real_file_names[0]
-                else:
-                    raise SourceError("Didn't find target_file '{}' in  '{}' ".format(spec.target_file, syspath))
-            else:
-                real_file_names = real_files_in_zf
-
-                if real_file_names:
-                    real_name = real_file_names[0]
-                else:
-                    raise SourceError("Can't find target file in '{}' ".format(spec.target_file, syspath))
-
-            if 'b' in mode:
-                flo = zf.open(real_name, mode.replace('b', ''))
-            else:
-                flo = io.TextIOWrapper(zf.open(real_name, mode),
-                                       encoding=spec.encoding if spec.encoding else 'utf8')
-
-            return (zf, flo)
-
-        def _close(f):
-            f[1].close()
-            f[0].close()
-
-        df = DelayedFlo(syspath, _open, lambda m: m[1], _close)
-
-    else:
-
-        def _open(mode='rbU'):
-            if 'b' in mode:
-                return io.open(syspath, mode)
-            else:
-                return io.open(syspath, mode,
-                               encoding=spec.encoding if spec.encoding else 'utf8')
-
-        def _close(f):
-            f.close()
-
-        df = DelayedFlo(syspath, _open, lambda m: m, _close)
-
-    return df
-
-
-def get_generator(spec, cache_fs, account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
-    """Download the container for a source spec and return a DelayedFlo object for opening, closing
-      and accessing the container"""
-
-    d = download_and_cache(spec, cache_fs, working_dir=working_dir)
-
-    if spec.resource_format == 'zip' and spec.proto != 'metatab':
-        # Details of file are unknown; will have to open it first
-        target_file = get_file_from_zip(d, spec)
-        spec = spec.update(target_file=target_file)
-
-    TYPE_TO_SOURCE_MAP = {
-        'gs': CsvSource,
-        'csv': CsvSource,
-        'socrata': CsvSource,
-        'metapack': MetapackSource,
-        'tsv': TsvSource,
-        'fixed': FixedSource,
-        'txt': FixedSource,
-        'xls': ExcelSource,
-        'xlsx': ExcelSource,
-        'shape': ShapefileSource,
-        'metatab': MetapackSource
-    }
-
-    cls = TYPE_TO_SOURCE_MAP.get(spec.target_format)
-
-    if cls is None:
-        raise SourceError(
-            "Failed to determine file type for source '{}'; unknown format '{}' "
-                .format(spec.name, spec.target_format))
-
-    return cls(spec, get_dflo(spec, d['sys_path']), cache_fs)
 
 
 def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None):
@@ -249,7 +157,6 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
     import os.path
     import time
     from fs.errors import DirectoryExpected, NoSysPath, ResourceInvalid, DirectoryExists
-    from .util import get_cache
 
     assert isinstance(url, string_types)
 
@@ -463,9 +370,8 @@ def inspect(ss, cache_fs, callback=None):
     """Return a list of possible extensions to the url, such as files within a ZIP archive, or
     worksheets in a spreadsheet"""
     from zipfile import ZipFile
-    from os.path import basename
-
     from copy import deepcopy
+    from rowgenerators.generators import  get_generator
 
     d = download_and_cache(ss, cache_fs, callback=callback)
 

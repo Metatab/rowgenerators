@@ -10,7 +10,7 @@
 "gs://foobarbaz#1010","GoogleProtoCsvUrl","gs://foobarbaz/#1010","https://docs.google.com/spreadsheets/d/foobarbaz/export?format=csv&gid=1010","foobarbaz-1010.csv","foobarbaz-1010.csv","gs","gs","csv","csv",,"utf8",1010
 "file:foo/bar/excel.xls","ExcelUrl","file:foo/bar/excel.xls","file:foo/bar/excel.xls","excel.xls","excel.xls","file","file","xls","xls",,,
 "file:/foo/bar/archive.zip","ZipUrl","file:/foo/bar/archive.zip","file:/foo/bar/archive.zip","archive.zip",,"file","file","zip",,"True",,
-"file://foo/bar/archive.zip#excel.xls","ZipUrl","file:foo/bar/archive.zip#excel.xls","file:foo/bar/archive.zip","archive.zip","excel.xls","file","file","zip","xls","True",,
+"file://foo/bar/archive.zip#excel.xls","ZipUrl","file://foo/bar/archive.zip#excel.xls","file://foo/bar/archive.zip","archive.zip","excel.xls","file","file","zip","xls","True",,
 "file:///foo/bar/archive.zip#excel.xls;seg","ZipUrl","file:/foo/bar/archive.zip#excel.xls%3Bseg","file:/foo/bar/archive.zip","archive.zip","excel.xls","file","file","zip","xls","True",,"seg"
 "foo/bar/excel.xls","ExcelUrl","file:foo/bar/excel.xls","file:foo/bar/excel.xls","excel.xls","excel.xls","file","file","xls","xls",,,
 "/foo/bar/excel.xls","ExcelUrl","file:/foo/bar/excel.xls","file:/foo/bar/excel.xls","excel.xls","excel.xls","file","file","xls","xls",,,

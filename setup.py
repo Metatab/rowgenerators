@@ -15,7 +15,6 @@ try:
 except ImportError:
     from distutils.core import setup
 
-
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
@@ -28,7 +27,6 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
 ambry_meta = imp.load_source('_meta', 'rowgenerators/_meta.py')
 
 packages = find_packages()
-
 
 classifiers = [
     'Development Status :: 4 - Beta',
@@ -61,6 +59,9 @@ setup(
         'filelock',
 
     ],
+    extras_require={
+        'geo': ['fiona', 'shapely','pyproject']
+    },
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',

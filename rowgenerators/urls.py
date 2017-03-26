@@ -57,9 +57,17 @@ class Url(object):
 
         assert 'is_archive' not in kwargs
 
+        self._extract_parts(url, kwargs)
+
+        self._assign_args(kwargs)
+
+        self._process()
+
+    def _extract_parts(self, url, kwargs):
         self.url = reparse_url(url)
         self.parts = self.url_parts(self.url, **kwargs)
 
+    def _assign_args(self, kwargs):
         self.scheme = kwargs.get('scheme', self.parts.scheme)
         self.proto = kwargs.get('proto')
         self.resource_url = kwargs.get('resource_url')
@@ -71,12 +79,15 @@ class Url(object):
         self.encoding = kwargs.get('encoding')
         self.target_segment = kwargs.get('target_segment')
 
-        if not self.proto:
-            self.proto = extract_proto(self.url)
-
+    def _process(self):
+        self._process_proto()
         self._process_resource_url()
         self._process_fragment()
         self._process_target_file()
+
+    def _process_proto(self):
+        if not self.proto:
+            self.proto = extract_proto(self.url)
 
     @property
     def is_archive(self):
@@ -101,6 +112,7 @@ class Url(object):
 
         self.resource_url = unparse_url_dict(self.parts.__dict__,
                                              scheme=self.parts.scheme if self.parts.scheme else 'file',
+                                             scheme_extension = False,
                                              fragment=False)
 
         self.resource_file = basename(self.resource_url)
@@ -170,6 +182,18 @@ class Url(object):
         raise NotImplementedError
 
     def component_url(self, s):
+
+        sp = parse_url_to_dict(s)
+
+        if sp['netloc']:
+            return s
+
+        url = reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']), fragment=sp['fragment'])
+
+        assert url
+        return url
+
+    def abspath(self, s):
 
         sp = parse_url_to_dict(s)
 
@@ -477,17 +501,16 @@ class MetatabPackageUrl(Url):
     def match(cls, url, **kwargs):
         return extract_proto(url) == 'metatab'
 
-
     def _process_resource_url(self):
 
         from metatab import resolve_package_metadata_url
 
         # Reminder: this is the HTTP resource, not the Metatab resource
-        self.resource_url = unparse_url_dict(self.parts.__dict__,scheme_extension=False,fragment=False)
+        self.resource_url = unparse_url_dict(self.parts.__dict__, scheme_extension=False, fragment=False)
 
         self.resource_format = file_ext(self.resource_url)
 
-        if self.resource_format not in ('zip','xlsx'):
+        if self.resource_format not in ('zip', 'xlsx'):
             self.resource_format = 'csv'
             self.resource_file = 'metadata.csv'
             self.resource_url += '/metadata.csv'
@@ -502,11 +525,92 @@ class MetatabPackageUrl(Url):
         self.target_format = 'metatab'
 
     def _process_fragment(self):
-
         self.target_segment = self.parts.fragment
 
 
+class ProgramUrl(Url):
+    def __init__(self, url, **kwargs):
+        kwargs['proto'] = 'program'
+
+        super(ProgramUrl, self).__init__(url, **kwargs)
+
+    @classmethod
+    def match(cls, url, **kwargs):
+        return extract_proto(url) == 'program'
+
+    def _extract_parts(self, url, kwargs):
+        parts = self.url_parts(url, **kwargs)
+
+        self.url = reparse_url(url, assume_localhost=True,
+                               scheme=parts.scheme if parts.scheme != 'program' else 'file',
+                               scheme_extension='program')
+
+        self.parts = self.url_parts(self.url, **kwargs)
+
+    @property
+    def path(self):
+        return self.parts.path
+
+    def _process_resource_url(self):
+        self.resource_url = unparse_url_dict(self.parts.__dict__,
+                                             scheme=self.parts.scheme if self.parts.scheme else 'file',
+                                             scheme_extension=False,
+                                             fragment=False)
+
+        self.resource_file = basename(self.resource_url)
+
+        if not self.resource_format:
+            self.resource_format = file_ext(self.resource_file)
+
+
+class NotebootUrl(Url):
+    """IPYthon Notebook URL"""
+
+    def __init__(self, url, **kwargs):
+        kwargs['proto'] = 'ipynb'
+
+        super(NotebootUrl, self).__init__(url, **kwargs)
+
+    @classmethod
+    def match(cls, url, **kwargs):
+        return extract_proto(url) == 'ipynb'
+
+    def _extract_parts(self, url, kwargs):
+        parts = self.url_parts(url, **kwargs)
+
+        self.url = reparse_url(url, assume_localhost=True,
+                               scheme=parts.scheme if parts.scheme != 'ipynb' else 'file',
+                               scheme_extension='ipynb')
+
+        self.parts = self.url_parts(self.url, **kwargs)
+
+    @property
+    def path(self):
+        return self.parts.path
+
+    def _process_resource_url(self):
+        self.resource_url = unparse_url_dict(self.parts.__dict__,
+                                             scheme=self.parts.scheme if self.parts.scheme != 'ipynb' else 'file',
+                                             scheme_extension=False,
+                                             fragment=False).strip('/')
+
+        self.resource_file = basename(self.resource_url)
+
+        if not self.resource_format:
+            self.resource_format = file_ext(self.resource_file)
+
+    def _process_fragment(self):
+        self.target_segment = self.parts.fragment
+
+    def _process_target_file(self):
+        super()._process_target_file()
+
+        assert self.target_format == 'ipynb', self.target_format
+
+
 url_handlers = [
+    NotebootUrl,
+    ProgramUrl,
     MetatabPackageUrl,
     CkanUrl,
     SocrataUrl,

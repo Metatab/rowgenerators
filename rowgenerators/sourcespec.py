@@ -6,21 +6,21 @@
 The SourceSpec defines what kind of a source file to fetch and how to process it.
 """
 
-
 from .util import parse_url_to_dict
 from rowgenerators.urls import Url
 from uuid import uuid4
 from copy import deepcopy
 
-class SourceSpec(object):
 
+class SourceSpec(object):
     # Properties from the internal url that are copied to the SourceSpec
-    url_properties = ['scheme','proto','resource_url','resource_file','resource_format','target_file','target_format',
-                      'encoding','target_segment' ]
-    
+    url_properties = ['scheme', 'proto', 'resource_url', 'resource_file', 'resource_format', 'target_file',
+                      'target_format',
+                      'encoding', 'target_segment']
+
     def __init__(self, url, name=None, proto=None, resource_format=None,
-                 target_file=None, target_segment=None, target_format=None, encoding=None, 
-                 columns=None, **kwargs):
+                 target_file=None, target_segment=None, target_format=None, encoding=None,
+                 columns=None, generator_args = None, **kwargs):
         """
 
         The ``header_lines`` can be a list of header lines, or one of a few special values:
@@ -43,7 +43,7 @@ class SourceSpec(object):
         have internal file of another type.
         :param encoding: The file encoding.
 
-        :param kwargs: Unused. Provided to make it easy to load a record from a dict.
+        :param kwargs: Stored and made available to generators
         :return:
 
 
@@ -69,13 +69,29 @@ class SourceSpec(object):
         self.columns = columns
         self.download_time = None  # Set externally
 
-    def __deepcopy__(self, o):
-        return type(self)(deepcopy(self._url), name=self.name, columns = self.columns)
+        self.generator_args = generator_args
+        self.kwargs = kwargs
 
+    def __deepcopy__(self, o):
+
+        o = type(self)(
+            url=deepcopy(self.url),
+            name=self.name,
+            columns=self.columns,
+        )
+
+        o.generator_args = self.generator_args
+        o.kwargs = self.kwargs
+
+        return o
 
     @property
     def url(self):
         return self._url.url
+
+    @property
+    def url_parts(self):
+        return self._url.parts
 
     @property
     def scheme(self):
@@ -85,6 +101,7 @@ class SourceSpec(object):
     def proto(self):
         return self._url.proto
 
+
     @property
     def resource_url(self):
         return self._url.resource_url
@@ -92,6 +109,10 @@ class SourceSpec(object):
     @property
     def resource_file(self):
         return self._url.resource_file
+
+    @property
+    def path(self):
+        return self._url.parts.path
 
     @property
     def resource_format(self):
@@ -117,7 +138,6 @@ class SourceSpec(object):
     def target_segment(self):
         return self._url.target_segment
 
-
     @property
     def is_archive(self):
         return self._url.is_archive
@@ -125,7 +145,6 @@ class SourceSpec(object):
     @property
     def urlfiletype(self):
         raise NotImplementedError()
-
 
     def update_format(self):
         raise NotImplementedError()
@@ -139,13 +158,13 @@ class SourceSpec(object):
 
     def download_and_cache(self, spec, cache_fs, account_accessor=None, clean=False, logger=None,
                            working_dir='', callback=None):
-        from rowgenerators.fetch import  download_and_cache
+        from rowgenerators.fetch import download_and_cache
 
         return download_and_cache(spec=spec, cache_fs=cache_fs, account_accessor=account_accessor,
                                   clean=clean, logger=logger, working_dir=working_dir, callback=callback)
 
     def get_generator(self, cache=None, working_dir=None):
-        from rowgenerators.fetch import get_generator
+        from rowgenerators import get_generator
 
         return get_generator(self, cache, working_dir=working_dir)
 
@@ -165,7 +184,7 @@ class SourceSpec(object):
         path = unquote(path)
 
         file = self.file
-        segment =  self.segment
+        segment = self.segment
 
         if file is not None or segment is not None:
             path += '-'
@@ -179,7 +198,7 @@ class SourceSpec(object):
             path += second_sep
             path += segment
 
-        return re.sub(r'[^\w-]','-',path)
+        return re.sub(r'[^\w-]', '-', path)
 
     def __str__(self):
         return "<{} {}>".format(self.__class__.__name__, self.rebuild_url())
@@ -187,7 +206,6 @@ class SourceSpec(object):
     def rebuild_url(self):
 
         return self._url.rebuild_url()
-
 
     @property
     def dict(self):
@@ -202,5 +220,3 @@ class SourceSpec(object):
         u = self._url.update(**kwargs)
 
         return SourceSpec(u, name=self.name, columns=self.columns)
-
-

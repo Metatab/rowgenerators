@@ -29,7 +29,6 @@ class DelayedFlo(object):
             self.close_f(self.memo)
 
 
-
 def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
     """ Copy a file name or file-like-object to another file name or file-like object"""
 
@@ -78,7 +77,8 @@ def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
         if output_opened:
             output.close()
 
-def parse_url_to_dict(url):
+
+def parse_url_to_dict(url, assume_localhost=False):
     """Parse a url and return a dict with keys for all of the parts.
 
     The urlparse function() returns a wacky combination of a namedtuple
@@ -87,38 +87,33 @@ def parse_url_to_dict(url):
     """
     from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, unquote_plus
     from six import text_type
-
+    import re
     assert url is not None
 
     p = urlparse(text_type(url))
 
     #  '+' indicates that the scheme has a scheme extension
     if '+' in p.scheme:
-
         scheme_extension, scheme = p.scheme.split('+')
-
     else:
         scheme = p.scheme
         scheme_extension = None
 
-    if scheme == '':
+    if scheme is '':
         scheme = 'file'
 
-    if scheme == 'file' and url.startswith('file://') and not url.startswith('file:///') :
-        # We'll assume that the file urls never have a hostname, and the file:// is an error.
-        return parse_url_to_dict(url.replace('file://', 'file:'))
 
     return {
         'scheme': scheme,
         'scheme_extension': scheme_extension,
         'netloc': p.netloc,
+        'hostname': p.hostname,
         'path': p.path,
         'params': p.params,
         'query': p.query,
         'fragment': unquote_plus(p.fragment) if p.fragment else None,
         'username': p.username,
         'password': p.password,
-        'hostname': p.hostname,
         'port': p.port
     }
 
@@ -158,7 +153,7 @@ def unparse_url_dict(d, **kwargs):
         # It's possible just a local file url.
         # This isn't the standard file: url form, which is specified to have a :// and a host part,
         # like 'file://localhost/etc/config', but that form can't handle relative URLs ( which don't start with '/')
-        url = 'file:'+d['path']
+        url = 'file:'+d['path'].lstrip('/')
     else:
         url = ''
 
@@ -171,13 +166,13 @@ def unparse_url_dict(d, **kwargs):
     if d.get('fragment'):
         url += '#' + quote_plus(d['fragment'])
 
-
     return url
-
 
 def reparse_url(url, **kwargs):
 
-    return unparse_url_dict(parse_url_to_dict(url), **kwargs)
+    assume_localhost = kwargs.get('assume_localhost', False)
+
+    return unparse_url_dict(parse_url_to_dict(url,assume_localhost),**kwargs)
 
 # From http://stackoverflow.com/a/2597440
 class Bunch(object):
