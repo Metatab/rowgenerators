@@ -860,13 +860,13 @@ class ShapefileSource(GeoSourceBase):
         # support can be an extra
 
         import fiona
-
+        from fiona.crs import from_epsg, to_string, from_string
         from shapely.geometry import asShape
         from shapely.wkt import dumps
         from zipfile import ZipFile
         from shapely.ops import transform
         import pyproj
-        from functools  import partial
+        from functools import partial
 
         layer_index = self.spec.target_segment or 0
 
@@ -878,16 +878,18 @@ class ShapefileSource(GeoSourceBase):
             shp_file = self.syspath
             vfs = None
 
-
         self.start()
 
         with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
 
             if source.crs.get('init') != 'epsg:4326':
                 # Project back to WGS84
-                o_crs = pyproj.Proj(source.crs)
-                d_crs = pyproj.Proj(init='EPSG:4326')
-                project = partial(pyproj.transform, o_crs, d_crs)
+
+                project = partial(pyproj.transform,
+                                  pyproj.Proj(source.crs, preserve_units=True),
+                                  pyproj.Proj(from_epsg('4326'))
+                                  )
+
             else:
                 project = None
 
@@ -898,7 +900,7 @@ class ShapefileSource(GeoSourceBase):
 
             yield self.headers
 
-            for s in source:
+            for i,s in enumerate(source):
 
                 row_data = s['properties']
                 shp = asShape(s['geometry'])
@@ -909,6 +911,7 @@ class ShapefileSource(GeoSourceBase):
 
                 if project:
                     row.append(transform(project, shp))
+
                 else:
                     row.append(shp)
 
