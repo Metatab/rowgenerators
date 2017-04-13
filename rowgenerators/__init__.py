@@ -4,7 +4,7 @@
 from .generators import *
 from .exceptions import SourceError
 
-from .util import DelayedFlo, get_cache
+from .util import DelayedFlo, get_cache, clean_cache
 from .sourcespec import SourceSpec
 from .rowproxy import RowProxy, GeoRowProxy
 from .fetch import enumerate_contents, inspect
