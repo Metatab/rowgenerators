@@ -181,14 +181,17 @@ class Url(object):
         """Return a suitable generator for this url"""
         raise NotImplementedError
 
-    def component_url(self, s):
+    def component_url(self, s, scheme_extension=None):
 
         sp = parse_url_to_dict(s)
 
+        # If there is a netloc, it's an absolute URL
         if sp['netloc']:
             return s
 
-        url = reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']), fragment=sp['fragment'])
+        url = reparse_url(s, path=join(dirname(self.parts.path), sp['path']),
+                          fragment=sp['fragment'],
+                          scheme_extension= scheme_extension or sp['schema_extension'])
 
         assert url
         return url
