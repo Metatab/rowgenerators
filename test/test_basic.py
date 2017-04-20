@@ -458,6 +458,18 @@ class BasicTests(unittest.TestCase):
         for row in gen:
             print(row)
 
+    def test_component_url(self):
+
+        with open(data_path('components.csv')) as f:
+            for l in DictReader(f):
+                base_url = Url(l['base_url'])
+                component_url = l['component_url']
+                print(base_url.component_url(component_url))
+
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

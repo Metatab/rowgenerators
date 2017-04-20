@@ -3,14 +3,12 @@ Copyright (c) 2015 Civic Knowledge. This file is licensed under the terms of the
 Revised BSD License, included in this distribution as LICENSE.txt
 """
 
-import petl
 
 import six
 
 from rowgenerators.fetch import download_and_cache, get_file_from_zip
 from rowgenerators.util import real_files_in_zf, DelayedFlo
 
-from .util import copy_file_or_flo
 from .exceptions import TextEncodingError, SourceError
 
 from .sourcespec import SourceSpec
@@ -80,34 +78,15 @@ def get_dflo(spec, syspath):
     return df
 
 
-def get_generator(spec, cache_fs, account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
-    """Download the container for a source spec and return a DelayedFlo object for opening, closing
-      and accessing the container"""
-
-    from os.path import dirname
-
-    d = download_and_cache(spec, cache_fs, working_dir=working_dir)
-
-    PROTO_TO_SOURCE_MAP = {
-        'program' : ProgramSource,
+def PROTO_TO_SOURCE_MAP():
+    return {
+        'program': ProgramSource,
         'ipynb': NotebookSource,
         'shape': ShapefileSource
     }
 
-    cls = PROTO_TO_SOURCE_MAP.get(spec.proto)
-
-    if cls:
-        assert working_dir != '/'
-
-        return cls(spec,  d['sys_path'], cache_fs, working_dir=dirname(d['sys_path']))
-
-
-    if spec.resource_format == 'zip' and spec.proto != 'metatab':
-        # Details of file are unknown; will have to open it first
-        target_file = get_file_from_zip(d, spec)
-        spec = spec.update(target_file=target_file)
-
-    TYPE_TO_SOURCE_MAP = {
+def TYPE_TO_SOURCE_MAP():
+    return {
         'gs': CsvSource,
         'csv': CsvSource,
         'socrata': CsvSource,
@@ -122,7 +101,28 @@ def get_generator(spec, cache_fs, account_accessor=None, clean=False, logger=Non
         'ipynb': NotebookSource
     }
 
-    cls = TYPE_TO_SOURCE_MAP.get(spec.target_format)
+def get_generator(spec, cache_fs, account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
+    """Download the container for a source spec and return a DelayedFlo object for opening, closing
+      and accessing the container"""
+
+    from os.path import dirname
+
+    d = download_and_cache(spec, cache_fs, working_dir=working_dir)
+
+    cls = PROTO_TO_SOURCE_MAP().get(spec.proto)
+
+    if cls:
+        assert working_dir != '/'
+
+        return cls(spec,  d['sys_path'], cache_fs, working_dir=dirname(d['sys_path']))
+
+    if spec.resource_format == 'zip' and spec.proto != 'metatab':
+        # Details of file are unknown; will have to open it first
+        target_file = get_file_from_zip(d, spec)
+        spec = spec.update(target_file=target_file)
+
+
+    cls = TYPE_TO_SOURCE_MAP().get(spec.target_format)
 
     if cls is None:
         raise SourceError(
@@ -630,7 +630,7 @@ class ProgramSource(Source):
 
         assert working_dir
 
-        self.program = normpath(join(working_dir, self.spec.url_parts.path.strip('/')))
+        self.program = normpath(join(working_dir, self.spec.url_parts.path))
 
         if not exists(self.program):
             raise SourceError("Program '{}' does not exist".format(self.program))
