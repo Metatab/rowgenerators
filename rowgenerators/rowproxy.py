@@ -58,7 +58,7 @@ class RowProxy(object):
                 try:
                     return self.__row[key]
                 except IndexError:
-                    raise KeyError("Failed to get value for integer key '{}' ".format(key))
+                    raise KeyError("Failed to get value for integer key '{}' in row {} ".format(key, self.__row))
             else:
                 try:
                     return self.__row[self.__pos_map[key]]
@@ -66,7 +66,7 @@ class RowProxy(object):
                     raise IndexError("Failed to get value for non-int key '{}', resolved to position {} "
                                      .format(key, self.__pos_map[key]))
                 except KeyError:
-                    raise KeyError("Failed to get value for non-int key '{}' ".format(key))
+                    raise KeyError("Failed to get value for non-int key '{}' in row {} ".format(key, self.__row))
 
     def __setattr__(self, key, value):
 
