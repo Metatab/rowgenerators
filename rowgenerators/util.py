@@ -125,6 +125,7 @@ def unparse_url_dict(d, **kwargs):
 
     d.update(kwargs)
 
+
     if 'netloc' in d and d['netloc']:
         host_port = d['netloc']
     else:

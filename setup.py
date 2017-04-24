@@ -60,7 +60,7 @@ setup(
 
     ],
     extras_require={
-        'geo': ['fiona', 'shapely','pyproject']
+        'geo': ['fiona', 'shapely','pyproj', 'pyproject']
     },
     entry_points={
         'console_scripts': [

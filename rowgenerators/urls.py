@@ -208,8 +208,6 @@ class Url(object):
         assert url
         return url
 
-    def __repr__(self):
-        return "<{} {}>".format(self.__class__.__name__, self.rebuild_url())
 
     def update(self, **kwargs):
         """Returns a new Url object, possibly with some of the paroperties replaced"""
@@ -285,6 +283,9 @@ class Url(object):
 
     def __copy__(self, o):
         return self.__deepcopy__(o)
+
+    def __repr__(self):
+        return "<{} {}>".format(self.__class__.__name__, self.rebuild_url())
 
 
 class GeneralUrl(Url):
@@ -526,6 +527,9 @@ class MetatabPackageUrl(Url):
             self.target_file = 'metadata.csv'
 
         self.target_format = 'metatab'
+
+    def component_url(self, s, scheme_extension=None):
+        return super().component_url(s, scheme_extension)
 
     def _process_fragment(self):
         self.target_segment = self.parts.fragment

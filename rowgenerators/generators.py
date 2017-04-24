@@ -82,7 +82,8 @@ def PROTO_TO_SOURCE_MAP():
     return {
         'program': ProgramSource,
         'ipynb': NotebookSource,
-        'shape': ShapefileSource
+        'shape': ShapefileSource,
+        'metatab': MetapackSource,
     }
 
 def TYPE_TO_SOURCE_MAP():
@@ -194,7 +195,24 @@ class RowGenerator(SourceSpec):
 
             yield row
 
+    def iter_rp(self):
+        """Iterate, yielding row proxy objects rather than rows"""
 
+        from .rowproxy import RowProxy
+
+        row_proxy = None
+
+        for row in self.generator:
+
+            if not self.headers:
+                self.headers = self.generator.headers
+                row_proxy = RowProxy(self.headers)
+                continue
+
+            yield row_proxy.set_row(row)
+
+    def __str__(self):
+        return "<RowGenerator ({}): {} >".format(type(self.generator), self.url)
 
 
 class Source(object):
@@ -604,11 +622,12 @@ class ExcelSource(SourceFile):
 
 
 class MetapackSource(SourceFile):
-    def __init__(self, spec, dflo, cache):
+    def __init__(self, spec, dflo, cache, working_dir):
         super().__init__(spec, dflo, cache)
 
     def __iter__(self):
         from metatab import open_package
+        from .urls import MetatabPackageUrl
 
         doc = open_package(self.spec.resource_url, cache=self.cache)
 
