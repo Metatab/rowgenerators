@@ -5,7 +5,7 @@ Revised BSD License, included in this distribution as LICENSE.txt
 """
 
 
-from six import string_types, text_type
+from six import string_types, text_type, PY3
 import os
 
 
@@ -85,12 +85,23 @@ def parse_url_to_dict(url, assume_localhost=False):
     with properties.
 
     """
-    from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, unquote_plus
+    from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, unquote_plus, ParseResult
     from six import text_type
     import re
     assert url is not None
 
-    p = urlparse(text_type(url))
+    url = text_type(url)
+
+    if re.match(r'^[a-zA-Z]:', url):
+        url = path2url(url)
+
+        p = urlparse(unquote_plus(url))
+
+        # urlparse leaves a '/' before the drive letter.
+        p = ParseResult(p.scheme, p.netloc, p.path.lstrip('/'), p.params, p.query, p.fragment)
+
+    else:
+        p = urlparse(url)
 
     #  '+' indicates that the scheme has a scheme extension
     if '+' in p.scheme:
@@ -264,3 +275,16 @@ def fs_join(*args):
     from os.path import join
     return join(*args).replace('\\','/')
 
+def path2url(path):
+    "Convert a pathname to a file URL"
+    try:
+        # Python 3
+        # http://stackoverflow.com/a/30702300
+        from urllib.parse import urljoin
+        from urllib.request import pathname2url
+    except ImportError:
+        # Python 2
+        from urlparse import urljoin
+        from urllib import pathname2url
+
+    return urljoin('file:', pathname2url(path))

@@ -11,6 +11,7 @@ from rowgenerators import RowGenerator
 from rowgenerators import SourceSpec
 from rowgenerators.generators import get_generator
 from rowgenerators.urls import Url
+from rowgenerators import parse_url_to_dict, unparse_url_dict, reparse_url
 
 
 try:
@@ -526,6 +527,16 @@ class BasicTests(unittest.TestCase):
                 component_url = l['component_url']
                 print(base_url.component_url(component_url))
 
+
+    def test_windows_urls(self):
+
+        url = 'w:/metatab36/metatab-py/metatab/templates/metatab.csv'
+
+        print(parse_url_to_dict(url))
+
+        url = 'N:/Desktop/metadata.csv#renter_cost'
+
+        print(parse_url_to_dict(url))
 
 if __name__ == '__main__':
     unittest.main()
