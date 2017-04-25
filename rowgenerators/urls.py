@@ -5,7 +5,8 @@
 
 from __future__ import print_function
 
-from os.path import splitext, basename, join, dirname
+from os.path import splitext, basename,  dirname
+from rowgenerators.util import fs_join as join
 from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
 
 
@@ -506,8 +507,6 @@ class MetatabPackageUrl(Url):
         return extract_proto(url) == 'metatab'
 
     def _process_resource_url(self):
-
-        from metatab import resolve_package_metadata_url
 
         # Reminder: this is the HTTP resource, not the Metatab resource
         self.resource_url = unparse_url_dict(self.parts.__dict__, scheme_extension=False, fragment=False)

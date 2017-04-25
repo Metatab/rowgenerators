@@ -8,7 +8,7 @@ Revised BSD License, included in this distribution as LICENSE.txt
 import functools
 import hashlib
 import ssl
-from os.path import abspath, join, exists
+from os.path import abspath, exists
 
 from requests import HTTPError
 from six import string_types
@@ -17,6 +17,7 @@ from six.moves.urllib.request import urlopen
 
 from rowgenerators.exceptions import MissingCredentials, SourceError
 from rowgenerators.generators import *
+from rowgenerators.util import fs_join as join
 from .s3 import AltValidationS3FS
 from .util import real_files_in_zf, copy_file_or_flo, parse_url_to_dict, get_cache
 
@@ -160,6 +161,8 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
 
     assert isinstance(url, string_types)
 
+    url = url.replace('\\','/')
+
     # .decode('utf8'). The fs modulegets upset when given strings, so 
     # we need to decode to unicode. UTF8 is a WAG.
     try:
@@ -168,12 +171,14 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
         parsed = urlparse(url)
 
     # Create a name for the file in the cache, based on the URL
-    cache_path = os.path.join(parsed.netloc, parsed.path.strip('/'))
+    # the '\' replacement is because pyfs only wants to use UNIX path seperators, but
+    # python os.path.join will use the one specified for the operating system.
+    cache_path = join(parsed.netloc, parsed.path.strip('/'))
 
     # If there is a query, hash it and add it to the path
     if parsed.query:
         hash = hashlib.sha224(parsed.query.encode('utf8')).hexdigest()
-        cache_path = os.path.join(cache_path, hash)
+        cache_path = join(cache_path, hash)
 
     if not cache_fs.exists(cache_path):
 
@@ -188,7 +193,7 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
             bn = os.path.basename(cache_path)
             for i in range(10):
                 try:
-                    cache_path = os.path.join(dn + str(i), bn)
+                    cache_path = join(dn + str(i), bn)
                     cache_fs.makedirs(os.path.dirname(cache_path))
                     break
                 except DirectoryExpected:

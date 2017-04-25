@@ -12,7 +12,11 @@ from rowgenerators.util import real_files_in_zf, DelayedFlo
 from .exceptions import TextEncodingError, SourceError
 
 from .sourcespec import SourceSpec
-from os.path import exists
+from os.path import exists,normpath
+from os import environ
+import json
+
+from rowgenerators.util import fs_join as join
 
 def get_dflo(spec, syspath):
     import re
@@ -641,9 +645,11 @@ class ProgramSource(Source):
     """Generate rows from a program. Takes kwargs from the spec to pass into the program. """
 
     def __init__(self, spec, sys_path, cache, working_dir):
-        from os.path import join, normpath
-        from os import environ
-        import json
+
+        import platform
+
+        if platform.system() == 'Windows':
+            raise NotImplementedError("Program sources aren't working on Windows")
 
         super().__init__(spec, cache)
 
@@ -711,9 +717,6 @@ class NotebookSource(Source):
     """Generate rows from an IPython Notebook. """
 
     def __init__(self, spec,  sys_path, cache, working_dir):
-        from os.path import join, normpath
-        from os import environ
-        import json
 
         super().__init__(spec, cache)
 

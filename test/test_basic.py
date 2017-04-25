@@ -3,6 +3,7 @@ from __future__ import print_function
 import unittest
 from copy import deepcopy
 from csv import DictReader, DictWriter
+import platform
 
 from fs.tempfs import TempFS
 
@@ -11,6 +12,32 @@ from rowgenerators import SourceSpec
 from rowgenerators.generators import get_generator
 from rowgenerators.urls import Url
 
+
+try:
+    import fiona
+    import shapely
+    import pyproj
+    geo_installed = True
+except ImportError:
+    geo_installed = False
+
+
+try:
+    import jupyter
+    import nbconvert
+    # This next import may fail due to version issues, but I'm not sure.
+    # It seems to fail on Windows
+    from nbconvert.exporters import get_exporter
+    jupyter_installed = True
+except ImportError:
+    jupyter_installed = False
+
+
+try:
+    import metatab
+    metatab_installed = True
+except ImportError:
+    metatab_installed = False
 
 def data_path(v):
     from os.path import dirname, join
@@ -42,7 +69,7 @@ def cache_fs():
 
 class BasicTests(unittest.TestCase):
     def compare_dict(self, name, a, b):
-        from metatab.util import flatten
+        from rowgenerators.util import flatten
         fa = set('{}={}'.format(k, v) for k, v in flatten(a));
         fb = set('{}={}'.format(k, v) for k, v in flatten(b));
 
@@ -194,7 +221,11 @@ class BasicTests(unittest.TestCase):
 
         with open(data_path('sources.csv')) as f:
             for e in DictReader(f):
-                d = download_and_cache(SourceSpec(**e), cache)
+                try:
+                    d = download_and_cache(SourceSpec(**e), cache)
+                except ModuleNotFoundError:
+                    # For when metatab isn't installed.
+                    continue
 
                 self.assertTrue(isfile(d['sys_path']))
 
@@ -227,7 +258,12 @@ class BasicTests(unittest.TestCase):
         headers = "in_url class url resource_url resource_file target_file scheme proto resource_format target_format " \
                   "is_archive encoding target_segment".split()
 
-        with open(data_path('url_classes.csv')) as f, open('/tmp/url_classes.csv', 'w') as f_out:
+        import tempfile
+        tf = tempfile.NamedTemporaryFile(prefix="rowgen", delete=False)
+        temp_name = tf.name
+        tf.close()
+
+        with open(data_path('url_classes.csv')) as f, open(temp_name, 'w') as f_out:
             w = None
             r = DictReader(f)
             errors = 0
@@ -338,6 +374,7 @@ class BasicTests(unittest.TestCase):
 
         print(unparse_url_dict(d, scheme_extension=False, fragment=False))
 
+    @unittest.skipIf(not metatab_installed, "Metatab modules are not installed")
     def test_metapack(self):
 
         from metatab import open_package, resolve_package_metadata_url
@@ -377,6 +414,7 @@ class BasicTests(unittest.TestCase):
                 print("Row Generator ", gen)
                 raise
 
+    @unittest.skipIf(platform.system() == 'Windows','ProgramSources don\'t work on Windows')
     def test_program(self):
         from rowgenerators import parse_url_to_dict
 
@@ -414,6 +452,7 @@ class BasicTests(unittest.TestCase):
         for row in rows:
             print(row)
 
+    @unittest.skipIf(not jupyter_installed, "Juptyer notebook modules are not installed")
     def test_notebook(self):
         from rowgenerators.fetch import download_and_cache
 
@@ -441,6 +480,7 @@ class BasicTests(unittest.TestCase):
 
         print(gen.generator.execute())
 
+    @unittest.skipIf(not geo_installed,"geo modules are not installed")
     def test_shapefile(self):
 
         url = "shape+http://s3.amazonaws.com/test.library.civicknowledge.com/census/tl_2016_us_state.geojson"
