@@ -609,7 +609,7 @@ class NotebootUrl(Url):
         self.target_segment = self.parts.fragment
 
     def _process_target_file(self):
-        super()._process_target_file()
+        super(NotebootUrl, self)._process_target_file()
 
         assert self.target_format == 'ipynb', self.target_format
 

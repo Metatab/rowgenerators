@@ -627,7 +627,7 @@ class ExcelSource(SourceFile):
 
 class MetapackSource(SourceFile):
     def __init__(self, spec, dflo, cache, working_dir):
-        super().__init__(spec, dflo, cache)
+        super(MetapackSource, self).__init__(spec, dflo, cache)
 
     def __iter__(self):
         from metatab import open_package
@@ -651,7 +651,7 @@ class ProgramSource(Source):
         if platform.system() == 'Windows':
             raise NotImplementedError("Program sources aren't working on Windows")
 
-        super().__init__(spec, cache)
+        super(ProgramSource, self).__init__(spec, cache)
 
         assert working_dir
 
@@ -707,7 +707,11 @@ class ProgramSource(Source):
 
         p.stdin.write(json.dumps(self.properties).encode('utf-8'))
 
-        r = csv.reader(TextIOWrapper(p.stdout))
+        try:
+            r = csv.reader(TextIOWrapper(p.stdout))
+        except AttributeError:
+            # For Python 2
+            r = csv.reader(p.stdout)
 
         for row in r:
             yield row
@@ -718,7 +722,7 @@ class NotebookSource(Source):
 
     def __init__(self, spec,  sys_path, cache, working_dir):
 
-        super().__init__(spec, cache)
+        super(NotebookSource, self).__init__(spec, cache)
 
         self.sys_path = sys_path
 
