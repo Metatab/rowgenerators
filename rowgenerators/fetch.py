@@ -32,20 +32,20 @@ def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logge
         parts['cache_path'] = parse_url_to_dict(spec.resource_url)['path']
         parts['download_time'] = None
 
-        locations = ( # What a mess ...
-            parts['cache_path'],
-            parts['cache_path'].lstrip('/'),
-            join(working_dir, parts['cache_path']),
+        locations = [ # What a mess ...
+            abspath(parts['cache_path']),
+            abspath(parts['cache_path'].lstrip('/')),
+            abspath(join(working_dir, parts['cache_path'])),
             abspath(parts['cache_path'].lstrip('/'))
-        )
+        ]
 
         for l in locations:
             if exists(l):
                 parts['sys_path'] = l
                 break
         else:
-            raise IOError("File resource does not exist. '{}'. working_dir='{}'"
-                          .format(spec, working_dir))
+            raise IOError("File resource does not exist. Found none of:\n{}\n\nWorking dir = {}\ncache_path={}\nspec_path={}"
+                          .format('\n'.join(locations), working_dir, parts['cache_path'], spec.path))
 
     else:
         cache_fs = cache_fs or get_cache()

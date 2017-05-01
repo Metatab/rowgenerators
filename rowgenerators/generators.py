@@ -169,6 +169,8 @@ class RowGenerator(SourceSpec):
         self.headers = None
         self.working_dir = working_dir
 
+        self.generator = None
+
         super(RowGenerator, self).__init__(url, name=name, proto=proto,
                                            resource_format=resource_format,
                                            target_file=target_file,
@@ -660,7 +662,7 @@ class ProgramSource(Source):
         if not exists(self.program):
             raise SourceError("Program '{}' does not exist".format(self.program))
 
-        self.args = dict(list(self.spec.generator_args.items())+list(self.spec.kwargs.items()))
+        self.args = dict(list(self.spec.generator_args.items() if self.spec.generator_args else [])+list(self.spec.kwargs.items()))
 
         self.options = []
 
@@ -668,6 +670,9 @@ class ProgramSource(Source):
 
         self.env = dict(environ.items())
 
+        # Expand the generator args and kwargs into parameters for the program,
+        # which may be command line options, env vars, or a json encoded dict in the PROPERTIES
+        # envvar.
         for k, v in self.args.items():
             if k.startswith('--'):
                 # Long options
@@ -677,7 +682,7 @@ class ProgramSource(Source):
                 self.options.append("{} {}".format(k, v))
             elif k == k.upper():
                 #ENV vars
-                self.env[k] = k
+                self.env[k] = v
             else:
                 # Normal properties, passed in as JSON and as an ENV
                 self.properties[k] = v
