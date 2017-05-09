@@ -264,6 +264,15 @@ class BasicTests(unittest.TestCase):
         temp_name = tf.name
         tf.close()
 
+        # S3 URLS have these fields which need to be removed before writing to CSV files.
+        def clean(do):
+
+            for f in ['_orig_url', '_key', '_orig_kwargs', '_bucket_name']:
+                try:
+                    del do[f]
+                except KeyError:
+                    pass
+
         with open(data_path('url_classes.csv')) as f, open(temp_name, 'w') as f_out:
             w = None
             r = DictReader(f)
@@ -283,6 +292,7 @@ class BasicTests(unittest.TestCase):
                 do['in_url'] = url
                 do['is_archive'] = o.is_archive
                 do['class'] = o.__class__.__name__
+                clean(do)
                 w.writerow(do)
 
                 d = {k: v if v else None for k, v in d.items()}
@@ -315,6 +325,8 @@ class BasicTests(unittest.TestCase):
                 d2 = deepcopy(u1).__dict__.copy()
 
                 # The parts will be different Bunch objects
+                clean(d1)
+                clean(d2)
                 del d1['parts']
                 del d2['parts']
 
