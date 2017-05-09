@@ -186,6 +186,15 @@ def reparse_url(url, **kwargs):
 
     return unparse_url_dict(parse_url_to_dict(url,assume_localhost),**kwargs)
 
+def join_url_path(url, *paths):
+    """Like path.os.join, but operates on the url path, ignoring the query and fragments."""
+
+    parts = parse_url_to_dict(url)
+
+    return reparse_url(url,path=os.path.join(parts['path'], *paths))
+
+
+
 # From http://stackoverflow.com/a/2597440
 class Bunch(object):
   def __init__(self, adict):
@@ -210,6 +219,7 @@ def get_cache(cache_name='rowgen'):
         return UserDataFS(cache_name.lower())
 
 def clean_cache(cache = None, cache_name='rowgen'):
+    """Delete items in the cache older than 4 hours"""
     import datetime
 
     cache = cache if cache else get_cache(cache_name)
@@ -220,6 +230,16 @@ def clean_cache(cache = None, cache_name='rowgen'):
         now = datetime.datetime.now(tz=mod.tzinfo)
         age = (now - mod).total_seconds()
         if age > (60 * 60 * 4) and details.is_file:
+            cache.remove(step[0])
+
+def nuke_cache(cache = None, cache_name='rowgen'):
+    """Delete Everythong in the cache"""
+    from os.path import isfile
+
+    cache = cache if cache else get_cache(cache_name)
+
+    for step in cache.walk.info():
+        if isfile(step[0]):
             cache.remove(step[0])
 
 # From http://stackoverflow.com/a/295466

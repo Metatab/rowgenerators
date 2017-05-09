@@ -525,7 +525,9 @@ class BasicTests(unittest.TestCase):
             for l in DictReader(f):
                 base_url = Url(l['base_url'])
                 component_url = l['component_url']
-                print(base_url.component_url(component_url))
+                curl = base_url.component_url(component_url)
+
+                self.assertEquals(l['final_url'], curl )
 
 
     def test_windows_urls(self):
@@ -537,6 +539,19 @@ class BasicTests(unittest.TestCase):
         url = 'N:/Desktop/metadata.csv#renter_cost'
 
         print(parse_url_to_dict(url))
+
+    def test_query_urls(self):
+
+        url='https://s3.amazonaws.com/private.library.civicknowledge.com/civicknowledge.com-rcfe_health-1/metadata.csv?AWSAccessKeyId=AKIAJFW23EPQCLXRU7DA&Signature=A39XhRP%2FTKAxv%2B%2F5vCubwWPDag0%3D&Expires=1494223447'
+
+        u = Url(url)
+
+        print(u.resource_file, u.resource_format)
+        print(u.target_file, u.target_format)
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

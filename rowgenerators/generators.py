@@ -748,20 +748,21 @@ class NotebookSource(Source):
     def open(self):
         pass
 
+
     def __iter__(self):
-        import csv
-        import subprocess
-        from io import TextIOWrapper
-        import json
 
-        # SHould probably give the child process the -u option,  http://stackoverflow.com/a/17701672
-        p = subprocess.Popen([self.program] + self.options,
-                        stdout=subprocess.PIPE, stdin=subprocess.PIPE,
-                        env = self.env)
+        import pandas as pd
 
-        p.stdin.write(json.dumps(self.properties).encode('utf-8'))
+        env = self.execute()
 
-        r = csv.reader(TextIOWrapper(p.stdout))
+        o = env[self.spec.target_segment]
+
+        if isinstance(o, pd.DataFrame):
+            r = PandasDataframeSource(self.spec,o,self.cache)
+
+        else:
+            raise Exception("NotebookSource can't handle type: '{}' ".format(type(o)))
+
 
         for row in r:
             yield row
@@ -779,7 +780,9 @@ class NotebookSource(Source):
 
         exec(compile(script.replace('# coding: utf-8', ''), 'script', 'exec'), self.env)
 
-        return self.env[self.spec.target_segment]
+
+
+        return self.env
 
 
 class GoogleAuthenticatedSource(SourceFile):

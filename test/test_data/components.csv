@@ -1,4 +1,4 @@
-"base_url","component_url","url"
+"base_url","component_url","final_url"
 "file:/a/b","file:bar/baz.txt","file:/a/bar/baz.txt"
 "file:/a/b","file:/bar/baz.txt","file:/bar/baz.txt"
 "file:/a/b.txt","file:bar/baz.txt","file:/a/bar/baz.txt"
@@ -17,7 +17,6 @@
 "http://example.com/a/b/","/bar/baz.txt","http://example.com/bar/baz.txt"
 "http://example.com/a/b.txt","bar/baz.txt","http://example.com/a/bar/baz.txt"
 "http://example.com/a/b.txt","/bar/baz.txt","http://example.com/bar/baz.txt"
-,,
 "file:/a/b","program:bar/baz.txt","file:/a/bar/baz.txt"
 "file:/a/b","program:/bar/baz.txt","file:/bar/baz.txt"
 "file:/a/b.txt","program:bar/baz.txt","file:/a/bar/baz.txt"
@@ -36,3 +35,4 @@
 "http://example.com/a/b/","program:/bar/baz.txt","http://example.com/bar/baz.txt"
 "http://example.com/a/b.txt","program:bar/baz.txt","http://example.com/a/bar/baz.txt"
 "http://example.com/a/b.txt","program:/bar/baz.txt","http://example.com/bar/baz.txt"
+"s3://bucket/prefix/metadata.csv","data/foo.csv","s3://bucket/prefix/data/foo.csv"

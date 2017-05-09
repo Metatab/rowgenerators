@@ -107,6 +107,12 @@ class SourceSpec(object):
         return self._url.resource_url
 
     @property
+    def auth_resource_url(self):
+        """For S3 urls, use the S3: form resource, with auth, rahter than the public http url"""
+
+        return self._url.auth_resource_url
+
+    @property
     def resource_file(self):
         return self._url.resource_file
 

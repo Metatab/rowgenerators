@@ -11,14 +11,14 @@ import ssl
 from os.path import abspath, exists
 
 from requests import HTTPError
+from requests.exceptions import SSLError
 from six import string_types
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.request import urlopen
 
-from rowgenerators.exceptions import MissingCredentials, SourceError
+from rowgenerators.exceptions import MissingCredentials, SourceError, DownloadError, AccessError
 from rowgenerators.generators import *
 from rowgenerators.util import fs_join as join
-from .s3 import AltValidationS3FS
 from .util import real_files_in_zf, copy_file_or_flo, parse_url_to_dict, get_cache
 
 
@@ -50,8 +50,16 @@ def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logge
     else:
         cache_fs = cache_fs or get_cache()
 
-        parts['cache_path'], parts['download_time'] = download(spec.resource_url, cache_fs, account_accessor,
-                                                               clean=clean, logger=logger, callback=callback)
+        try:
+            parts['cache_path'], parts['download_time'] = download(spec.resource_url, cache_fs, account_accessor,
+                                                                   clean=clean, logger=logger, callback=callback)
+        except AccessError as e:
+            try:
+                parts['cache_path'], parts['download_time'] = download(spec.auth_resource_url, cache_fs, account_accessor,
+                                                                       clean=clean, logger=logger, callback=callback)
+            except AttributeError as ee:
+                raise ee
+
 
         parts['sys_path'] = cache_fs.getsyspath(parts['cache_path'])
 
@@ -97,15 +105,14 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None
         callback('download', url, 0)
 
     if url.startswith('s3:'):
-        s3 = get_s3(url, account_accessor)
-        pd = parse_url_to_dict(url)
 
-        try:
-            with cache_fs.open(cache_path, 'wb') as fout:
-                with s3.open(urllib.unquote_plus(pd['path']), 'rb') as fin:
-                    copy_file_or_flo(fin, fout, cb=copy_callback)
-        except ResourceNotFound:
-            raise ResourceNotFound("Failed to find path '{}' in S3 FS '{}' ".format(pd['path'], s3))
+        from .urls import Url
+
+        s3url = Url(url)
+
+        with cache_fs.open(cache_path, 'wb') as f:
+            s3url.object.download_fileobj(f)
+
 
     elif url.startswith('ftp:'):
         from contextlib import closing
@@ -128,8 +135,12 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None
 
     else:
 
-        r = requests.get(url, stream=True)
-        r.raise_for_status()
+        try:
+            r = requests.get(url, stream=True)
+            r.raise_for_status()
+        except SSLError as e:
+            raise DownloadError("Failed to GET {}: {} ".format(url, e))
+
 
         # Requests will auto decode gzip responses, but not when streaming. This following
         # monkey patch is recommended by a core developer at
@@ -228,7 +239,10 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
             return cache_path, time.time()
 
         except HTTPError as e:
-            raise SourceError("Failed to download: {}".format(e))
+            if e.response.status_code == 403:
+                raise AccessError("Access error on download: {}".format(e))
+            else:
+                raise DownloadError("Failed to download: {}".format(e))
 
         except (KeyboardInterrupt, Exception):
             # This is really important -- its really bad to have partly downloaded
@@ -244,7 +258,47 @@ def download(url, cache_fs, account_accessor=None, clean=False, logger=None, cal
     assert False, 'Should never get here'
 
 
-def get_s3(url, account_accessor):
+
+
+class AltValidationS3FS(object):
+
+    def _s3bukt(self):
+        """ Overrides the original _s3bukt method to get the bucket without vlaidation when
+        the return to the original validation is not a 404.
+        :return:
+        """
+        from boto.exception import S3ResponseError
+        import time
+
+        try:
+            (b, ctime) = self._tlocal.s3bukt
+            if time.time() - ctime > 60:
+                raise AttributeError
+            return b
+        except AttributeError:
+
+            try:
+                # Validate by listing the bucket if there is no prefix.
+                # If there is a prefix, validate by listing only the prefix
+                # itself, to avoid errors when an IAM policy has been applied.
+                if self._prefix:
+                    b = self._s3conn.get_bucket(self._bucket_name, validate=0)
+                    b.get_key(self._prefix)
+                else:
+                    b = self._s3conn.get_bucket(self._bucket_name, validate=1)
+            except S3ResponseError as e:
+
+                if "404 Not Found" in str(e):
+                    raise
+
+                b = self._s3conn.get_bucket(self._bucket_name, validate=0)
+
+            self._tlocal.s3bukt = (b, time.time())
+            return b
+
+    _s3bukt = property(_s3bukt)
+
+def get_s3(url, account_acessor=None):
     """ Gets file from s3 storage.
 
     Args:
@@ -261,6 +315,9 @@ def get_s3(url, account_accessor):
 
     # The monkey patch fixes a bug: https://github.com/boto/boto/issues/2836
 
+    import botocore.session
+    session = botocore.session.get_session()
+
     _old_match_hostname = ssl.match_hostname
 
     # FIXME. This issue is possibly better handled with
@@ -275,13 +332,8 @@ def get_s3(url, account_accessor):
 
     pd = parse_url_to_dict(url)
 
-    if account_accessor is None or not six.callable(account_accessor):
-        raise TypeError('account_accessor argument must be callable of one argument returning dict.')
-
-    account = account_accessor(pd['netloc'])
-    # Direct access to the accounts file yeilds 'access', but in the Accounts ORM object, its 'access_key'
-    aws_access_key = account.get('access', account.get('access_key'))
-    aws_secret_key = account.get('secret')
+    aws_access_key = session.get_credentials().access_key
+    aws_secret_key = session.get_credentials().secret_key
 
     missing_credentials = []
     if not aws_access_key:

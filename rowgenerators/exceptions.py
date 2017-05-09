@@ -12,6 +12,13 @@ class RowGeneratorError(Exception):
 class SourceError(RowGeneratorError):
     pass
 
+class DownloadError(SourceError):
+    pass
+
+class AccessError(DownloadError):
+    """Got an acess error on download"""
+    pass
+
 class TextEncodingError(SourceError):
     pass
 
@@ -23,8 +30,7 @@ class ConfigurationError(RowGeneratorError):
     pass
 
 
-class DownloadError(RowGeneratorError):
-    pass
+
 
 
 class MissingCredentials(RowGeneratorError):
