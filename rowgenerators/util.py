@@ -239,7 +239,7 @@ def nuke_cache(cache = None, cache_name='rowgen'):
     cache = cache if cache else get_cache(cache_name)
 
     for step in cache.walk.info():
-        if isfile(step[0]):
+        if not step[1].is_dir:
             cache.remove(step[0])
 
 # From http://stackoverflow.com/a/295466

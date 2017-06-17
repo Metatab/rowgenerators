@@ -11,7 +11,9 @@ from rowgenerators import RowGenerator
 from rowgenerators import SourceSpec
 from rowgenerators.generators import get_generator
 from rowgenerators.urls import Url
-from rowgenerators import parse_url_to_dict, unparse_url_dict, reparse_url
+from rowgenerators import parse_url_to_dict
+from rowgenerators import register_proto
+
 
 
 try:
@@ -387,6 +389,18 @@ class BasicTests(unittest.TestCase):
 
         print(unparse_url_dict(d, scheme_extension=False, fragment=False))
 
+    def test_metatab_url(self):
+
+        urlstr = 'metatab+http://s3.amazonaws.com/library.metatab.org/cdss.ca.gov-residential_care_facilities-2017-ca-7.csv#facilities'
+
+        u = Url(urlstr)
+
+        self.assertEqual('http', u.scheme)
+        self.assertEqual('metatab', u.proto)
+        self.assertEqual('http://s3.amazonaws.com/library.metatab.org/cdss.ca.gov-residential_care_facilities-2017-ca-7.csv', u.resource_url)
+        self.assertEqual('cdss.ca.gov-residential_care_facilities-2017-ca-7.csv', u.target_file)
+        self.assertEqual('facilities', u.target_segment)
+
     @unittest.skipIf(not metatab_installed, "Metatab modules are not installed")
     def test_metapack(self):
 
@@ -562,7 +576,33 @@ class BasicTests(unittest.TestCase):
         print(u.target_file, u.target_format)
 
 
+    def test_s3_url(self):
 
+        from rowgenerators.urls import S3Url
+
+        url_str = 's3://bucket/a/b/c/file.csv'
+
+        u = Url(url_str)
+
+        self.assertEquals(S3Url, type(u))
+
+
+    def test_register(self):
+
+        from pandasreporter import CensusReporterSource, get_cache
+
+        register_proto('censusreporter', CensusReporterSource)
+
+        url = 'censusreporter:B17001/140/05000US06073'
+
+        gen = RowGenerator(cache=get_cache(), url=url)
+
+        self.assertEquals('B17001', gen.generator.table_id )
+        self.assertEquals('140', gen.generator.summary_level)
+        self.assertEquals('05000US06073', gen.generator.geoid)
+
+        for row in gen:
+            print(row)
 
 
 if __name__ == '__main__':
