@@ -18,6 +18,51 @@ import json
 
 from rowgenerators.util import fs_join as join
 
+
+custom_proto_map = {}
+custom_type_map = {}
+
+def register_proto(proto, clz):
+    custom_proto_map[proto] = clz
+
+def register_type(name, clz):
+    custom_type_map[name] = clz
+
+def PROTO_TO_SOURCE_MAP():
+
+    d =  {
+        'program': ProgramSource,
+        'ipynb': NotebookSource,
+        'shape': ShapefileSource,
+        'metatab': MetapackSource,
+        'metapack': MetapackSource,
+    }
+
+    d.update(custom_proto_map)
+
+    return d
+
+def TYPE_TO_SOURCE_MAP():
+    d =  {
+        'gs': CsvSource,
+        'csv': CsvSource,
+        'socrata': CsvSource,
+        'metapack': MetapackSource,
+        'tsv': TsvSource,
+        'fixed': FixedSource,
+        'txt': FixedSource,
+        'xls': ExcelSource,
+        'xlsx': ExcelSource,
+        'shape': ShapefileSource,
+        'metatab': MetapackSource,
+        'ipynb': NotebookSource
+    }
+
+    d.update(custom_type_map)
+
+    return d
+
+
 def get_dflo(spec, syspath):
     import re
     import io
@@ -82,59 +127,55 @@ def get_dflo(spec, syspath):
     return df
 
 
-def PROTO_TO_SOURCE_MAP():
-    return {
-        'program': ProgramSource,
-        'ipynb': NotebookSource,
-        'shape': ShapefileSource,
-        'metatab': MetapackSource,
-    }
-
-def TYPE_TO_SOURCE_MAP():
-    return {
-        'gs': CsvSource,
-        'csv': CsvSource,
-        'socrata': CsvSource,
-        'metapack': MetapackSource,
-        'tsv': TsvSource,
-        'fixed': FixedSource,
-        'txt': FixedSource,
-        'xls': ExcelSource,
-        'xlsx': ExcelSource,
-        'shape': ShapefileSource,
-        'metatab': MetapackSource,
-        'ipynb': NotebookSource
-    }
-
 def get_generator(spec, cache_fs, account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
     """Download the container for a source spec and return a DelayedFlo object for opening, closing
       and accessing the container"""
 
     from os.path import dirname
 
-    d = download_and_cache(spec, cache_fs, working_dir=working_dir)
+    d = None
+
+    def download_f():
+        return download_and_cache(spec, cache_fs, working_dir=working_dir)
+
+    def try_cls_sig(d, cls):
+
+        try:
+            return cls(spec, download_f=download_f, cache=cache_fs)
+        except TypeError:
+            pass
+
+        if d is None:
+            d = download_f()
+
+        try:
+            return cls(spec, syspath=d['sys_path'], cache=cache_fs, working_dir=dirname(d['sys_path']))
+        except TypeError:
+            pass
+
+        return cls(spec, dflo=get_dflo(spec, d['sys_path']), cache=cache_fs, working_dir=dirname(d['sys_path']))
 
     cls = PROTO_TO_SOURCE_MAP().get(spec.proto)
 
+    # First try the new signature for delayed downloading, which has a
+    # download_f argument
     if cls:
-        assert working_dir != '/'
-
-        return cls(spec,  d['sys_path'], cache_fs, working_dir=dirname(d['sys_path']))
+        return try_cls_sig(d,cls)
 
     if spec.resource_format == 'zip' and spec.proto != 'metatab':
         # Details of file are unknown; will have to open it first
+        if d is None:
+            d = download_f()
         target_file = get_file_from_zip(d, spec)
         spec = spec.update(target_file=target_file)
 
-
     cls = TYPE_TO_SOURCE_MAP().get(spec.target_format)
 
-    if cls is None:
-        raise SourceError(
-            "Failed to determine file type for source '{}'; unknown format '{}' "
-                .format(spec.url, spec.target_format))
+    if cls:
+        return try_cls_sig(d,cls)
 
-    return cls(spec, get_dflo(spec, d['sys_path']), cache_fs)
+    raise SourceError("Failed to determine file type for source '{}'; unknown format '{}' "
+                .format(spec.url, spec.target_format))
 
 
 class RowGenerator(SourceSpec):
@@ -227,7 +268,7 @@ class Source(object):
     Subclasses of Source must override at least _get_row_gen method.
     """
 
-    def __init__(self, spec=None, cache=None):
+    def __init__(self, spec=None, cache=None, working_dir=None):
         from copy import deepcopy
 
         self.spec = spec
@@ -288,7 +329,7 @@ class SourceFile(Source):
     Subclasses of SourceFile must override at lease _get_row_gen method.
     """
 
-    def __init__(self, spec, dflo, cache):
+    def __init__(self, spec, dflo, cache, working_dir=None):
         """
 
         :param fstor: A File-like object for the file, already opened.
@@ -333,7 +374,7 @@ class GeneratorSource(Source):
 class SocrataSource(Source):
     """Iterates a CSV soruce from the JSON produced by Socrata  """
 
-    def __init__(self, spec, fstor, cache):
+    def __init__(self, spec, dflo, cache, working_dir=None):
 
         super(SocrataSource, self).__init__(spec, cache)
 
@@ -341,7 +382,7 @@ class SocrataSource(Source):
 
         self._download_url = spec.url + '/rows.csv'
 
-        self._csv_source = CsvSource(spec, fstor)
+        self._csv_source = CsvSource(spec, dflo)
 
     @classmethod
     def download_url(cls, spec):
@@ -408,7 +449,7 @@ class SocrataSource(Source):
 class PandasDataframeSource(Source):
     """Iterates a pandas dataframe  """
 
-    def __init__(self, spec, df, cache):
+    def __init__(self, spec, df, cache, working_dir=None):
         super(PandasDataframeSource, self).__init__(spec, cache)
 
         self._df = df
@@ -418,12 +459,19 @@ class PandasDataframeSource(Source):
 
         self.start()
 
-        df = self._df.reset_index()
+        df = self._df
 
-        yield ['id'] + list(df.columns)
+        index_names = [n if n else "id" for n in df.index.names]
+
+        yield index_names + list(df.columns)
+        if len(df.index.names) == 1:
+            idx_list = lambda x: [x]
+        else:
+            idx_list = lambda x: list(x)
 
         for index, row in df.iterrows():
-            yield [index] + list(row)
+            yield idx_list(index) + list(row)
+
 
         self.finish()
 
@@ -437,6 +485,10 @@ class CsvSource(SourceFile):
         """Iterate over all of the lines in the file"""
         import io
         import six
+
+        import csv
+
+        csv.field_size_limit(sys.maxsize) # For: _csv.Error: field larger than field limit (131072)
 
         if six.PY3:
             import csv
@@ -488,7 +540,7 @@ class TsvSource(CsvSource):
 class FixedSource(SourceFile):
     """Generate rows from a fixed-width source"""
 
-    def __init__(self, spec, fstor, cache):
+    def __init__(self, spec, dflo, cache, working_dir=None):
         """
 
         Args:
@@ -498,7 +550,7 @@ class FixedSource(SourceFile):
         """
         from .exceptions import SourceError
 
-        super(FixedSource, self).__init__(spec, fstor, cache)
+        super(FixedSource, self).__init__(spec, dflo, cache)
 
     def make_fw_row_parser(self):
 
@@ -631,22 +683,25 @@ class MetapackSource(SourceFile):
     def __init__(self, spec, dflo, cache, working_dir):
         super(MetapackSource, self).__init__(spec, dflo, cache)
 
-    def __iter__(self):
+    @property
+    def package(self):
         from metatab import open_package
-        from .urls import MetatabPackageUrl
+        return open_package(self.spec.resource_url, cache=self.cache)
 
-        doc = open_package(self.spec.resource_url, cache=self.cache)
+    @property
+    def resource(self):
+        return self.package.resource(self.spec.target_segment)
 
-        r = doc.resource(self.spec.target_segment)
+    def __iter__(self):
 
-        for row in r:
+        for row in self.resource:
             yield row
 
 
 class ProgramSource(Source):
     """Generate rows from a program. Takes kwargs from the spec to pass into the program. """
 
-    def __init__(self, spec, sys_path, cache, working_dir):
+    def __init__(self, spec, syspath, cache, working_dir):
 
         import platform
 
@@ -725,12 +780,11 @@ class ProgramSource(Source):
 class NotebookSource(Source):
     """Generate rows from an IPython Notebook. """
 
-    def __init__(self, spec,  sys_path, cache, working_dir):
+    def __init__(self, spec,  syspath, cache, working_dir):
 
         super(NotebookSource, self).__init__(spec, cache)
 
-        self.sys_path = sys_path
-
+        self.sys_path = syspath
         if not exists(self.sys_path):
             raise SourceError("Notebook '{}' does not exist".format(self.sys_path))
 
@@ -738,6 +792,9 @@ class NotebookSource(Source):
             (list(self.spec.generator_args.items()) if self.spec.generator_args else [])  +
             (list(self.spec.kwargs.items()) if self.spec.kwargs else [] )
             )
+
+        assert 'METATAB_DOC' in self.env
+
 
     def start(self):
         pass
@@ -779,7 +836,6 @@ class NotebookSource(Source):
         (script, notebook) = exporter.from_filename(filename=self.sys_path)
 
         exec(compile(script.replace('# coding: utf-8', ''), 'script', 'exec'), self.env)
-
 
 
         return self.env
