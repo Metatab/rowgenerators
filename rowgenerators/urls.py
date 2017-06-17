@@ -43,11 +43,12 @@ def url_is_absolute(ref):
 class Url(object):
     """Base class for URL Managers
 
-
     url: The input URL
     proto: The extension of the scheme (git+http://, etc), if there is one, otherwise the scheme.
 
     """
+
+    reparse = True # Can this URL be reparsed?
 
     archive_formats = ['zip']
 
@@ -307,6 +308,18 @@ class GeneralUrl(Url):
         return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']), fragment=sp['fragment'])
 
 
+    @property
+    def auth_resource_url(self):
+        """Return An S3: version of the url, with a resource_url format that will trigger boto auth"""
+
+        # This is just assuming that the url was created as a resource from the S2Url, and
+        # has the form 'https://s3.amazonaws.com/{bucket}/{key}'
+
+        parts = parse_url_to_dict(self.resource_url)
+
+        return  's3://{}'.format(parts['path'])
+
+
 class WebPageUrl(Url):
     """A URL for webpages, not for data"""
 
@@ -524,13 +537,28 @@ class S3Url(Url):
 
     @property
     def object(self):
-        """Return the boto object for this resoruce"""
+        """Return the boto object for this source"""
         import boto3
 
         s3 = boto3.resource('s3')
 
         return s3.Object(self.bucket_name, self.key)
 
+    @property
+    def signed_resource_url(self):
+        import boto3
+
+        s3 = boto3.client('s3')
+
+        url = s3.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={
+                'Bucket': self.bucket_name,
+                'Key': self.key
+            }
+        )
+
+        return url
 
 
 class MetatabPackageUrl(Url):
@@ -551,7 +579,7 @@ class MetatabPackageUrl(Url):
 
         self.resource_format = file_ext(self.resource_url)
 
-        if self.resource_format not in ('zip', 'xlsx'):
+        if self.resource_format not in ('zip', 'xlsx', 'csv'):
             self.resource_format = 'csv'
             self.resource_file = 'metadata.csv'
             self.resource_url += '/metadata.csv'
@@ -560,8 +588,11 @@ class MetatabPackageUrl(Url):
 
         if self.resource_format == 'xlsx':
             self.target_file = 'meta'
-        else:
+        elif self.resource_format == 'zip':
             self.target_file = 'metadata.csv'
+        else:
+            self.target_file = self.resource_file
+
 
         self.target_format = 'metatab'
 
@@ -605,6 +636,18 @@ class ProgramUrl(Url):
 
         if not self.resource_format:
             self.resource_format = file_ext(self.resource_file)
+
+class ApplicationUrl(GeneralUrl):
+    """Application URLs have weirdo schemes or protos"""
+
+    reparse = False
+
+    def __init__(self, url, **kwargs):
+        super(ApplicationUrl, self).__init__(url, **kwargs)
+
+    @classmethod
+    def match(cls, url, **kwargs):
+        return extract_proto(url) not in ['file','ftp','http','https']
 
 
 class NotebootUrl(Url):
@@ -661,8 +704,8 @@ url_handlers = [
     GoogleProtoCsvUrl,
     ZipUrl,
     ExcelUrl,
-
     S3Url,
+    ApplicationUrl,
     GeneralUrl
 ]
 
