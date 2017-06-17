@@ -32,19 +32,19 @@ def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logge
         parts['cache_path'] = parse_url_to_dict(spec.resource_url)['path']
         parts['download_time'] = None
 
-        locations = [ # What a mess ...
+        locations = { # What a mess ...
             abspath(parts['cache_path']),
             abspath(parts['cache_path'].lstrip('/')),
             abspath(join(working_dir, parts['cache_path'])),
             abspath(parts['cache_path'].lstrip('/'))
-        ]
+        }
 
         for l in locations:
             if exists(l):
                 parts['sys_path'] = l
                 break
         else:
-            raise IOError("File resource does not exist. Found none of:\n{}\n\nWorking dir = {}\ncache_path={}\nspec_path={}"
+            raise DownloadError("File resource does not exist. Found none of:\n{}\n\nWorking dir = {}\ncache_path={}\nspec_path={}"
                           .format('\n'.join(locations), working_dir, parts['cache_path'], spec.path))
 
     else:
@@ -57,8 +57,8 @@ def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logge
             try:
                 parts['cache_path'], parts['download_time'] = download(spec.auth_resource_url, cache_fs, account_accessor,
                                                                        clean=clean, logger=logger, callback=callback)
-            except AttributeError as ee:
-                raise ee
+            except AttributeError:
+                raise e
 
 
         parts['sys_path'] = cache_fs.getsyspath(parts['cache_path'])
@@ -110,8 +110,11 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None
 
         s3url = Url(url)
 
-        with cache_fs.open(cache_path, 'wb') as f:
-            s3url.object.download_fileobj(f)
+        try:
+            with cache_fs.open(cache_path, 'wb') as f:
+                s3url.object.download_fileobj(f)
+        except Exception as e:
+            raise DownloadError("Failed to fetch S3 url '{}': {}".format(url, e))
 
 
     elif url.startswith('ftp:'):
