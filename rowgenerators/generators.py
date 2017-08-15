@@ -452,6 +452,8 @@ class PandasDataframeSource(Source):
     def __init__(self, spec, df, cache, working_dir=None):
         super(PandasDataframeSource, self).__init__(spec, cache)
 
+        from pandas import DataFrame
+
         self._df = df
 
     def __iter__(self):
@@ -461,16 +463,30 @@ class PandasDataframeSource(Source):
 
         df = self._df
 
-        index_names = [n if n else "id" for n in df.index.names]
+        if len(df.index.names) == 1 and df.index.names[0] == None:
+            # For an unnamed, single index, assume that it is just a row number
+            # and we don't really need it
 
-        yield index_names + list(df.columns)
-        if len(df.index.names) == 1:
-            idx_list = lambda x: [x]
+            yield list(df.columns)
+
+            for index, row in df.iterrows():
+                yield list(row)
+
         else:
-            idx_list = lambda x: list(x)
 
-        for index, row in df.iterrows():
-            yield idx_list(index) + list(row)
+            # Otherwise, either there are more than
+
+            index_names = [n if n else "index{}".format(i) for i,n in enumerate(df.index.names)]
+
+            yield index_names + list(df.columns)
+
+            if len(df.index.names) == 1:
+                idx_list = lambda x: [x]
+            else:
+                idx_list = lambda x: list(x)
+
+            for index, row in df.iterrows():
+                yield idx_list(index) + list(row)
 
 
         self.finish()
@@ -831,7 +847,9 @@ class NotebookSource(Source):
 
         from nbconvert.exporters import get_exporter
 
-        exporter = get_exporter('python')()
+        preprocessors = ['metatab.jupyter.preprocessors.PrepareScript']
+
+        exporter = get_exporter('python')(preprocessors=preprocessors)
 
         (script, notebook) = exporter.from_filename(filename=self.sys_path)
 
@@ -1120,10 +1138,13 @@ class SelectiveRowGenerator(object):
                 break
 
         if self.headers:
-            yield self.coalesce_headers
+
+            headers = self.coalesce_headers
+            yield headers
         else:
             # There is no header, so fake it
-            yield ['col' + str(i) for i, _ in enumerate(row)]
+
+            headers = ['col' + str(i) for i, _ in enumerate(row)]
 
         yield row
 

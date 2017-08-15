@@ -22,7 +22,8 @@ from rowgenerators.util import fs_join as join
 from .util import real_files_in_zf, copy_file_or_flo, parse_url_to_dict, get_cache
 
 
-def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logger=None, working_dir='', callback=None):
+def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logger=None,
+                       working_dir='', callback=None):
 
     parts = {}
 
@@ -44,19 +45,22 @@ def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logge
                 parts['sys_path'] = l
                 break
         else:
-            raise DownloadError("File resource does not exist. Found none of:\n{}\n\nWorking dir = {}\ncache_path={}\nspec_path={}"
+            raise DownloadError(("File resource does not exist. Found none of:"
+                                "\n{}\n\nWorking dir = {}\ncache_path={}\nspec_path={}")
                           .format('\n'.join(locations), working_dir, parts['cache_path'], spec.path))
 
     else:
         cache_fs = cache_fs or get_cache()
 
         try:
-            parts['cache_path'], parts['download_time'] = download(spec.resource_url, cache_fs, account_accessor,
-                                                                   clean=clean, logger=logger, callback=callback)
+            parts['cache_path'], parts['download_time'] = \
+                download(spec.resource_url, cache_fs, account_accessor,
+                         clean=clean, logger=logger, callback=callback)
         except AccessError as e:
             try:
-                parts['cache_path'], parts['download_time'] = download(spec.auth_resource_url, cache_fs, account_accessor,
-                                                                       clean=clean, logger=logger, callback=callback)
+                parts['cache_path'], parts['download_time'] = \
+                    download(spec.auth_resource_url, cache_fs, account_accessor,
+                             clean=clean, logger=logger, callback=callback)
             except AttributeError:
                 raise e
 
@@ -115,7 +119,6 @@ def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None
                 s3url.object.download_fileobj(f)
         except Exception as e:
             raise DownloadError("Failed to fetch S3 url '{}': {}".format(url, e))
-
 
     elif url.startswith('ftp:'):
         from contextlib import closing

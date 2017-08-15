@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-from os.path import splitext, basename,  dirname
+from os.path import splitext, basename, dirname
 from rowgenerators.util import fs_join as join
 from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
 
@@ -48,7 +48,7 @@ class Url(object):
 
     """
 
-    reparse = True # Can this URL be reparsed?
+    reparse = True  # Can this URL be reparsed?
 
     archive_formats = ['zip']
 
@@ -114,7 +114,7 @@ class Url(object):
 
         self.resource_url = unparse_url_dict(self.parts.__dict__,
                                              scheme=self.parts.scheme if self.parts.scheme else 'file',
-                                             scheme_extension = False,
+                                             scheme_extension=False,
                                              fragment=False)
 
         self.resource_file = basename(reparse_url(self.resource_url, query=None))
@@ -184,7 +184,16 @@ class Url(object):
         raise NotImplementedError
 
     def component_url(self, s, scheme_extension=None):
-
+        """
+        :param s:
+        :param scheme_extension:
+        :return:
+        """
+        """
+        :param s:
+        :param scheme_extension:
+        :return:
+        """
         sp = parse_url_to_dict(s)
 
         # If there is a netloc, it's an absolute URL
@@ -193,7 +202,7 @@ class Url(object):
 
         url = reparse_url(s, path=join(dirname(self.parts.path), sp['path']),
                           fragment=sp['fragment'],
-                          scheme_extension= scheme_extension or sp['scheme_extension'])
+                          scheme_extension=scheme_extension or sp['scheme_extension'])
 
         assert url
         return url
@@ -209,6 +218,26 @@ class Url(object):
 
         assert url
         return url
+
+    def prefix_path(self, base):
+        """Prefix the path with a base, if the path is relative"""
+
+        url = reparse_url(self.url, path=join(base, self.parts.path))
+
+        assert url
+        return url
+
+    def path(self, base=''):
+        """Prefix the path with a base, if the path is relative, then return only the path element"""
+
+        url = reparse_url(self.url, path=join(base, self.parts.path))
+
+        return Url(url).parts.path
+
+    def dirname(self):
+        """Return the dirname of the path"""
+        return reparse_url(self.url, path=dirname(self.parts.path))
+
 
     def update(self, **kwargs):
         """Returns a new Url object, possibly with some of the paroperties replaced"""
@@ -233,7 +262,7 @@ class Url(object):
 
         return o
 
-    def rebuild_url(self, target_file=None, target_segment=None):
+    def rebuild_url(self, target_file=None, target_segment=None, **kw):
 
         if target_file:
             tf = target_file
@@ -265,6 +294,13 @@ class Url(object):
             f += str(ts)
 
         parts['fragment'] = f
+
+        for k, v in kw.items():
+            if k in parts:
+                if v == False:
+                    del parts[k]
+                else:
+                    parts[k] = v
 
         return unparse_url_dict(parts)
 
@@ -307,7 +343,6 @@ class GeneralUrl(Url):
 
         return reparse_url(self.url, path=join(dirname(self.parts.path), sp['path']), fragment=sp['fragment'])
 
-
     @property
     def auth_resource_url(self):
         """Return An S3: version of the url, with a resource_url format that will trigger boto auth"""
@@ -317,7 +352,7 @@ class GeneralUrl(Url):
 
         parts = parse_url_to_dict(self.resource_url)
 
-        return  's3://{}'.format(parts['path'])
+        return 's3://{}'.format(parts['path'])
 
 
 class WebPageUrl(Url):
@@ -486,15 +521,12 @@ class S3Url(Url):
     """Convert an S3 proto url into the public access form"""
 
     def __init__(self, url, **kwargs):
-
         # Save for auth_url()
         self._orig_url = url
         self._orig_kwargs = dict(kwargs.items())
 
-
         kwargs['proto'] = 's3'
         super(S3Url, self).__init__(url, **kwargs)
-
 
     @classmethod
     def match(cls, url, **kwargs):
@@ -507,7 +539,7 @@ class S3Url(Url):
         self._key = self.parts.path.strip('/')
 
         # noinspection PyUnresolvedReferences
-        self.resource_url = url_template.format( bucket=self._bucket_name,key=self._key)
+        self.resource_url = url_template.format(bucket=self._bucket_name, key=self._key)
 
         self.resource_file = basename(self.resource_url)
 
@@ -517,10 +549,9 @@ class S3Url(Url):
     @property
     def auth_resource_url(self):
         """Return the orginal S3: version of the url, with a resource_url format that will trigger boto auth"""
-        return  's3://{bucket}/{key}'.format( bucket=self._bucket_name,key=self._key)
+        return 's3://{bucket}/{key}'.format(bucket=self._bucket_name, key=self._key)
 
     def component_url(self, s, scheme_extension=None):
-
         sp = parse_url_to_dict(s)
 
         new_key = join(dirname(self.key), sp['path'])
@@ -593,7 +624,6 @@ class MetatabPackageUrl(Url):
         else:
             self.target_file = self.resource_file
 
-
         self.target_format = 'metatab'
 
     def component_url(self, s, scheme_extension=None):
@@ -637,6 +667,7 @@ class ProgramUrl(Url):
         if not self.resource_format:
             self.resource_format = file_ext(self.resource_file)
 
+
 class ApplicationUrl(GeneralUrl):
     """Application URLs have weirdo schemes or protos"""
 
@@ -647,7 +678,7 @@ class ApplicationUrl(GeneralUrl):
 
     @classmethod
     def match(cls, url, **kwargs):
-        return extract_proto(url) not in ['file','ftp','http','https']
+        return extract_proto(url) not in ['file', 'ftp', 'http', 'https']
 
 
 class NotebootUrl(Url):
