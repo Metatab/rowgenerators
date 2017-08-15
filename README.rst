@@ -1,7 +1,7 @@
 Row Generators
 ==============
 
-Note: This library is a hasily seperate part of oa larger system, and isn't really packaged and documented
+Note: This library is a hasily seperated part of a larger system, and isn't really packaged and documented
 for external use.
 
 Python classes for generating rows from a variety of file formats. The `RowGenerator` class creates internal
