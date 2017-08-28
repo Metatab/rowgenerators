@@ -1,25 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-from .generators import *
-from .exceptions import SourceError
-
-from .util import DelayedFlo, get_cache, clean_cache
-from .sourcespec import SourceSpec
-from .rowproxy import RowProxy, GeoRowProxy
-from .fetch import enumerate_contents, inspect
 from .exceptions import *
-from .urls import *
-import sys
+from .core import get_generator
 
-
-__all__ = [k for k in sys.modules[__name__].__dict__.keys()
-           if not k.startswith('_') and
-           k not in ('sys','sourcespec','six','exceptions','fetch','rowproxy','util', 'generators')]
-
-try:
-    # Only if the underlying fiona and shapely libraries are installed with the [geo] extra
-    from .accessors import ShapefileSource
-    __all__.append('ShapefileSource')
-except ImportError:
-    pass

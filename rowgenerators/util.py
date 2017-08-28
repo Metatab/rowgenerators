@@ -10,7 +10,7 @@ import os
 
 
 class DelayedFlo(object):
-    """Holds functions to open and close a flike-like object"""
+    """Holds functions to open and close a file-like object"""
 
     def __init__(self, path, open_f, flo_f, close_f):
         self.path = path

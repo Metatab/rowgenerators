@@ -66,6 +66,18 @@ setup(
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',
         ],
+
+        'rowgenerators': [
+            "<iterator> = rowgenerators.generator.iterator:IteratorSource",
+            "<generator> = rowgenerators.generator.generator:GeneratorSource",
+            ".csv = rowgenerators.generator.csv:CsvSource",
+            ".xlsx = rowgenerators.generator.excel:ExcelSource",
+            ".xls =  rowgenerators.generator.excel:ExcelSource",
+            "program+ = rowgenerators.generator.program:ProgramSource",
+            "jupyter+ = rowgenerators.generator.jupyter:NotebookSource",
+
+        ]
+
     },
     author=ambry_meta.__author__,
     author_email='eric@civicknowledge.com',
