@@ -51,20 +51,33 @@ class BasicTests(unittest.TestCase):
         self.assertEqual(53, len(list(CsvSource(get_file(us)))))
 
     def test_entrypoints(self):
+        from rowgenerators.generator.iterator import IteratorSource
+        from rowgenerators.generator.generator import GeneratorSource
+        from rowgenerators.generator.csv import CsvSource
 
         def g():
             yield None
 
-        print(get_generator([]))
-        print(get_generator(g()))
-        print(get_generator(parse_app_url('/foo/bar/file.csv')))
+        self.assertIsInstance(get_generator([]), IteratorSource)
+        self.assertIsInstance(get_generator(g()), GeneratorSource)
+        self.assertIsInstance(get_generator(parse_app_url('/foo/bar/file.csv')), CsvSource)
 
     def test_sources(self):
         from csv import DictReader
 
         with open(data_path('sources.csv')) as f:
             for e in DictReader(f):
-                u = parse_app_url(e['url'])
-                g = get_generator(u)
 
-                print(e['name'], g)
+                if not e['url_class']:
+                    print()
+                    continue
+
+                u = parse_app_url(e['url'])
+                r = u.get_resource()
+                t = r.get_target()
+
+                g = get_generator(t)
+
+                self.assertEquals(e['gen_class'], g.__class__.__name__)
+
+                self.assertEquals(int(e['n_rows']), (len(list(g))))

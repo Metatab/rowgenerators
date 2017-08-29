@@ -9,8 +9,8 @@ The SourceSpec defines what kind of a source file to fetch and how to process it
 from copy import deepcopy
 from uuid import uuid4
 
-from rowgenerators.urls import Url
 
+from appurl import parse_app_url
 from rowgenerators.util import parse_url_to_dict
 
 
@@ -59,7 +59,7 @@ class SourceSpec(object):
         if isinstance(url, Url):
             self._url = url
         else:
-            self._url = Url(url,
+            self._url = parse_app_url(url,
                             proto=proto,
                             resource_format=resource_format.lower() if resource_format else resource_format,
                             target_file=target_file,

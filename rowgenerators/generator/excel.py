@@ -8,6 +8,11 @@ from rowgenerators.source import Source
 class ExcelSource(Source):
     """Generate rows from an excel file"""
 
+    def __init__(self, ref, cache=None, working_dir=None, **kwargs):
+        super().__init__(ref, cache, working_dir, **kwargs)
+
+        self.url = ref
+
     @staticmethod
     def srow_to_list(row_num, s):
         """Convert a sheet row to a list"""
@@ -28,7 +33,7 @@ class ExcelSource(Source):
 
         self.start()
 
-        wb = open_workbook(filename=self.url.target_file)
+        wb = open_workbook(filename=self.url.path)
 
         try:
             s = wb.sheets()[int(self.url.target_segment) if self.url.target_segment else 0]

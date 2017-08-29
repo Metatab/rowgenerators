@@ -53,31 +53,3 @@ def TYPE_TO_SOURCE_MAP():
 
 
 
-
-class AspwCursorSource(Source):
-    """Iterates a ASPW cursor, also extracting the header and type information  """
-
-    def __init__(self, spec, cursor):
-
-        super(AspwCursorSource, self).__init__(spec)
-
-        self._cursor = cursor
-
-        self._datatypes = []
-
-    def __iter__(self):
-
-        self.start()
-
-        for i, row in enumerate(self._cursor):
-
-            if i == 0:
-                self._headers = [e[0] for e in self._cursor.getdescription()]
-
-                yield self._headers
-
-            yield row
-
-        self.finish()
-
-

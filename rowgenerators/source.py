@@ -13,9 +13,9 @@ class Source(object):
 
     priority = 100
 
-    def __init__(self, url, cache=None, working_dir=None):
+    def __init__(self, ref, cache=None, working_dir=None, **kwargs):
 
-        self.url = url # AppUrl
+        self.ref = ref
 
         self.cache = cache
 

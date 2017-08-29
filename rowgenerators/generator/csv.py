@@ -12,6 +12,11 @@ class CsvSource(Source):
 
     delimiter = ','
 
+    def __init__(self, ref, cache=None, working_dir=None, **kwargs):
+        super().__init__(ref, cache, working_dir, **kwargs)
+
+        self.url = ref
+
     def __iter__(self):
         """Iterate over all of the lines in the file"""
 
@@ -21,7 +26,7 @@ class CsvSource(Source):
 
         self.start()
 
-        with open(self.url.path) as f:
+        with open(self.url.path, encoding=self.url.encoding) as f:
             yield from csv.reader(f, delimiter=self.delimiter)
 
         self.finish()

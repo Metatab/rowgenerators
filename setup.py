@@ -71,6 +71,7 @@ setup(
             "<iterator> = rowgenerators.generator.iterator:IteratorSource",
             "<generator> = rowgenerators.generator.generator:GeneratorSource",
             ".csv = rowgenerators.generator.csv:CsvSource",
+            ".tsv = rowgenerators.generator.tsv:TsvSource",
             ".xlsx = rowgenerators.generator.excel:ExcelSource",
             ".xls =  rowgenerators.generator.excel:ExcelSource",
             "program+ = rowgenerators.generator.program:ProgramSource",

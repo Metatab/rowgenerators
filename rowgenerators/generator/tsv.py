@@ -3,6 +3,7 @@
 
 """ """
 
+from .csv import CsvSource
 
 class TsvSource(CsvSource):
     """Generate rows from a TSV (tab separated value) source"""

@@ -2,5 +2,6 @@
 
 
 from .exceptions import *
-from .core import get_generator
-
+from .core import get_generator, SelectiveRowGenerator
+from .rowproxy import RowProxy
+from .source import  Source
