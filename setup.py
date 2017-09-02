@@ -77,7 +77,8 @@ setup(
             "program+ = rowgenerators.generator.program:ProgramSource",
             "jupyter+ = rowgenerators.generator.jupyter:NotebookSource",
 
-        ]
+        ],
+
 
     },
     author=ambry_meta.__author__,

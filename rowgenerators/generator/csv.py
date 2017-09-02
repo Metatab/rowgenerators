@@ -17,6 +17,8 @@ class CsvSource(Source):
 
         self.url = ref
 
+        assert self.url.scheme == 'file', str(self.url)
+
     def __iter__(self):
         """Iterate over all of the lines in the file"""
 

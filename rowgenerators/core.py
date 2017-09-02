@@ -20,9 +20,11 @@ def get_generator(source, **kwargs):
 
     elif inspect.isgenerator(source):
         names.append('<generator>')
+        ref = source
 
     elif isinstance(source, collections.Iterable):
         names.append('<iterator>')
+        ref = source
 
     elif isinstance(source, Url):
         ref = source
@@ -31,13 +33,14 @@ def get_generator(source, **kwargs):
         except AttributeError:
             pass
     else:
-        ref = source
+        raise RowGeneratorError("Unknown arg type for source: '{}'".format(type(source)))
 
     classes = sorted([ep.load() for ep in iter_entry_points(group='rowgenerators') if ep.name in names],
                      key=lambda cls: cls.priority)
 
     if not classes:
-        raise RowGeneratorError("Can't find generator for source '{}' ".format(source))
+        raise RowGeneratorError("Can't find generator for source '{}' \nproto={}, resource_format={}, target_format={} "
+                                .format(source, ref.proto, ref.resource_format, ref.target_format))
 
     return classes[0](ref, **kwargs)
 
