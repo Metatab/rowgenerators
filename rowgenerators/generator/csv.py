@@ -17,7 +17,10 @@ class CsvSource(Source):
 
         self.url = ref
 
-        assert self.url.scheme == 'file', str(self.url)
+        assert self.url.exists()
+
+        if self.url.scheme != 'file':
+            assert self.url.scheme == 'file', str(self.url)
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""
@@ -28,8 +31,11 @@ class CsvSource(Source):
 
         self.start()
 
-        with open(self.url.path, encoding=self.url.encoding) as f:
-            yield from csv.reader(f, delimiter=self.delimiter)
+        try:
+            with open(self.url.path, encoding=self.url.encoding) as f:
+                yield from csv.reader(f, delimiter=self.delimiter)
+        except UnicodeError as e:
+            raise
 
         self.finish()
 

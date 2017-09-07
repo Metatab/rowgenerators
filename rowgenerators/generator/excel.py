@@ -29,16 +29,23 @@ class ExcelSource(Source):
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""
-        from xlrd import open_workbook
+        from xlrd import open_workbook, XLRDError
+        from rowgenerators.exceptions import RowGeneratorError
 
         self.start()
 
         wb = open_workbook(filename=self.url.path)
 
+        # It is supposed to be setment. Or file. Probably segment. Well, one of them.
+        ts = self.url.target_segment or self.url.target_file
+
         try:
-            s = wb.sheets()[int(self.url.target_segment) if self.url.target_segment else 0]
-        except ValueError:  # Segment is the workbook name, not the number
-            s = wb.sheet_by_name(self.url.target_segment)
+            try:
+                s = wb.sheets()[int(ts) if self.url.target_segment else 0]
+            except ValueError:  # Segment is the workbook name, not the number
+                s = wb.sheet_by_name(ts)
+        except XLRDError as e:
+            raise RowGeneratorError("Failed to open Excel workbook: '{}' ".format(e))
 
         for i in range(0, s.nrows):
             yield self.srow_to_list(i, s)

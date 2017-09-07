@@ -77,7 +77,7 @@ class SourceFile(Source):
         """Return the internal files, such as worksheets of an Excel file. """
         return None
 
-class RowGenerator(object):
+class XRowGenerator(object):
     """Primary generator object. It's actually a SourceSpec fetches a Source
      then proxies the iterator"""
 
@@ -88,6 +88,8 @@ class RowGenerator(object):
                  working_dir=None,
                  generator_args=None,
                  **kwargs):
+
+
 
         """
 

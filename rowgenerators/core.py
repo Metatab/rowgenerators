@@ -3,12 +3,16 @@
 import inspect
 import collections
 from pkg_resources import  iter_entry_points
+
 from rowgenerators.exceptions import RowGeneratorError
 from appurl import parse_app_url, Url
 
 def get_generator(source, **kwargs):
-
+    from rowgenerators import Source
     names = []
+
+    if isinstance(source, Source):
+        return source
 
     if isinstance(source, str):
 
@@ -26,6 +30,10 @@ def get_generator(source, **kwargs):
         names.append('<iterator>')
         ref = source
 
+    elif hasattr(source, '__iter__'):
+        names.append('<iterator>')
+        ref = source
+
     elif isinstance(source, Url):
         ref = source
         try:
@@ -37,6 +45,7 @@ def get_generator(source, **kwargs):
 
     classes = sorted([ep.load() for ep in iter_entry_points(group='rowgenerators') if ep.name in names],
                      key=lambda cls: cls.priority)
+
 
     if not classes:
         raise RowGeneratorError("Can't find generator for source '{}' \nproto={}, resource_format={}, target_format={} "
