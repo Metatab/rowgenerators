@@ -40,6 +40,17 @@ def get_generator(source, **kwargs):
             names.append('.{}'.format(ref.target_format))
         except AttributeError:
             pass
+
+        try:
+            names.append('{}+'.format(ref.scheme_extension))
+        except AttributeError:
+            pass
+
+        try:
+            names.append('{}:'.format(ref.scheme))
+        except AttributeError:
+            pass
+
     else:
         raise RowGeneratorError("Unknown arg type for source: '{}'".format(type(source)))
 

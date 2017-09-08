@@ -4,6 +4,8 @@
 """ """
 
 from rowgenerators.source import Source
+from xlrd import open_workbook, XLRDError
+from rowgenerators.exceptions import RowGeneratorError
 
 class ExcelSource(Source):
     """Generate rows from an excel file"""
@@ -12,6 +14,12 @@ class ExcelSource(Source):
         super().__init__(ref, cache, working_dir, **kwargs)
 
         self.url = ref
+
+        # It is supposed to be segment. Or file. Probably segment. Well, one of them.
+        ts = self.url.target_segment or self.url.target_file
+
+        if not ts:
+            raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
 
     @staticmethod
     def srow_to_list(row_num, s):
@@ -29,15 +37,17 @@ class ExcelSource(Source):
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""
-        from xlrd import open_workbook, XLRDError
-        from rowgenerators.exceptions import RowGeneratorError
+
 
         self.start()
 
         wb = open_workbook(filename=self.url.path)
 
-        # It is supposed to be setment. Or file. Probably segment. Well, one of them.
+        # It is supposed to be segment. Or file. Probably segment. Well, one of them.
         ts = self.url.target_segment or self.url.target_file
+
+        if not ts:
+            raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
 
         try:
             try:

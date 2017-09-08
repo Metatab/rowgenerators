@@ -17,7 +17,8 @@ class CsvSource(Source):
 
         self.url = ref
 
-        assert self.url.exists()
+        if not self.url.exists():
+            raise FileNotFoundError(self.url)
 
         if self.url.scheme != 'file':
             assert self.url.scheme == 'file', str(self.url)
