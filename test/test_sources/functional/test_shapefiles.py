@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from ambry_sources import get_source
-from ambry_sources.mpf import MPRowsFile
 
 from fs.opener import fsopendir
 import pytest

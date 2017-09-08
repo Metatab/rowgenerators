@@ -8,7 +8,7 @@ Revised BSD License, included in this distribution as LICENSE.txt
 import functools
 import hashlib
 import ssl
-from os.path import abspath, exists
+from os.path import abspath
 
 from requests import HTTPError
 from requests.exceptions import SSLError
@@ -16,10 +16,10 @@ from six import string_types
 from six.moves.urllib.parse import urlparse
 from six.moves.urllib.request import urlopen
 
-from rowgenerators.exceptions import MissingCredentials, SourceError, DownloadError, AccessError
-from rowgenerators.generators import *
+from old.generators import *
+from rowgenerators.exceptions import MissingCredentials, DownloadError, AccessError
 from rowgenerators.util import fs_join as join
-from .util import real_files_in_zf, copy_file_or_flo, parse_url_to_dict, get_cache
+from rowgenerators.util import real_files_in_zf, copy_file_or_flo, parse_url_to_dict, get_cache
 
 
 def download_and_cache(spec, cache_fs, account_accessor=None, clean=False, logger=None,
@@ -96,9 +96,7 @@ def get_file_from_zip(d, spec):
 
 
 def _download(url, cache_fs, cache_path, account_accessor, logger, callback=None):
-    import urllib
     import requests
-    from fs.errors import ResourceNotFound
 
     def copy_callback(read, total):
         # if callback:
@@ -434,7 +432,7 @@ def inspect(ss, cache_fs, callback=None):
     worksheets in a spreadsheet"""
     from zipfile import ZipFile
     from copy import deepcopy
-    from rowgenerators.generators import  get_generator
+    from old.generators import  get_generator
 
     d = download_and_cache(ss, cache_fs, callback=callback)
 

@@ -6,10 +6,12 @@
 The SourceSpec defines what kind of a source file to fetch and how to process it.
 """
 
-from .util import parse_url_to_dict
-from rowgenerators.urls import Url
-from uuid import uuid4
 from copy import deepcopy
+from uuid import uuid4
+
+
+from appurl import parse_app_url
+from rowgenerators.util import parse_url_to_dict
 
 
 class SourceSpec(object):
@@ -57,7 +59,7 @@ class SourceSpec(object):
         if isinstance(url, Url):
             self._url = url
         else:
-            self._url = Url(url,
+            self._url = parse_app_url(url,
                             proto=proto,
                             resource_format=resource_format.lower() if resource_format else resource_format,
                             target_file=target_file,
@@ -164,7 +166,7 @@ class SourceSpec(object):
 
     def download_and_cache(self, spec, cache_fs, account_accessor=None, clean=False, logger=None,
                            working_dir='', callback=None):
-        from rowgenerators.fetch import download_and_cache
+        from old.fetch import download_and_cache
 
         return download_and_cache(spec=spec, cache_fs=cache_fs, account_accessor=account_accessor,
                                   clean=clean, logger=logger, working_dir=working_dir, callback=callback)
