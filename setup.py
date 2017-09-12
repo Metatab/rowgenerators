@@ -51,6 +51,7 @@ setup(
     long_description=readme,
     packages=packages,
     install_requires=[
+        'appurl',
         'fs >= 2',
         'boto',
         'requests',
@@ -76,8 +77,13 @@ setup(
             ".xls =  rowgenerators.generator.excel:ExcelSource",
             "program+ = rowgenerators.generator.program:ProgramSource",
             "jupyter+ = rowgenerators.generator.jupyter:NotebookSource",
+            "shape+ = rowgenerators.generator.shapefile:ShapefileSource",
 
         ],
+        'appurl.urls': [
+            "shape+ = rowgenerators.appurl.shapefile:ShapefileUrl",
+
+        ]
 
 
     },

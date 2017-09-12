@@ -5,6 +5,7 @@
 
 from itertools import islice
 
+
 class Source(object):
     """Base class for accessors that generate rows from any source
 
@@ -14,11 +15,9 @@ class Source(object):
     priority = 100
 
     def __init__(self, ref, cache=None, working_dir=None, **kwargs):
-
         self.ref = ref
 
         self.cache = cache
-
 
     @property
     def headers(self):
@@ -32,7 +31,16 @@ class Source(object):
 
     @headers.setter
     def headers(self, v):
+        """Catch attempts to set"""
         raise NotImplementedError
+
+    @property
+    def columns(self):
+        """ Returns columns for the file accessed by accessor.
+
+        """
+
+        return None
 
     @property
     def meta(self):
@@ -77,6 +85,7 @@ class SourceFile(Source):
         """Return the internal files, such as worksheets of an Excel file. """
         return None
 
+
 class XRowGenerator(object):
     """Primary generator object. It's actually a SourceSpec fetches a Source
      then proxies the iterator"""
@@ -88,8 +97,6 @@ class XRowGenerator(object):
                  working_dir=None,
                  generator_args=None,
                  **kwargs):
-
-
 
         """
 
@@ -128,7 +135,6 @@ class XRowGenerator(object):
     @property
     def path(self):
         return self._url
-
 
     @property
     def is_geo(self):
@@ -253,4 +259,3 @@ class SelectiveRowGenerator(object):
 
         for row in self.iter:
             yield row
-

@@ -81,3 +81,26 @@ class BasicTests(unittest.TestCase):
                 self.assertEquals(e['gen_class'], g.__class__.__name__)
 
                 self.assertEquals(int(e['n_rows']), (len(list(g))))
+
+
+    def test_geo(self):
+
+        us='shape+http://s3.amazonaws.com/public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
+        u=parse_app_url(us)
+
+        r = u.get_resource()
+
+        print(type(r), r)
+
+        t = r.get_target()
+
+        print(type(t), t)
+
+        g = get_generator(t)
+
+        print(type(g))
+
+        print(g.columns)
+        print(g.headers)
+
+        self.assertEquals(42, len(list(g)))

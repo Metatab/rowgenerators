@@ -51,6 +51,12 @@ def get_generator(source, **kwargs):
         except AttributeError:
             pass
 
+        try:
+            names.append('<{}>'.format(ref.__class__.__name__))
+        except AttributeError:
+            pass
+
+
     else:
         raise RowGeneratorError("Unknown arg type for source: '{}'".format(type(source)))
 
@@ -62,7 +68,10 @@ def get_generator(source, **kwargs):
         raise RowGeneratorError("Can't find generator for source '{}' \nproto={}, resource_format={}, target_format={} "
                                 .format(source, ref.proto, ref.resource_format, ref.target_format))
 
-    return classes[0](ref, **kwargs)
+    try:
+        return classes[0](ref, **kwargs)
+    except Exception as e:
+        raise RowGeneratorError("Failed to instantiate generator for class '{}', ref '{}': {}".format(classes[0], ref, e))
 
 class SelectiveRowGenerator(object):
     """Proxies an iterator to remove headers, comments, blank lines from the row stream.
