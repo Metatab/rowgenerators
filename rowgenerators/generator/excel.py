@@ -43,8 +43,7 @@ class ExcelSource(Source):
 
         wb = open_workbook(filename=self.url.path)
 
-        # It is supposed to be segment. Or file. Probably segment. Well, one of them.
-        ts = self.url.target_segment or self.url.target_file
+        ts = self.url.target_segment
 
         if not ts:
             raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))

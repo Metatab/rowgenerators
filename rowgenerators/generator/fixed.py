@@ -3,55 +3,30 @@
 
 """ """
 
-class FixedSource(SourceFile):
+from rowgenerators import Source
+from rowgenerators.exceptions import SourceError
+
+class FixedSource(Source):
     """Generate rows from a fixed-width source"""
 
-    def __init__(self, spec, dflo, cache, working_dir=None):
-        """
+    def __init__(self, ref, table=None, cache=None, working_dir=None, **kwargs):
+        super().__init__(ref, cache, working_dir, **kwargs)
 
-        Args:
-            spec (sources.SourceSpec): specification of the source.
-            fstor (sources.util.DelayedOpen):
+        self.table = table
 
-        """
-
-        super(FixedSource, self).__init__(spec, dflo, cache)
-
-    def make_fw_row_parser(self):
-
-        parts = []
-
-        if not self.spec.columns:
-            raise SourceError('Fixed width source must have a schema defined, with column widths.')
-
-        for i, c in enumerate(self.spec.columns):
-
-            try:
-                int(c.start)
-                int(c.width)
-            except TypeError:
-                raise SourceError('Fixed width source {} must have start and width values for {} column '
-                                  .format(self.spec.name, c.name))
-
-            parts.append('row[{}:{}]'.format(c.start - 1, c.start + c.width - 1))
-
-        code = 'lambda row: [{}]'.format(','.join(parts))
-
-        return eval(code)
-
-    @property
-    def headers(self):
-        return [c.name if c.name else i for i, c in enumerate(self.spec.columns)]
+        assert self.table
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""
 
         self.start()
 
-        parser = self.make_fw_row_parser()
+        parse = self.table.make_fw_row_parser()
 
-        for line in self._fstor.open(mode='r', encoding=self.spec.encoding):
-            yield [e.strip() for e in parser(line)]
+
+        with open(self.ref.path) as f:
+            for line in f.readlines():
+                yield parse(line)
 
         self.finish()
 

@@ -4,6 +4,7 @@
 """ """
 
 import unittest
+from os.path import dirname
 from appurl import parse_app_url
 from rowgenerators.generator.csv import CsvSource
 from rowgenerators import get_generator
@@ -104,3 +105,58 @@ class BasicTests(unittest.TestCase):
         print(g.headers)
 
         self.assertEquals(42, len(list(g)))
+
+    def test_program(self):
+
+        u = parse_app_url(script_path('rowgen.py'))
+        u.scheme_extension = 'program'
+
+        env = {
+            '--long-arg': 'a',
+            '-s': 'a',
+            'ENV_VAR':'a',
+            'prop1':'a',
+            'prop2':'a'
+        }
+
+        g = get_generator(u, working_dir=dirname(u.path), env=env)
+
+        print(type(g))
+
+        rows = {}
+
+        for row in g.iter_rp:
+            rows[row['type']+'-'+row['k']] = row.v
+            print(row)
+
+        self.assertEqual('a', rows['prop-prop1'])
+        self.assertEqual('{"prop1": "a", "prop2": "a"}', rows['env-PROPERTIES'])
+
+    def test_fixed(self):
+        from itertools import islice
+
+        from rowgenerators import Table
+
+        t = Table()
+        t.add_column('id',int,6)
+        t.add_column('uuid', str, 34)
+        t.add_column('int', int, 3)
+        t.add_column('float', float, 14)
+
+        print(str(t))
+
+        parse = t.make_fw_row_parser()
+
+        u = parse_app_url('fixed+file:/Volumes/Storage/Downloads/test_data/fixed/simple-example.txt')
+
+        print(u.get_resource())
+        print(u.get_resource().get_target())
+
+        g = get_generator(u, table=t)
+
+        print(type(g))
+
+        for row in islice(g,10):
+            print(row)
+
+
