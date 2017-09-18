@@ -16,10 +16,9 @@ class ExcelSource(Source):
         self.url = ref
 
         # It is supposed to be segment. Or file. Probably segment. Well, one of them.
-        ts = self.url.target_segment or self.url.target_file
-
-        if not ts:
-            raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
+        #ts = self.url.target_segment or self.url.target_file
+        #if not ts:
+        #    raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
 
     @staticmethod
     def srow_to_list(row_num, s):
@@ -43,11 +42,13 @@ class ExcelSource(Source):
 
         wb = open_workbook(filename=self.url.path)
 
-        # It is supposed to be segment. Or file. Probably segment. Well, one of them.
-        ts = self.url.target_segment or self.url.target_file
+        ts = self.url.target_segment
 
-        if not ts:
-            raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
+        # Without this check, failure to provide a target_segment will cause the return
+        # of the first worksheet.
+
+        #if not ts:
+        #    raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
 
         try:
             try:

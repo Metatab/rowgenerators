@@ -5,6 +5,7 @@
 
 from itertools import islice
 
+
 class Source(object):
     """Base class for accessors that generate rows from any source
 
@@ -14,11 +15,9 @@ class Source(object):
     priority = 100
 
     def __init__(self, ref, cache=None, working_dir=None, **kwargs):
-
         self.ref = ref
 
         self.cache = cache
-
 
     @property
     def headers(self):
@@ -32,7 +31,16 @@ class Source(object):
 
     @headers.setter
     def headers(self, v):
+        """Catch attempts to set"""
         raise NotImplementedError
+
+    @property
+    def columns(self):
+        """ Returns columns for the file accessed by accessor.
+
+        """
+
+        return None
 
     @property
     def meta(self):
@@ -43,124 +51,27 @@ class Source(object):
 
         raise NotImplementedError()
 
+    @property
+    def iter_rp(self):
+        """Iterate, yielding row proxy objects rather than rows"""
+
+        from .rowproxy import RowProxy
+
+        itr = iter(self)
+
+        headers = next(itr)
+
+        row_proxy = RowProxy(headers)
+
+        for row in itr:
+            yield row_proxy.set_row(row)
+
     def start(self):
         pass
 
     def finish(self):
         pass
 
-
-class SourceFile(Source):
-    """Base class for accessors that generate rows from a source file
-
-    Subclasses of SourceFile must override at lease _get_row_gen method.
-    """
-
-    def __init__(self, spec, dflo, cache, working_dir=None):
-        """
-
-        :param fstor: A File-like object for the file, already opened.
-        :return:
-        """
-        super(SourceFile, self).__init__(spec, cache)
-
-        self._dflo = dflo
-        self._headers = None  # Reserved for subclasses that extract headers from data stream
-        self._datatypes = None  # If set, an array of the datatypes for each column, derived from the source
-
-    @property
-    def path(self):
-        return self._dflo.path
-
-    @property
-    def children(self):
-        """Return the internal files, such as worksheets of an Excel file. """
-        return None
-
-class XRowGenerator(object):
-    """Primary generator object. It's actually a SourceSpec fetches a Source
-     then proxies the iterator"""
-
-    def __init__(self, url, name=None, proto=None, resource_format=None,
-                 target_file=None, target_segment=None, target_format=None, encoding=None,
-                 columns=None,
-                 cache=None,
-                 working_dir=None,
-                 generator_args=None,
-                 **kwargs):
-
-
-
-        """
-
-        :param url:
-        :param cache:
-        :param name:
-        :param proto:
-        :param format:
-        :param urlfiletype:
-        :param encoding:
-        :param file:
-        :param segment:
-        :param columns:
-        :param kwargs: Sucks up other keyword args so dicts can be expanded into the arg list.
-        :return:
-        """
-
-        self.cache = cache
-        self.headers = None
-        self.working_dir = working_dir
-
-        self.generator = None
-
-        super(RowGenerator, self).__init__(url, name=name, proto=proto,
-                                           resource_format=resource_format,
-                                           target_file=target_file,
-                                           target_segment=target_segment,
-                                           target_format=target_format,
-                                           encoding=encoding,
-                                           columns=columns,
-                                           generator_args=generator_args,
-                                           **kwargs)
-
-        self.generator = self.get_generator(self.cache, working_dir=self.working_dir)
-
-    @property
-    def path(self):
-        return self._url
-
-
-    @property
-    def is_geo(self):
-        return isinstance(self.generator, GeoSourceBase)
-
-    def __iter__(self):
-
-        for row in self.generator:
-
-            if not self.headers:
-                self.headers = self.generator.headers
-
-            yield row
-
-    def iter_rp(self):
-        """Iterate, yielding row proxy objects rather than rows"""
-
-        from .rowproxy import RowProxy
-
-        row_proxy = None
-
-        for row in self.generator:
-
-            if not self.headers:
-                self.headers = self.generator.headers
-                row_proxy = RowProxy(self.headers)
-                continue
-
-            yield row_proxy.set_row(row)
-
-    def __str__(self):
-        return "<RowGenerator ({}): {} >".format(type(self.generator), self.url)
 
 
 class SelectiveRowGenerator(object):
@@ -253,4 +164,3 @@ class SelectiveRowGenerator(object):
 
         for row in self.iter:
             yield row
-

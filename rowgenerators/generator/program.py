@@ -13,33 +13,32 @@ from rowgenerators.source import Source
 class ProgramSource(Source):
     """Generate rows from a program. Takes kwargs from the spec to pass into the program. """
 
-    def __init__(self, url, working_dir):
+    def __init__(self, ref, cache=None, working_dir=None, env = None, **kwargs):
+
+        super().__init__(ref, cache, working_dir, **kwargs)
 
         import platform
 
         if platform.system() == 'Windows':
             raise NotImplementedError("Program sources aren't working on Windows")
 
-
         assert working_dir
 
-        self.program = normpath(join(working_dir, self.spec.url_parts.path))
+        self.program = normpath(join(working_dir, self.ref.path))
 
         if not exists(self.program):
             raise SourceError("Program '{}' does not exist".format(self.program))
-
-        self.args = dict(list(self.spec.generator_args.items() if self.spec.generator_args else [])+list(self.spec.kwargs.items()))
 
         self.options = []
 
         self.properties = {}
 
-        self.env = dict(environ.items())
+        self.env = {}
 
         # Expand the generator args and kwargs into parameters for the program,
         # which may be command line options, env vars, or a json encoded dict in the PROPERTIES
         # envvar.
-        for k, v in self.args.items():
+        for k, v in (env or {}).items():
             if k.startswith('--'):
                 # Long options
                 self.options.append("{} {}".format(k,v))
@@ -55,6 +54,8 @@ class ProgramSource(Source):
 
         self.env['PROPERTIES'] = json.dumps(self.properties)
 
+        # Make sure that sys.stdout is always UTF*. It can end up US_ASCI otherwise.
+        self.env['PYTHONIOENCODING']='utf-8:replace'
 
     def start(self):
         pass
@@ -69,21 +70,26 @@ class ProgramSource(Source):
         import csv
         import subprocess
         from io import TextIOWrapper
-        import json
 
-        # SHould probably give the child process the -u option,  http://stackoverflow.com/a/17701672
-        p = subprocess.Popen([self.program] + self.options,
-                        stdout=subprocess.PIPE, stdin=subprocess.PIPE,
-                        env = self.env)
+        import sys
 
-        p.stdin.write(json.dumps(self.properties).encode('utf-8'))
 
-        try:
-            r = csv.reader(TextIOWrapper(p.stdout))
-        except AttributeError:
-            # For Python 2
-            r = csv.reader(p.stdout)
+        if self.program.endswith('.py'):
+            # If it is a python program, it's really nice, possibly required,
+            # that the program be run with the same interpreter as is running this program.
+            #
+            # The -u option makes output unbuffered.  http://stackoverflow.com/a/17701672
+            prog = [sys.executable, '-u', self.program]
+        else:
+            prog = [self.program]
 
-        for row in r:
-            yield row
 
+        p = subprocess.Popen(prog + self.options,
+                        stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1,
+                        env = self.env,
+                        encoding='utf8',
+                        errors='replace')
+
+        #p.stdin.write(json.dumps(self.properties).encode('utf-8'))
+
+        yield from csv.reader(p.stdout)

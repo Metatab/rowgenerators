@@ -3,6 +3,7 @@
 
 """ """
 
+from rowgenerators.appurl.shapefile import ShapefileUrl
 from rowgenerators.source import Source
 
 class GeoSourceBase(Source):
@@ -13,39 +14,22 @@ class GeoSourceBase(Source):
 class ShapefileSource(GeoSourceBase):
     """ Accessor for shapefiles (*.shp) with geo data. """
 
-    def __init__(self, url, cache=None, working_dir=None):
+    def __init__(self, url, cache=None, working_dir=None, **kwargs):
         super().__init__(url, cache, working_dir)
 
+        assert isinstance(url,ShapefileUrl)
 
+        self.property_schema = self._parameters
 
     def _convert_column(self, shapefile_column):
-        """ Converts column from a *.shp file to the column expected by ambry_sources.
-
-        Args:
-            shapefile_column (tuple): first element is name, second is type.
-
-        Returns:
-            dict: column spec as ambry_sources expects
-
-        Example:
-            self._convert_column((u'POSTID', 'str:20')) -> {'name': u'POSTID', 'type': 'str'}
-
-        """
+        """ Converts column from a *.shp file to the column expected by ambry_sources."""
         name, type_ = shapefile_column
         type_ = type_.split(':')[0]
         return {'name': name, 'type': type_}
 
-    def _get_columns(self, shapefile_columns):
+    @property
+    def columns(self):
         """ Returns columns for the file accessed by accessor.
-
-        Args:
-            shapefile_columns (SortedDict): key is column name, value is column type.
-
-        Returns:
-            list: list of columns in ambry_sources format
-
-        Example:
-            self._get_columns(SortedDict((u'POSTID', 'str:20'))) -> [{'name': u'POSTID', 'type': 'str'}]
 
         """
         #
@@ -53,7 +37,7 @@ class ShapefileSource(GeoSourceBase):
         columns = [{'name': 'id', 'type': 'int'}]
 
         # extend with *.shp file columns converted to ambry_sources format.
-        columns.extend(list(map(self._convert_column, iter(shapefile_columns.items()))))
+        columns.extend(list(map(self._convert_column, self.property_schema.items())))
 
         # last column is wkt value.
         columns.append({'name': 'geometry', 'type': 'geometry_type'})
@@ -64,7 +48,43 @@ class ShapefileSource(GeoSourceBase):
         """Return headers. This must be run after iteration, since the value that is returned is
         set in iteration """
 
-        return list(self._headers)
+        # self.spec.columns = [c for c in self._get_columns(property_schema)]
+
+        return [x['name'] for x in self.columns]
+
+
+    def _open_file_params(self):
+        from zipfile import ZipFile
+
+        layer_index = self.ref.target_segment or 0
+
+        if self.ref.resource_format == 'zip':
+            # Find the SHP file. I thought Fiona used to do this itself ...
+            assert self.ref.target_file
+
+            vfs = 'zip://{}'.format(self.ref.path)
+
+            if self.ref.target_file:
+                shp_file = '/' + self.ref.target_file.strip('/')
+            else:
+                shp_file = '/' + next(
+                    n for n in ZipFile(self.ref.path).namelist() if (n.endswith('.shp') or n.endswith('geojson')))
+        else:
+            shp_file = self.ref.path
+            vfs = None
+
+        return vfs, shp_file, layer_index
+
+    @property
+    def _parameters(self):
+        import fiona
+
+        vfs, shp_file, layer_index = self._open_file_params()
+
+        with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
+
+            return source.schema['properties']
+
 
     def __iter__(self):
         """ Returns generator over shapefile rows.
@@ -82,22 +102,14 @@ class ShapefileSource(GeoSourceBase):
         import fiona
         from fiona.crs import from_epsg
         from shapely.geometry import asShape
-        from zipfile import ZipFile
+
         from shapely.ops import transform
         import pyproj
         from functools import partial
 
-        layer_index = self.spec.target_segment or 0
-
-        if self.spec.resource_format == 'zip':
-            # Find the SHP file. I thought Fiona used to do this itself ...
-            shp_file = '/'+next(n for n in ZipFile(self.syspath).namelist() if (n.endswith('.shp') or n.endswith('geojson')))
-            vfs = 'zip://{}'.format(self.syspath)
-        else:
-            shp_file = self.syspath
-            vfs = None
-
         self.start()
+
+        vfs, shp_file, layer_index = self._open_file_params()
 
         with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
 
@@ -112,10 +124,6 @@ class ShapefileSource(GeoSourceBase):
             else:
                 project = None
 
-            property_schema = source.schema['properties']
-
-            self.spec.columns = [c for c in self._get_columns(property_schema)]
-            self._headers = [x['name'] for x in self._get_columns(property_schema)]
 
             yield self.headers
 
@@ -125,7 +133,7 @@ class ShapefileSource(GeoSourceBase):
                 shp = asShape(s['geometry'])
 
                 row = [int(s['id'])]
-                for col_name, elem in six.iteritems(row_data):
+                for col_name, elem in row_data.items():
                     row.append(elem)
 
                 if project:

@@ -7,16 +7,26 @@ from os import getenv, environ
 import json
 import select
 
-w = csv.writer(sys.stdout)
+try:
+    w = csv.writer(sys.stdout)
 
-w.writerow(['type','k','v'])
+    w.writerow(['row','type','k','v'])
 
+    i=0
 
-for k in sys.argv:
-    w.writerow(['arg', k, ''])
+    for k in sys.argv:
+        w.writerow([i,'arg', k, ''])
+        i += 1
 
-for k, v in environ.items():
-    w.writerow(['env',k,v])
+    for k, v in environ.items():
+        w.writerow([i,'env',k,v])
+        i += 1
 
-for k, v in json.loads(environ['PROPERTIES']).items():
-    w.writerow(['prop', k, v])
+    for k, v in json.loads(environ['PROPERTIES']).items():
+        w.writerow([i, 'prop', k, v])
+        i += 1
+except BrokenPipeError:
+    # Parent exited before we wrote everything. This is almost guaranteed to
+    # happen while building schemas with `metapack -s`
+    pass
+

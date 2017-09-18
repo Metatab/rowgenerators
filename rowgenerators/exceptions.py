@@ -30,8 +30,8 @@ class ConfigurationError(RowGeneratorError):
     pass
 
 
-
-
-
 class MissingCredentials(RowGeneratorError):
+    pass
+
+class SchemaError(RowGeneratorError):
     pass
