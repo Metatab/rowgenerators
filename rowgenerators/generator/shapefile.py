@@ -3,8 +3,19 @@
 
 """ """
 
+
+from functools import partial
 from rowgenerators.appurl.shapefile import ShapefileUrl
 from rowgenerators.source import Source
+
+try:
+    import fiona
+    from fiona.crs import from_epsg
+    from shapely.geometry import asShape
+    from shapely.ops import transform
+    import pyproj
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError("Using ShapefileSource requires installing fiona, shapely and pyproj ") from e
 
 class GeoSourceBase(Source):
     """ Base class for all geo sources. """
@@ -77,7 +88,7 @@ class ShapefileSource(GeoSourceBase):
 
     @property
     def _parameters(self):
-        import fiona
+
 
         vfs, shp_file, layer_index = self._open_file_params()
 
@@ -99,13 +110,6 @@ class ShapefileSource(GeoSourceBase):
         # These imports are nere, not at the module level, so the geo
         # support can be an extra
 
-        import fiona
-        from fiona.crs import from_epsg
-        from shapely.geometry import asShape
-
-        from shapely.ops import transform
-        import pyproj
-        from functools import partial
 
         self.start()
 
