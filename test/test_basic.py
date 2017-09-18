@@ -56,12 +56,14 @@ class BasicTests(unittest.TestCase):
         from rowgenerators.generator.generator import GeneratorSource
         from rowgenerators.generator.csv import CsvSource
 
+        us = 'http://public.source.civicknowledge.com/example.com/sources/unicode-utf8.csv'
+
         def g():
             yield None
 
         self.assertIsInstance(get_generator([]), IteratorSource)
         self.assertIsInstance(get_generator(g()), GeneratorSource)
-        self.assertIsInstance(get_generator(parse_app_url('/foo/bar/file.csv')), CsvSource)
+        self.assertIsInstance(get_generator(parse_app_url(us).get_resource().get_target()), CsvSource)
 
     def test_sources(self):
         from csv import DictReader

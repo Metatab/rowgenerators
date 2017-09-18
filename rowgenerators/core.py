@@ -71,7 +71,7 @@ def get_generator(source, **kwargs):
     try:
         return classes[0](ref, **kwargs)
     except Exception as e:
-        raise RowGeneratorError("Failed to instantiate generator for class '{}', ref '{}': {}".format(classes[0], ref, e))
+        raise RowGeneratorError("Failed to instantiate generator for class '{}', ref '{}'".format(classes[0], ref)) from e
 
 class SelectiveRowGenerator(object):
     """Proxies an iterator to remove headers, comments, blank lines from the row stream.
