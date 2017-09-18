@@ -4,16 +4,7 @@
 import os
 import sys
 
-from setuptools import find_packages
-import uuid
-import imp
-
-from pip.req import parse_requirements
-
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import find_packages, setup
 
 if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
@@ -21,12 +12,6 @@ if sys.argv[-1] == 'publish':
 
 with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
     readme = f.read()
-
-# Avoiding import so we don't execute __init__.py, which has imports
-# that aren't installed until after installation.
-ambry_meta = imp.load_source('_meta', 'rowgenerators/_meta.py')
-
-packages = find_packages()
 
 classifiers = [
     'Development Status :: 4 - Beta',
@@ -45,10 +30,10 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version=ambry_meta.__version__,
+    version="0.7.0",
     description='Generate row data from a variety of file formats',
     long_description=readme,
-    packages=packages,
+    packages=find_packages(),
     install_requires=[
         'appurl',
         'fs >= 2',
@@ -87,7 +72,7 @@ setup(
 
 
     },
-    author=ambry_meta.__author__,
+    author="Eric Busboom",
     author_email='eric@civicknowledge.com',
     url='https://github.com/CivicKnowledge/rowgenerator.git',
     license='MIT',
