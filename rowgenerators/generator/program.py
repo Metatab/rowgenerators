@@ -85,11 +85,8 @@ class ProgramSource(Source):
 
 
         p = subprocess.Popen(prog + self.options,
-                        stdout=subprocess.PIPE, stdin=subprocess.PIPE, bufsize=1,
-                        env = self.env,
-                        encoding='utf8',
-                        errors='replace')
+                             stdout=subprocess.PIPE,
+                             bufsize=1,
+                             env=self.env)
 
-        #p.stdin.write(json.dumps(self.properties).encode('utf-8'))
-
-        yield from csv.reader(p.stdout)
+        yield from csv.reader(TextIOWrapper(p.stdout, encoding='utf8', errors='replace'))
