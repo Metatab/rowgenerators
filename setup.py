@@ -30,12 +30,12 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.7.0",
+    version="0.7.1",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
     install_requires=[
-        'appurl',
+        'appurl >= 0.1.5',
         'fs >= 2',
         'boto',
         'requests',
