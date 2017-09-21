@@ -41,4 +41,3 @@ class CsvSource(Source):
             raise
 
         self.finish()
-
