@@ -28,13 +28,13 @@ class CsvSource(Source):
 
         import csv
 
-
         csv.field_size_limit(sys.maxsize) # For: _csv.Error: field larger than field limit (131072)
 
         self.start()
 
         try:
 
+            # Python 3.6 considers None to mean 'utf8', but Python 3.5 considers it to be 'ascii'
             encoding = self.url.encoding or 'utf8'
 
             with open(self.url.path, encoding=encoding) as f:
