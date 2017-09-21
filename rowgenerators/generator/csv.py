@@ -27,16 +27,18 @@ class CsvSource(Source):
         """Iterate over all of the lines in the file"""
 
         import csv
-        from encodings.ascii import IncrementalDecoder
+
 
         csv.field_size_limit(sys.maxsize) # For: _csv.Error: field larger than field limit (131072)
 
         self.start()
 
         try:
-            with open(self.url.path, encoding=self.url.encoding) as f:
-                g = csv.reader(f, delimiter=self.delimiter)
-                yield from g
+
+            encoding = self.url.encoding or 'utf8'
+
+            with open(self.url.path, encoding=encoding) as f:
+                yield from csv.reader(f, delimiter=self.delimiter)
         except UnicodeError as e:
             raise
 
