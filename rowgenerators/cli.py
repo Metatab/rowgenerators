@@ -9,7 +9,6 @@ from itertools import islice
 from tabulate import tabulate
 
 from rowgenerators import enumerate_contents, SourceSpec, SourceError
-from rowgenerators._meta import __version__
 from rowgenerators import RowGenerator
 from tableintuit import RowIntuiter
 from itertools import islice
@@ -46,7 +45,7 @@ def rowgen():
 
     parser = argparse.ArgumentParser(
         prog='rowgen',
-        description='Return CSV rows of data from a rowgenerator URL'.format(__version__))
+        description='Return CSV rows of data from a rowgenerator URL')
 
     parser.add_argument('-H', '--head', default=False, action='store_true',
                         help='Display only the first 20 lines, in tabular format')
