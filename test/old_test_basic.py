@@ -15,7 +15,6 @@ from rowgenerators import parse_url_to_dict
 from rowgenerators import register_proto
 
 
-
 try:
     import fiona
     import shapely

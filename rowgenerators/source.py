@@ -66,6 +66,18 @@ class Source(object):
         for row in itr:
             yield row_proxy.set_row(row)
 
+    @property
+    def iter_dict(self):
+        """Iterate, yielding dicts rather than rows"""
+
+        itr = iter(self)
+
+        headers = next(itr)
+
+        for row in itr:
+            yield dict(zip(headers, row))
+
+
     def start(self):
         pass
 

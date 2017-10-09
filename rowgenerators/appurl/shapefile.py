@@ -22,14 +22,14 @@ class ShapefileUrl(ZipUrl):
             self.fragment = ['.*\.shp$',self.fragment[1]]
 
     @classmethod
-    def match(cls, url, **kwargs):
+    def _match(cls, url, **kwargs):
 
         return url.scheme_extension == 'shape'
 
     def get_resource(self):
         return super().get_resource()
 
-    def get_target(self, mode=None):
+    def get_target(self):
 
         #Resolve the target_file, which may be a reg-ex
         self.fragment = [ZipUrl.get_file_from_zip(self), self.fragment[1]]
