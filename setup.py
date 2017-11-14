@@ -40,7 +40,7 @@ setup(
         'petl',
         'livestats',
         'filelock',
-
+        'tabulate',
     ],
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
