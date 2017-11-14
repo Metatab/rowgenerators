@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.7.4",
+    version="0.7.5",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -58,21 +58,20 @@ setup(
             ".xlsx = rowgenerators.generator.excel:ExcelSource",
             ".xls =  rowgenerators.generator.excel:ExcelSource",
             "program+ = rowgenerators.generator.program:ProgramSource",
-            "jupyter+ = rowgenerators.generator.jupyter:NotebookSource",
             "shape+ = rowgenerators.generator.shapefile:ShapefileSource",
             "python: = rowgenerators.generator.python:PythonSource",
             "fixed+ = rowgenerators.generator.fixed:FixedSource",
         ],
         'appurl.urls': [
             "shape+ = rowgenerators.appurl.shapefile:ShapefileUrl",
-
+            "gs: = rowgenerators.appurl.google:GoogleSpreadsheetUrl",
         ]
 
 
     },
     author="Eric Busboom",
     author_email='eric@civicknowledge.com',
-    url='https://github.com/CivicKnowledge/rowgenerator.git',
+    url='https://github.com/Metatab/rowgenerator.git',
     license='MIT',
     classifiers=classifiers
 )

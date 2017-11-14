@@ -6,7 +6,7 @@
 
 
 class GooglePublicSource(CsvSource):
-    url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv'
+    url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv&gid={gid}'
 
     @classmethod
     def download_url(cls, spec):

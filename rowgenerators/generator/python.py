@@ -18,6 +18,9 @@ class PythonSource(Source):
         super().__init__(ref, cache, working_dir, **kwargs)
 
         self.env = env
+
+        assert self.env
+
         self.kwargs = kwargs
 
     def __iter__(self):

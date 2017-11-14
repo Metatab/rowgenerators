@@ -161,4 +161,23 @@ class BasicTests(unittest.TestCase):
         for row in islice(g,10):
             print(row)
 
+    def test_google(self):
+
+        url = 'gs:1qjjtkMqpxtkDp3qZlkF7P8Tm8VtfIwiWW-OqJ2J91yE#2038675149'
+
+        u = parse_app_url(url)
+
+        wu = u.web_url
+        print(type(wu), wu)
+
+        r = u.get_resource()
+
+        print(type(r), r.path)
+
+        t = r.get_target()
+
+        print(type(t), t.path)
+
+        for r in t.generator:
+            print(r)
 

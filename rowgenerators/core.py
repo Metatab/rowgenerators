@@ -66,11 +66,12 @@ def get_generator(source, **kwargs):
 
     if not classes:
         raise RowGeneratorError("Can't find generator for source '{}' \nproto={}, resource_format={}, target_format={} "
-                                .format(source, ref.proto, ref.resource_format, ref.target_format))
+                                 .format(source, ref.proto, ref.resource_format, ref.target_format))
 
     try:
         return classes[0](ref, **kwargs)
     except Exception as e:
+
         raise RowGeneratorError("Failed to instantiate generator for class '{}', ref '{}'".format(classes[0], ref)) from e
 
 class SelectiveRowGenerator(object):
