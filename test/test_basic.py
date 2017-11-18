@@ -88,25 +88,39 @@ class BasicTests(unittest.TestCase):
 
     def test_geo(self):
 
+        from rowgenerators.generator.shapefile import ShapefileSource
+        from rowgenerators.appurl.shapefile import ShapefileUrl
+
         us='shape+http://s3.amazonaws.com/public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
         u=parse_app_url(us)
 
         r = u.get_resource()
 
-        print(type(r), r)
+        self.assertIsInstance(r, ShapefileUrl)
 
         t = r.get_target()
 
-        print(type(t), t)
+        self.assertIsInstance(t, ShapefileUrl)
+
+        self.assertTrue(str(t).endswith('public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip#SRA2010tiger.shp'))
 
         g = get_generator(t)
 
-        print(type(g))
+        self.assertIsInstance(g, ShapefileSource )
 
-        print(g.columns)
-        print(g.headers)
+        self.assertEqual([{'name': 'id', 'type': 'int'}, {'name': 'SRA', 'type': 'int'},
+                          {'name': 'NAME', 'type': 'str'}, {
+                              'name': 'geometry', 'type': 'geometry_type'}], g.columns)
+        self.assertEqual(['id', 'SRA', 'NAME', 'geometry'], g.headers)
 
         self.assertEquals(42, len(list(g)))
+
+    def test_geojson(self):
+
+        url = 'https://api.censusreporter.org/1.0/geo/tiger2015/04000US55?geom=true'
+
+
+
 
     def test_program(self):
 

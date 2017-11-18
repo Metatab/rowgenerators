@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.7.6",
+    version="0.7.7",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -59,6 +59,7 @@ setup(
             ".xls =  rowgenerators.generator.excel:ExcelSource",
             "program+ = rowgenerators.generator.program:ProgramSource",
             "shape+ = rowgenerators.generator.shapefile:ShapefileSource",
+            ".shp = rowgenerators.generator.shapefile:ShapefileSource",
             "python: = rowgenerators.generator.python:PythonSource",
             "fixed+ = rowgenerators.generator.fixed:FixedSource",
         ],

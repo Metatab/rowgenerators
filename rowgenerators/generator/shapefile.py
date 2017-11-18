@@ -5,7 +5,7 @@
 
 
 from functools import partial
-from rowgenerators.appurl.shapefile import ShapefileUrl
+from rowgenerators.appurl.shapefile import ShapefileUrl, ShapefileShpUrl
 from rowgenerators.source import Source
 
 try:
@@ -28,7 +28,7 @@ class ShapefileSource(GeoSourceBase):
     def __init__(self, url, cache=None, working_dir=None, **kwargs):
         super().__init__(url, cache, working_dir)
 
-        assert isinstance(url,ShapefileUrl)
+        assert isinstance(url,(ShapefileUrl, ShapefileShpUrl))
 
         self.property_schema = self._parameters
 
@@ -88,7 +88,6 @@ class ShapefileSource(GeoSourceBase):
 
     @property
     def _parameters(self):
-
 
         vfs, shp_file, layer_index = self._open_file_params()
 
@@ -150,3 +149,26 @@ class ShapefileSource(GeoSourceBase):
 
         self.finish()
 
+class GeoJsonSource(Source):
+    """Generate rows, of Shapeley objects, from a GeoJson file reference"""
+
+    delimiter = ','
+
+    def __init__(self, ref, cache=None, working_dir=None, **kwargs):
+        super().__init__(ref, cache, working_dir, **kwargs)
+
+        self.url = ref
+        from shapely.geometry import shape
+
+    def __iter__(self):
+        """Iterate over all of the lines in the file"""
+        import json
+
+        t = self.url.get_resource().get_target()
+
+        gj = json.loads(t.read())
+
+
+
+
+        s = shape(gj['geometry'])
