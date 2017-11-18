@@ -4,10 +4,26 @@ Copyright (c) 2015 Civic Knowledge. This file is licensed under the terms of the
 Revised BSD License, included in this distribution as LICENSE.txt
 """
 
-
-from six import string_types, text_type, PY3
+import collections
+import datetime
 import os
+import re
+import unicodedata
+from os.path import basename
+from os.path import join
 
+from six import string_types
+from six import text_type
+from urllib.parse import urljoin, urlparse, quote_plus, unquote_plus, ParseResult
+from urllib.request import pathname2url
+
+from appurl.util import get_cache, clean_cache, nuke_cache
+
+# Keep code cleanups from deleteing these they are imported her
+# because they got moved to appurl
+assert clean_cache
+assert get_cache
+assert nuke_cache
 
 class DelayedFlo(object):
     """Holds functions to open and close a file-like object"""
@@ -85,10 +101,7 @@ def parse_url_to_dict(url, assume_localhost=False):
     with properties.
 
     """
-    from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, unquote_plus, ParseResult
-    from six import text_type
-    import re
-    assert url is not None
+
 
     url = text_type(url)
 
@@ -130,7 +143,6 @@ def parse_url_to_dict(url, assume_localhost=False):
 
 def unparse_url_dict(d, **kwargs):
 
-    from six.moves.urllib.parse import urlparse, urlsplit, urlunsplit, quote_plus
 
     d = dict(d.items())
 
@@ -200,57 +212,13 @@ class Bunch(object):
   def __init__(self, adict):
     self.__dict__.update(adict)
 
-
-
-def get_cache(cache_name='rowgen'):
-    """Return the path to a file cache"""
-
-    from fs.osfs import OSFS
-    from fs.appfs import UserDataFS
-    import os
-
-    env_var = (cache_name+'_cache').upper()
-
-    cache_dir = os.getenv(env_var, None)
-
-    if cache_dir:
-        return OSFS(cache_dir)
-    else:
-        return UserDataFS(cache_name.lower())
-
-def clean_cache(cache = None, cache_name='rowgen'):
-    """Delete items in the cache older than 4 hours"""
-    import datetime
-
-    cache = cache if cache else get_cache(cache_name)
-
-    for step in cache.walk.info():
-        details = cache.getdetails(step[0])
-        mod = details.modified
-        now = datetime.datetime.now(tz=mod.tzinfo)
-        age = (now - mod).total_seconds()
-        if age > (60 * 60 * 4) and details.is_file:
-            cache.remove(step[0])
-
-def nuke_cache(cache = None, cache_name='rowgen'):
-    """Delete Everythong in the cache"""
-    from os.path import isfile
-
-    cache = cache if cache else get_cache(cache_name)
-
-    for step in cache.walk.info():
-        if not step[1].is_dir:
-            cache.remove(step[0])
-
 # From http://stackoverflow.com/a/295466
 def slugify(value):
     """
     Normalizes string, converts to lowercase, removes non-alpha characters,
     and converts spaces to hyphens.type(
     """
-    import re
-    import unicodedata
-    from six import text_type
+
     value = text_type(value)
     value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('utf8')
     value = re.sub(r'[^\w\s-]', '', value).strip().lower()
@@ -259,7 +227,7 @@ def slugify(value):
 
 def real_files_in_zf(zf):
     """Return a list of internal paths of real files in a zip file, based on the 'external_attr' values"""
-    from os.path import basename
+
 
     for e in zf.infolist():
 
@@ -277,7 +245,6 @@ def real_files_in_zf(zf):
 def flatten(d, sep='.'):
     """Flatten a data structure into tuples"""
     def _flatten(e, parent_key='', sep='.'):
-        import collections
 
         prefix = parent_key+sep if parent_key else ''
 
@@ -292,19 +259,12 @@ def flatten(d, sep='.'):
 
 def fs_join(*args):
     """Like os.path.join, but never returns '\' chars"""
-    from os.path import join
+
     return join(*args).replace('\\','/')
 
 def path2url(path):
     "Convert a pathname to a file URL"
-    try:
-        # Python 3
-        # http://stackoverflow.com/a/30702300
-        from urllib.parse import urljoin
-        from urllib.request import pathname2url
-    except ImportError:
-        # Python 2
-        from urlparse import urljoin
-        from urllib import pathname2url
+
+
 
     return urljoin('file:', pathname2url(path))
