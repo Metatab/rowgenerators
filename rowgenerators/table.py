@@ -38,7 +38,7 @@ class Table(object):
 
         return ('Table: {}\n'.format(self.name)) + tabulate(rows, headers)
 
-    def make_fw_row_parser(self):
+    def make_fw_row_parser(self, ignore_empty=False):
 
         parts = []
 
@@ -48,6 +48,12 @@ class Table(object):
             try:
                 int(c.width)
             except TypeError:
+
+                # This is a special name from Metapack, EMPTY_SOURCE_HEADER
+                # The value should probably be moved into the rowgenerators code
+                if ignore_empty:
+                    continue
+
                 raise SchemaError('Table must have width value for {} column '.format(c.name))
 
             parts.append('row[{}:{}].strip()'.format(start,start + c.width))
