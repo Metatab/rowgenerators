@@ -17,9 +17,8 @@ class PythonSource(Source):
 
         super().__init__(ref, cache, working_dir, **kwargs)
 
-        self.env = env
+        self.env = env or {}
 
-        assert self.env
 
         self.kwargs = kwargs
 
