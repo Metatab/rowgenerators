@@ -7,11 +7,11 @@ from os.path import normpath, join, exists
 from os import environ
 import json
 
-from rowgenerators.exceptions import SourceError
+from rowgenerators.exceptions import SourceError, RowGeneratorError
 from rowgenerators.source import Source
 
 class PythonSource(Source):
-    """Generate rows from a program. Takes kwargs from the spec to pass into the program. """
+    """Generate rows from a callable object. Takes kwargs from the spec to pass into the program. """
 
     def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
 
@@ -19,9 +19,13 @@ class PythonSource(Source):
 
         self.env = env or {}
 
-
         self.kwargs = kwargs
 
-    def __iter__(self):
 
-        yield from self.ref(env=self.env, cache=self.cache, **self.kwargs)
+    def __iter__(self):
+        try:
+            yield from self.ref(env=self.env, cache=self.cache, **self.kwargs)
+        except TypeError as e:
+            # call to Python Url has wrong signature
+
+            RowGeneratorError(str(e))

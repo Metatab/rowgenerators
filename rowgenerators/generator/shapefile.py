@@ -5,7 +5,7 @@
 
 
 from functools import partial
-from rowgenerators.appurl.shapefile import ShapefileUrl, ShapefileShpUrl
+from rowgenerators.appurl.file.shapefile import ShapefileUrl, ShapefileShpUrl
 from rowgenerators.source import Source
 
 try:

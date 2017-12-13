@@ -28,26 +28,33 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.7.11",
+    version="0.7.13",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
     install_requires=[
-        'appurl >= 0.1.5',
-        'fs >= 2',
         'boto',
-        'requests',
-        'petl',
-        'livestats',
+        'codegen',
+        'decorator',
         'filelock',
+        'fs >= 2',
+        'geoid',
+        'livestats',
+        'meta',
+        'petl',
+        'python-dateutil',
+        'requests',
         'tabulate',
+        'xlrd'
     ],
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
     },
+    test_requires=['aniso8601', 'dateutil'],
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',
+            'appurl=rowgenerators.cli:appurl'
         ],
 
         'rowgenerators': [
@@ -64,12 +71,31 @@ setup(
             "fixed+ = rowgenerators.generator.fixed:FixedSource",
         ],
         'appurl.urls': [
-            "shape+ = rowgenerators.appurl.shapefile:ShapefileUrl",
-            "gs: = rowgenerators.appurl.google:GoogleSpreadsheetUrl",
+            "* = rowgenerators.appurl.url:Url",
+            # Web Urls
+            "http: = rowgenerators.appurl.web.web:WebUrl",
+            "https: = rowgenerators.appurl.web.web:WebUrl",
+            "s3: = rowgenerators.appurl.web.s3:S3Url",
+            "socrata+ = rowgenerators.appurl.web.socrata:SocrataUrl",
+            #
+            # Archive Urls
+            ".zip = rowgenerators.appurl.archive.zip:ZipUrl",
+            #
+            # File Urls
+            ".csv = rowgenerators.appurl.file.csv:CsvFileUrl",
+            ".xlsx = rowgenerators.appurl.file.excel:ExcelFileUrl",
+            ".xls = rowgenerators.appurl.file.excel:ExcelFileUrl",
+            "file: = rowgenerators.appurl.file.file:FileUrl",
+            "program+ = rowgenerators.appurl.file.program:ProgramUrl",
+            "python: = rowgenerators.appurl.file.python:PythonUrl",
+
+            "shape+ = rowgenerators.appurl.file.shapefile:ShapefileUrl",
+            "gs: = rowgenerators.appurl.web.google:GoogleSpreadsheetUrl",
         ]
 
-
     },
+
+
     author="Eric Busboom",
     author_email='eric@civicknowledge.com',
     url='https://github.com/Metatab/rowgenerator.git',

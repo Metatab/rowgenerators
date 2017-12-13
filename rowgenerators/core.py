@@ -5,10 +5,12 @@ import collections
 from pkg_resources import  iter_entry_points
 
 from rowgenerators.exceptions import RowGeneratorError
-from appurl import parse_app_url, Url
+from rowgenerators import parse_app_url, Url
 
 def get_generator(source, **kwargs):
-    from rowgenerators import Source
+
+    from rowgenerators import Source # Here to break an import cycle
+
     names = []
 
     if isinstance(source, Source):

@@ -5,38 +5,11 @@
 
 import unittest
 from os.path import dirname
-from appurl import parse_app_url
+
+
+from rowgenerators import get_generator, parse_app_url
 from rowgenerators.generator.csv import CsvSource
-from rowgenerators import get_generator
-
-def get_file(url_str):
-
-    from appurl import  parse_app_url
-
-    u = parse_app_url(url_str)
-
-    return u.get_resource().get_target()
-
-def data_path(v):
-    from os.path import dirname, join
-    d = dirname(__file__)
-    return join(d, 'test_data', v)
-
-
-def script_path(v=None):
-    from os.path import dirname, join
-    d = dirname(__file__)
-    if v is not None:
-        return join(d, 'scripts', v)
-    else:
-        return join(d, 'scripts')
-
-
-def sources():
-    import csv
-    with open(data_path('sources.csv')) as f:
-        r = csv.DictReader(f)
-        return list(r)
+from rowgenerators.test.support import get_file, data_path, script_path
 
 
 class BasicTests(unittest.TestCase):
@@ -89,7 +62,7 @@ class BasicTests(unittest.TestCase):
     def test_geo(self):
 
         from rowgenerators.generator.shapefile import ShapefileSource
-        from rowgenerators.appurl.shapefile import ShapefileUrl
+        from rowgenerators.appurl.file.shapefile import ShapefileUrl
 
         us='shape+http://s3.amazonaws.com/public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
         u=parse_app_url(us)

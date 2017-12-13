@@ -35,3 +35,7 @@ class MissingCredentials(RowGeneratorError):
 
 class SchemaError(RowGeneratorError):
     pass
+
+
+class AppUrlError(Exception):
+    pass

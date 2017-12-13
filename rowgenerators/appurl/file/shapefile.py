@@ -7,7 +7,7 @@
 """
 
 
-from appurl import ZipUrl, FileUrl
+from rowgenerators.appurl import ZipUrl, FileUrl
 from zipfile import ZipFile
 
 class ShapefileUrl(ZipUrl):

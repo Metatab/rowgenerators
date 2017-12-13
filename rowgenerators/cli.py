@@ -8,8 +8,8 @@ from itertools import islice
 
 from tabulate import tabulate
 
-from rowgenerators import enumerate_contents, SourceSpec, SourceError
-from rowgenerators import RowGenerator
+from rowgenerators import Source, SourceError, Url
+from rowgenerators.appurl.enumerate import enumerate_contents
 from tableintuit import RowIntuiter
 from itertools import islice
 from rowgenerators import TextEncodingError
@@ -33,7 +33,7 @@ def run_row_intuit(path, cache):
 
     for encoding in ('ascii', 'utf8', 'latin1'):
         try:
-            rows = list(islice(RowGenerator(url=path, encoding=encoding, cache=cache), 5000))
+            rows = list(islice(Source(url=path, encoding=encoding, cache=cache), 5000))
             return encoding, RowIntuiter().run(rows)
         except TextEncodingError:
             pass
@@ -80,7 +80,7 @@ def rowgen():
 
     args = parser.parse_args(sys.argv[1:])
 
-    ss = SourceSpec(url=args.url, target_format=args.format, encoding=args.encoding, resource_format=args.urlfiletype)
+    ss = Url(url=args.url, target_format=args.format, encoding=args.encoding, resource_format=args.urlfiletype)
 
     contents = list(enumerate_contents(ss, cache_fs=cache))
 

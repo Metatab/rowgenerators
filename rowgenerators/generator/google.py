@@ -3,6 +3,8 @@
 
 """ """
 
+from rowgenerators.generator.csv import CsvSource
+from rowgenerators import Source
 
 
 class GooglePublicSource(CsvSource):
@@ -14,7 +16,7 @@ class GooglePublicSource(CsvSource):
 
 
 
-class GoogleAuthenticatedSource(SourceFile):
+class GoogleAuthenticatedSource(Source):
     """Generate rows from a Google spreadsheet source that requires authentication
 
     To read a GoogleSpreadsheet, you'll need to have an account entry for google_spreadsheets, and the
