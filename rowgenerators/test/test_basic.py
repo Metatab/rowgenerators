@@ -92,9 +92,6 @@ class BasicTests(unittest.TestCase):
 
         url = 'https://api.censusreporter.org/1.0/geo/tiger2015/04000US55?geom=true'
 
-
-
-
     def test_program(self):
 
         u = parse_app_url(script_path('rowgen.py'))
@@ -119,7 +116,11 @@ class BasicTests(unittest.TestCase):
             print(row)
 
         self.assertEqual('a', rows['prop-prop1'])
-        self.assertEqual('{"prop1": "a", "prop2": "a"}', rows['env-PROPERTIES'])
+        # SHould be self.assertEqual('{"prop1": "a", "prop2": "a"}', rows['env-PROPERTIES'])
+        # but there are sorting issues, and it's a string, not an actual dict
+        self.assertIn('"prop1": "a"', rows['env-PROPERTIES'])
+        self.assertIn('"prop2": "a"', rows['env-PROPERTIES'])
+
 
     @unittest.skip('Has local path')
     def test_fixed(self):
