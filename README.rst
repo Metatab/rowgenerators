@@ -43,8 +43,7 @@ spreadsheet, or both.
 
 * `http://.../foo.zip#<file>`. `<file>` is a regular expression that matches a file in the archive. The first match is used
 * `http://.../foo.xls#<worksheet>` `<worksheet>` is the name or number of a worksheet in a spreadsheet
-* `http://.../foo.zip#<file>;<worksheet>` `<file>` is a regular expression for a spreadsheet in the zip file, and
-`<worksheet`> is the name or number of the worksheet.
+* `http://.../foo.zip#<file>;<worksheet>` `<file>` is a regular expression for a spreadsheet in the zip file, and `<worksheet`> is the name or number of the worksheet.
 
 The `<file> fragement parameter sets the `file` parameter of `RowGenerator`, and `<worksheet>` sets the `segment`
 parameter. Both can be set as parameters instead of in the URL.
@@ -233,7 +232,7 @@ Transforms can have several steps, seperated by ';'. The first, prefixes with a 
 ... and there is a whole lot more. This documentation is woefully incomplete ...
 
 Notes
------
+=====
 
 This repo still contains old code for Row Pipelines, which are in the ``pipeline.py`` file. These components can be combined to performd defined operations on rows, such as skipping rows based on a predicate, altering the number of rows, returning on ly the head or tail, etc. The code is not currently used ot tested.
 
