@@ -50,7 +50,7 @@ setup(
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
     },
-    test_requires=['aniso8601', 'dateutil'],
+    test_requires=['aniso8601', 'dateutil', 'fiona', 'shapely','pyproj', 'pyproject'],
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',
