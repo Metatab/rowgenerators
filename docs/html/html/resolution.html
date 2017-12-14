@@ -1,0 +1,147 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Resolving and Extending Urls &#8212; Row Generators 0.7.14 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.14',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Archive Urls" href="archive_urls.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="resolving-and-extending-urls">
+<h1>Resolving and Extending Urls<a class="headerlink" href="#resolving-and-extending-urls" title="Permalink to this headline">¶</a></h1>
+<p>The primary interface is <code class="xref py py-func docutils literal"><span class="pre">appurls.parse_url`()</span></code>, which will find and construct
+a <code class="xref py py-class docutils literal"><span class="pre">appurl.url.Url</span></code> for a string. The function will select a Url class
+using two selection criteria. The first is the <code class="docutils literal"><span class="pre">appurl.urls</span></code> entry
+point. Here is the entrypoint configuration for the <code class="docutils literal"><span class="pre">appurl</span></code> package:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>  <span class="n">entry_points</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;appurl.urls&#39;</span> <span class="p">:</span> <span class="p">[</span> <span class="s2">&quot;\* = appurl.url:Url&quot;</span><span class="p">,</span>
+        <span class="c1">#</span>
+        <span class="s2">&quot;http: = appurl.web.web:WebUrl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;https: = appurl.web.web:WebUrl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;s3: = appurl.web.s3:S3Url&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;socrata+ = appurl.web.socrata:SocrataUrl&quot;</span><span class="p">,</span>
+        <span class="c1">#</span>
+        <span class="c1"># Archive Urls</span>
+        <span class="s2">&quot;.zip = appurl.archive.zip:ZipUrl&quot;</span><span class="p">,</span>
+        <span class="c1">#</span>
+        <span class="c1"># File Urls</span>
+        <span class="s2">&quot;.csv = appurl.file.csv:CsvFileUrl&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;file: = appurl.file.file:FileUrl&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The key of each configuration like is a string the indicate the first
+round of matching, and the value is the class to use for that matcher.
+The match strings are:</p>
+<ul class="simple">
+<li>‘proto:’ The URL protocol, which is based on either the URL scheme or
+scheme extension.</li>
+<li>‘.format’ The target file format</li>
+<li>‘schemeext+’ The URL scheme extension.</li>
+<li>‘*’ Any URL.</li>
+</ul>
+<p>Because these configurations are in the entry pointy, you can extend the
+AppUrls by including these entry points in Python packages.</p>
+<p>The <code class="docutils literal"><span class="pre">rowgenerators.appurls.parse_url</span></code> collects all of the URL classes that pass the
+initial matchers and sorts them by the <code class="docutils literal"><span class="pre">Url.match_priority</span></code> class
+property. Then, it iterates through the matched classes in priority
+order, calling the <code class="docutils literal"><span class="pre">Url.match</span></code> method. The function contructs and
+returns the first match.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Row Generators</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_urls.html">File Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="web_urls.html">Web Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="archive_urls.html">Archive Urls</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Resolving and Extending Urls</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="archive_urls.html" title="previous chapter">Archive Urls</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Civic Knowledge.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/resolution.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

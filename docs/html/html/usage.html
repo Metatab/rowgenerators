@@ -1,0 +1,459 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Basic Usage &#8212; Row Generators 0.7.14 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.14',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="File Urls" href="file_urls.html" />
+    <link rel="prev" title="Application Urls" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="basic-usage">
+<h1>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="creating-an-appurl">
+<h2>Creating an AppUrl<a class="headerlink" href="#creating-an-appurl" title="Permalink to this headline">¶</a></h2>
+<p>There are two ways to create an AppUrl: parse a string, or instantiate a class.
+If you are starting from a string,  and in particular, don’t know what the Url class
+should be, use <code class="xref py py-meth docutils literal"><span class="pre">parse_app_url()</span></code>. If you do know what kind of Url you want
+to generate, use the <code class="xref py py-class docutils literal"><span class="pre">Url</span></code> subclass directly.</p>
+<p>After creating a URL, the basic useage involve either manipulating it, or fetching it.
+THere are two fetching methods, <code class="xref py py-meth docutils literal"><span class="pre">Url.get_resource()</span></code>, to download files from
+the web, and <code class="xref py py-meth docutils literal"><span class="pre">Url.get_target()</span></code> to extract a file from an archive or other
+container. When the operation is unnecessary, such as getting the resource for
+a resource URL that has already been downloaded, the <code class="xref py py-meth docutils literal"><span class="pre">Url.get_resource()</span></code>
+returns <code class="docutils literal"><span class="pre">self</span></code>.</p>
+<p>These AppUrls have these components in addition to standard URLS:</p>
+<ul class="simple">
+<li>A scheme extension, which preceedes the scheme with a ‘+’</li>
+<li>A target_file, the first part of the URL fragment</li>
+<li>A target_segment, the second part of a URL fragement, delineated by
+a ‘;’</li>
+</ul>
+<p>The <code class="docutils literal"><span class="pre">scheme_extension</span></code> specifies the protocol to use with a sthadard
+web scheme, inspired by github URLs like
+<code class="docutils literal"><span class="pre">git+http://github.com/example</span></code>. The <code class="docutils literal"><span class="pre">target_file</span></code> is usually the
+file within an archive. It is interpreted as a regular expression. The
+<code class="docutils literal"><span class="pre">target_segment</span></code> may be either a name or a number, and is usually
+interpreted as the name or number of a worksheet in a spreadsheet file.
+Combining these extensions:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">ckan</span><span class="o">+</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">dataset</span><span class="o">/</span><span class="n">archive</span><span class="o">.</span><span class="n">zip</span><span class="c1">#excel.xlsx;worksheet</span>
+</pre></div>
+</div>
+<p>This url may indicate that to fetch a ZIP file from an CKAN server,
+using the CKAN protocol, extract the <code class="docutils literal"><span class="pre">excel.xls</span></code> file from the ZIP
+archive, and open the <code class="docutils literal"><span class="pre">worksheet</span></code> worksheet.</p>
+<p>The URLs define a few important concepts:</p>
+<ul class="simple">
+<li>resource_url: the portion of the URl that defines only the resource
+to be access or downloaded. In the eample above, the resource url is
+‘<a class="reference external" href="http://example.com/dataset/archive.zip">http://example.com/dataset/archive.zip</a>’</li>
+<li>resource_file: The basename of the resource URL: `archive.zip’</li>
+<li>resource_format: Usually, the extension of the resource_file: ‘zip’</li>
+<li>target_file: The name of the target_file: ‘excel.xlsx’</li>
+<li>target_format: The extension of the target_file: ‘xlsx’</li>
+</ul>
+</div>
+<div class="section" id="using-appurls">
+<h2>Using AppUrls<a class="headerlink" href="#using-appurls" title="Permalink to this headline">¶</a></h2>
+<p>Typical use is:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">appurl</span> <span class="kn">import</span>  <span class="n">parse_app_url</span>
+
+<span class="n">url</span> <span class="o">=</span> <span class="n">parse_app_url</span><span class="p">(</span><span class="s2">&quot;http://example.com/archive.zip#file.csv&quot;</span><span class="p">)</span>
+
+<span class="n">resource_url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">get_resource</span><span class="p">()</span>
+
+<span class="n">target_path</span> <span class="o">=</span> <span class="n">resource_url</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The call to <code class="docutils literal"><span class="pre">url.get_resource()</span></code> will download the resource file and store it in the cache ,returning a
+<code class="docutils literal"><span class="pre">File:</span></code> url pointing to the downloaded file. If the file is an archive, the call to <code class="docutils literal"><span class="pre">resource.get_target()</span></code>
+will extract the target file from the archive. If it is not an archive, it just returns the resource url. The final
+result is that <code class="docutils literal"><span class="pre">target_path</span></code> is a Url pointing to a file in the filesystem.</p>
+</div>
+<div class="section" id="parsing-strings">
+<h2>Parsing Strings<a class="headerlink" href="#parsing-strings" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="appurl.parse_app_url">
+<code class="descclassname">appurl.</code><code class="descname">parse_app_url</code><span class="sig-paren">(</span><em>u_str</em>, <em>downloader='default'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#parse_app_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.parse_app_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse a URL string and return a Url object, with the class based on the highest priority
+entry point that matches the Url and which of the entry point classes pass the match() test.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>u_str</strong> – Url string</li>
+<li><strong>downloader</strong> – Downloader object to use for downloading objects.</li>
+<li><strong>kwargs</strong> – Args passed to the Url constructor.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="the-url-base-class">
+<h2>The URL Base Class<a class="headerlink" href="#the-url-base-class" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="appurl.Url">
+<em class="property">class </em><code class="descclassname">appurl.</code><code class="descname">Url</code><span class="sig-paren">(</span><em>url=None</em>, <em>downloader=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for Application URLs .</p>
+<p>After construction, a Url object has a set of properties and attributes for access
+the parts of the URL, and method for manipulating it. The attributes and properties
+include the typical properties of a parsed URL, plus properties that are derives from the
+typical parts, and a few extra components that can be part of the fragment query.</p>
+<p>The typical parts are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">scheme</span></code></li>
+<li><code class="docutils literal"><span class="pre">scheme_extension</span></code></li>
+<li><code class="docutils literal"><span class="pre">netloc</span></code></li>
+<li><code class="docutils literal"><span class="pre">hostname</span></code></li>
+<li><code class="docutils literal"><span class="pre">path</span></code></li>
+<li><code class="docutils literal"><span class="pre">params</span></code></li>
+<li><code class="docutils literal"><span class="pre">query</span></code></li>
+<li><code class="docutils literal"><span class="pre">fragment</span></code></li>
+<li><code class="docutils literal"><span class="pre">username</span></code></li>
+<li><code class="docutils literal"><span class="pre">password</span></code></li>
+<li><code class="docutils literal"><span class="pre">port</span></code></li>
+</ul>
+<p>The <code class="docutils literal"><span class="pre">fragment</span></code> is special; it is an array of two elements, the first of which is the <code class="docutils literal"><span class="pre">target_file</span></code> and
+and the second is the <code class="docutils literal"><span class="pre">target_segment</span></code>. If there are other parts of the source URL, they must be
+formates as queriy components, and will be parsed into the <code class="docutils literal"><span class="pre">fragment_query</span></code>.</p>
+<p>Special application components are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">proto</span></code>. This is set to the <code class="docutils literal"><span class="pre">scheme_extension</span></code> if it exists, the scheme otherwise.</li>
+<li><code class="docutils literal"><span class="pre">resource_file</span></code>. The filename of the resource to download. It is usually the last part of the URL, but can be overidden in the fragment</li>
+<li><code class="docutils literal"><span class="pre">resource_format</span></code>. The format name of the resource, normally drawn from the <code class="docutils literal"><span class="pre">resoruce_file</span></code> extension, but can be overidden in the fragment</li>
+<li><code class="docutils literal"><span class="pre">target_file</span></code>. The filename of the file that will be produced by :py:meth`Url.get_target`, but may be overidden.</li>
+<li><code class="docutils literal"><span class="pre">target_format</span></code>. The format of the <code class="docutils literal"><span class="pre">target_file</span></code>, but may be overidden.</li>
+<li><code class="docutils literal"><span class="pre">target_segment</span></code>. A sub-component of the <code class="docutils literal"><span class="pre">`target_file</span></code>, such as the worksheet in a spreadsheet.</li>
+<li><code class="docutils literal"><span class="pre">fragment_query</span></code>. Holds additional parts of the fragment.</li>
+</ul>
+<p>When the fragment holds extra parts, these can be be formatted as a URL query. Recognized keys are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">resource_file</span></code></li>
+<li><code class="docutils literal"><span class="pre">resource_format</span></code></li>
+<li><code class="docutils literal"><span class="pre">target_file</span></code></li>
+<li><code class="docutils literal"><span class="pre">target_format</span></code></li>
+<li><code class="docutils literal"><span class="pre">encoding</span></code>. Text encoding to be used when reading the target.</li>
+<li><code class="docutils literal"><span class="pre">headers</span></code>. For row-oriented data, the row numbers of the headers, as a comma-seperated list of integers.</li>
+<li><code class="docutils literal"><span class="pre">start</span></code>. For row-oriented data, the row number of the first row of data ( as opposed to headers. )</li>
+<li><code class="docutils literal"><span class="pre">end</span></code>. For row-oriented data, the row number of the last row of data.</li>
+</ul>
+<p>Initialize a new Application Url
+:param url: URL string
+:param downloader: <code class="xref py py-class docutils literal"><span class="pre">appurl.web.download.Downloader</span></code> object.
+:param kwargs: Additional arguments override URL properties.
+:return: An Application Url object</p>
+<p>Keyword arguments will override properties set by parsing the URL string. Valid keywords
+that will set object properties are listed below. Other keyswords are accepted and ignored</p>
+<ul class="simple">
+<li>scheme</li>
+<li>scheme_extension</li>
+<li>netloc</li>
+<li>hostname</li>
+<li>path</li>
+<li>params</li>
+<li>fragment</li>
+<li>fragment_query</li>
+<li>username</li>
+<li>password</li>
+<li>port</li>
+</ul>
+<dl class="method">
+<dt id="appurl.Url.archive_file">
+<code class="descname">archive_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.archive_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.archive_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the archive file, if there is one.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.as_type">
+<code class="descname">as_type</code><span class="sig-paren">(</span><em>cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.as_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.as_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the URL transformed to a different class. Copies the downloader and
+build the new url using <code class="xref py py-meth docutils literal"><span class="pre">Url.dict()</span></code></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cls</strong> – Class of Url to construct</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A new Url object</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.clear_fragment">
+<code class="descname">clear_fragment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.clear_fragment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.clear_fragment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of the URL with no fragment components</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A cloned URl object, with the fragment and fragment queries cleared.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.clone">
+<code class="descname">clone</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.clone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.clone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a clone of this Url, popssibly with some arguments replaced.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> – Keyword arguments are arguments to set in the copy, using <code class="xref py py-func docutils literal"><span class="pre">setattr()</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A cloned Url object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="appurl.Url.dict">
+<code class="descname">dict</code><a class="headerlink" href="#appurl.Url.dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of the object components.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dict.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.dirname">
+<code class="descname">dirname</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.dirname"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.dirname" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the dirname of the path</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="appurl.Url.downloader">
+<code class="descname">downloader</code><a class="headerlink" href="#appurl.Url.downloader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the Downloader() for this URL</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="appurl.Url.generator">
+<code class="descname">generator</code><a class="headerlink" href="#appurl.Url.generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the generator for this URL, if the rowgenerator package is installed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A row generator object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.get_resource">
+<code class="descname">get_resource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.get_resource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.get_resource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the contents of resource and save it to the cache, returning a file-like object</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.get_target">
+<code class="descname">get_target</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.get_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.get_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the contents of the target, and save it to the cache, returning a file-like object</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="appurl.Url.inner">
+<code class="descname">inner</code><a class="headerlink" href="#appurl.Url.inner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the URL without the scheme extension and fragment. Re-parses the URL, so it should return
+the correct class for the inner URL.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="appurl.Url.is_archive">
+<code class="descname">is_archive</code><a class="headerlink" href="#appurl.Url.is_archive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return true if this URL is for an archive. Currently only ZIP is recognized</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.join">
+<code class="descname">join</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Join a component to the end of the path, using <code class="xref py py-func docutils literal"><span class="pre">os.path.join()</span></code>. The argument
+<code class="docutils literal"><span class="pre">s</span></code> may be a <a href="#id1"><span class="problematic" id="id2">:py:`appurl.Url`</span></a> or a string. If <code class="docutils literal"><span class="pre">s</span></code> includes a <code class="docutils literal"><span class="pre">netloc</span></code> property,</p>
+<blockquote>
+<div>it is assumed to be an absolute url, and it is returned after parsing as a Url. Otherwise,
+the path component of <code class="docutils literal"><span class="pre">s</span></code> is extracted and joined to the path component of this url.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>s</strong> – A Url object, or a string.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A copy of this url.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.join_dir">
+<code class="descname">join_dir</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.join_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.join_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Join a component to the parent directory of the path, using join(dirname())</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>s</strong> – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a copy of this url.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.join_target">
+<code class="descname">join_target</code><span class="sig-paren">(</span><em>tf</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.join_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.join_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new URL, possibly of a new class, with a new target_file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.list">
+<code class="descname">list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return URLS for files contained in an container. This implementation just returns
+<code class="docutils literal"><span class="pre">[self]</span></code>, but sub classes may, for instance, list all of the sub-components of a directory,
+or all of the worksheets in an Excel file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.set_fragment">
+<code class="descname">set_fragment</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.set_fragment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.set_fragment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a clone with the fragment set</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.set_target_file">
+<code class="descname">set_target_file</code><span class="sig-paren">(</span><em>v</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.set_target_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.set_target_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a clone with a target_file set</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="appurl.Url.set_target_segment">
+<code class="descname">set_target_segment</code><span class="sig-paren">(</span><em>v</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/appurl/url.html#Url.set_target_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#appurl.Url.set_target_segment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a clone with a target_file set</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Row Generators</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Basic Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-an-appurl">Creating an AppUrl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-appurls">Using AppUrls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#parsing-strings">Parsing Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-url-base-class">The URL Base Class</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="file_urls.html">File Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="web_urls.html">Web Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="archive_urls.html">Archive Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resolution.html">Resolving and Extending Urls</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Application Urls</a></li>
+      <li>Next: <a href="file_urls.html" title="next chapter">File Urls</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Civic Knowledge.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/usage.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

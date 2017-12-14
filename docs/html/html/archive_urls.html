@@ -1,0 +1,177 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Archive Urls &#8212; Row Generators 0.7.14 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.14',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Resolving and Extending Urls" href="resolution.html" />
+    <link rel="prev" title="Web Urls" href="web_urls.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-rowgenerators.appurl.archive">
+<span id="archive-urls"></span><h1>Archive Urls<a class="headerlink" href="#module-rowgenerators.appurl.archive" title="Permalink to this headline">¶</a></h1>
+<p>Archive Urls represent an archive file in the local file system, such as a Zip file.
+They provide implementations of <code class="xref py py-meth docutils literal"><span class="pre">Url.get_target()</span></code> that will extract the
+target file from the archive and store it in the file cache, returning a new Url to
+the extracted file.</p>
+<dl class="class">
+<dt id="rowgenerators.appurl.archive.ZipUrl">
+<em class="property">class </em><code class="descclassname">rowgenerators.appurl.archive.</code><code class="descname">ZipUrl</code><span class="sig-paren">(</span><em>url=None</em>, <em>downloader=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rowgenerators/appurl/archive/zip.html#ZipUrl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rowgenerators.appurl.archive.ZipUrl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zip URLS represent a zip file, as a local resource.</p>
+<dl class="staticmethod">
+<dt id="rowgenerators.appurl.archive.ZipUrl.get_file_from_zip">
+<em class="property">static </em><code class="descname">get_file_from_zip</code><span class="sig-paren">(</span><em>url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rowgenerators/appurl/archive/zip.html#ZipUrl.get_file_from_zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rowgenerators.appurl.archive.ZipUrl.get_file_from_zip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a file name that may be a regular expression, return the full name for the file
+from a zip archive</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rowgenerators.appurl.archive.ZipUrl.get_target">
+<code class="descname">get_target</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rowgenerators/appurl/archive/zip.html#ZipUrl.get_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rowgenerators.appurl.archive.ZipUrl.get_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract the target file from the archive, store it in the cache, and return a file Url to the
+cached file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rowgenerators.appurl.archive.ZipUrl.join_target">
+<code class="descname">join_target</code><span class="sig-paren">(</span><em>tf</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rowgenerators/appurl/archive/zip.html#ZipUrl.join_target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rowgenerators.appurl.archive.ZipUrl.join_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Joins the target <code class="docutils literal"><span class="pre">tf</span></code> by setting the value of the first slot of the fragment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tf</strong> – </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a clone of this url with a new fragment.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rowgenerators.appurl.archive.ZipUrl.list">
+<code class="descname">list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rowgenerators/appurl/archive/zip.html#ZipUrl.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rowgenerators.appurl.archive.ZipUrl.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>List the files in the referenced Zip file</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="rowgenerators.appurl.archive.ZipUrl.real_files_in_zf">
+<em class="property">static </em><code class="descname">real_files_in_zf</code><span class="sig-paren">(</span><em>zf</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rowgenerators/appurl/archive/zip.html#ZipUrl.real_files_in_zf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rowgenerators.appurl.archive.ZipUrl.real_files_in_zf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of internal paths of real files in a zip file, based on the ‘external_attr’ values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rowgenerators.appurl.archive.ZipUrl.target_file">
+<code class="descname">target_file</code><a class="headerlink" href="#rowgenerators.appurl.archive.ZipUrl.target_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the target file, which is usually stored in the first slot in the <code class="docutils literal"><span class="pre">fragment</span></code>,
+but may have been overridded with a <code class="docutils literal"><span class="pre">fragment_query</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Row Generators</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_urls.html">File Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="web_urls.html">Web Urls</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Archive Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resolution.html">Resolving and Extending Urls</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="web_urls.html" title="previous chapter">Web Urls</a></li>
+      <li>Next: <a href="resolution.html" title="next chapter">Resolving and Extending Urls</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Civic Knowledge.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/archive_urls.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

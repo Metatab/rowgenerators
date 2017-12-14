@@ -1,0 +1,740 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>appurl.url &#8212; Row Generators 0.7.14 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.7.14',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for appurl.url</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2017 Civic Knowledge. This file is licensed under the terms of the</span>
+<span class="c1"># MIT, included in this distribution as LICENSE</span>
+
+<span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">.util</span> <span class="k">import</span> <span class="n">reparse_url</span><span class="p">,</span> <span class="n">unparse_url_dict</span><span class="p">,</span> <span class="n">file_ext</span><span class="p">,</span> <span class="n">parse_url_to_dict</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="k">import</span> <span class="n">basename</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">dirname</span>
+<span class="kn">from</span> <span class="nn">pkg_resources</span> <span class="k">import</span> <span class="n">iter_entry_points</span>
+<span class="kn">from</span> <span class="nn">rowgenerators.exceptions</span> <span class="k">import</span> <span class="n">AppUrlError</span>
+
+
+<span class="c1"># from traitlets import HasTraits, Unicode, Any, Dict, observe, TraitError</span>
+
+
+<span class="k">def</span> <span class="nf">match_url_classes</span><span class="p">(</span><span class="n">u_str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the classes for which the url matches an entry_point specification, sorted by priority</span>
+
+<span class="sd">    :param u_str: Url string</span>
+<span class="sd">    :param kwargs: arguments passed to Url constructor</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="n">Url</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">u_str</span><span class="p">),</span> <span class="n">downloader</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">classes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">ep</span><span class="o">.</span><span class="n">load</span><span class="p">()</span> <span class="k">for</span> <span class="n">ep</span> <span class="ow">in</span> <span class="n">iter_entry_points</span><span class="p">(</span><span class="n">group</span><span class="o">=</span><span class="s1">&#39;appurl.urls&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">u</span><span class="o">.</span><span class="n">_match_entry_point</span><span class="p">(</span><span class="n">ep</span><span class="o">.</span><span class="n">name</span><span class="p">)],</span>
+                     <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="bp">cls</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">match_priority</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ModuleNotFoundError</span><span class="p">(</span><span class="s2">&quot;Failed to find module for url string &#39;</span><span class="si">{}</span><span class="s2">&#39;, entrypoint: &quot;</span>
+                                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">u_str</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">classes</span>
+
+
+<div class="viewcode-block" id="parse_app_url"><a class="viewcode-back" href="../../usage.html#appurl.parse_app_url">[docs]</a><span class="k">def</span> <span class="nf">parse_app_url</span><span class="p">(</span><span class="n">u_str</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a URL string and return a Url object, with the class based on the highest priority</span>
+<span class="sd">    entry point that matches the Url and which of the entry point classes pass the match() test.</span>
+
+<span class="sd">    :param u_str: Url string</span>
+<span class="sd">    :param downloader: Downloader object to use for downloading objects.</span>
+<span class="sd">    :param kwargs: Args passed to the Url constructor.</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">u_str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">u_str</span><span class="p">,</span> <span class="n">Url</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">u_str</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">u_str</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">AppUrlError</span><span class="p">(</span><span class="s2">&quot;Input isn&#39;t a string nor Url&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">downloader</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">rowgenerators.appurl</span> <span class="k">import</span> <span class="n">Downloader</span>
+        <span class="n">downloader</span> <span class="o">=</span> <span class="n">Downloader</span><span class="p">()</span>
+
+    <span class="n">classes</span> <span class="o">=</span> <span class="n">match_url_classes</span><span class="p">(</span><span class="n">u_str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="n">Url</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">u_str</span><span class="p">),</span> <span class="n">downloader</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">classes</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_match</span><span class="p">(</span><span class="n">u</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">u_str</span><span class="p">)</span> <span class="k">if</span> <span class="n">u_str</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="n">downloader</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Url"><a class="viewcode-back" href="../../usage.html#appurl.Url">[docs]</a><span class="k">class</span> <span class="nc">Url</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for Application URLs .</span>
+
+<span class="sd">    After construction, a Url object has a set of properties and attributes for access</span>
+<span class="sd">    the parts of the URL, and method for manipulating it. The attributes and properties</span>
+<span class="sd">    include the typical properties of a parsed URL, plus properties that are derives from the</span>
+<span class="sd">    typical parts, and a few extra components that can be part of the fragment query.</span>
+
+<span class="sd">    The typical parts are:</span>
+
+<span class="sd">    - ``scheme``</span>
+<span class="sd">    - ``scheme_extension``</span>
+<span class="sd">    - ``netloc``</span>
+<span class="sd">    - ``hostname``</span>
+<span class="sd">    - ``path``</span>
+<span class="sd">    - ``params``</span>
+<span class="sd">    - ``query``</span>
+<span class="sd">    - ``fragment``</span>
+<span class="sd">    - ``username``</span>
+<span class="sd">    - ``password``</span>
+<span class="sd">    - ``port``</span>
+
+<span class="sd">    The ``fragment`` is special; it is an array of two elements, the first of which is the ``target_file`` and</span>
+<span class="sd">    and the second is the ``target_segment``. If there are other parts of the source URL, they must be</span>
+<span class="sd">    formates as queriy components, and will be parsed into the ``fragment_query``.</span>
+
+<span class="sd">    Special application components are:</span>
+
+<span class="sd">    - ``proto``. This is set to the ``scheme_extension`` if it exists, the scheme otherwise.</span>
+<span class="sd">    - ``resource_file``. The filename of the resource to download. It is usually the last part of the URL, but can be overidden in the fragment</span>
+<span class="sd">    - ``resource_format``. The format name of the resource, normally drawn from the ``resoruce_file`` extension, but can be overidden in the fragment</span>
+<span class="sd">    - ``target_file``. The filename of the file that will be produced by :py:meth`Url.get_target`, but may be overidden.</span>
+<span class="sd">    - ``target_format``. The format of the ``target_file``, but may be overidden.</span>
+<span class="sd">    - ``target_segment``. A sub-component of the ```target_file``, such as the worksheet in a spreadsheet.</span>
+<span class="sd">    - ``fragment_query``. Holds additional parts of the fragment.</span>
+
+<span class="sd">    When the fragment holds extra parts, these can be be formatted as a URL query. Recognized keys are:</span>
+
+<span class="sd">    - ``resource_file``</span>
+<span class="sd">    - ``resource_format``</span>
+<span class="sd">    - ``target_file``</span>
+<span class="sd">    - ``target_format``</span>
+<span class="sd">    - ``encoding``. Text encoding to be used when reading the target.</span>
+<span class="sd">    - ``headers``. For row-oriented data, the row numbers of the headers, as a comma-seperated list of integers.</span>
+<span class="sd">    - ``start``. For row-oriented data, the row number of the first row of data ( as opposed to headers. )</span>
+<span class="sd">    - ``end``. For row-oriented data, the row number of the last row of data.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Basic URL components</span>
+    <span class="n">scheme</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">scheme_extension</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">netloc</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">hostname</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">fragment</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">fragment_query</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">port</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># Application components</span>
+    <span class="n">_proto</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_resource_file</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_resource_format</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_target_file</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_target_format</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_target_segment</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">encoding</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># target encoding</span>
+    <span class="n">headers</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># line number of headers</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># start line for data</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># end line for data</span>
+
+    <span class="n">match_priority</span> <span class="o">=</span> <span class="mi">100</span>
+
+    <span class="n">downloader</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;  Initialize a new Application Url</span>
+<span class="sd">        :param url: URL string</span>
+<span class="sd">        :param downloader: :py:class:`appurl.web.download.Downloader` object.</span>
+<span class="sd">        :param kwargs: Additional arguments override URL properties.</span>
+<span class="sd">        :return: An Application Url object</span>
+
+
+<span class="sd">        Keyword arguments will override properties set by parsing the URL string. Valid keywords</span>
+<span class="sd">        that will set object properties are listed below. Other keyswords are accepted and ignored</span>
+
+<span class="sd">        - scheme</span>
+<span class="sd">        - scheme_extension</span>
+<span class="sd">        - netloc</span>
+<span class="sd">        - hostname</span>
+<span class="sd">        - path</span>
+<span class="sd">        - params</span>
+<span class="sd">        - fragment</span>
+<span class="sd">        - fragment_query</span>
+<span class="sd">        - username</span>
+<span class="sd">        - password</span>
+<span class="sd">        - port</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="s1">&#39;is_archive&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span>
+
+        <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">parse_url_to_dict</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">parts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># print(&quot; {}: &#39;{}&#39; &quot;.format(k,v))</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Can&#39;t Set: &quot;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="s2">&quot;scheme scheme_extension netloc hostname path params query fragment fragment_query username password port&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+
+                <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;fragment_query&#39;</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Probably trying to set it to Null</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fragment_query&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span> <span class="ow">or</span> <span class="p">{})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fragment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decompose_fragment</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;fragment&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fragment</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fragment</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheme_extension</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scheme_extension&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme_extension</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scheme&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_proto</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;proto&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">proto</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resource_file</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_file&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resource_format</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_format&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;resource_format&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target_format</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_format&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_format&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target_segment</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;target_segment&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoding</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;encoding&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;headers&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;headers&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_format</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span> <span class="o">=</span> <span class="n">downloader</span>
+
+<div class="viewcode-block" id="Url.get_resource"><a class="viewcode-back" href="../../usage.html#appurl.Url.get_resource">[docs]</a>    <span class="k">def</span> <span class="nf">get_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the contents of resource and save it to the cache, returning a file-like object&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">((</span><span class="s2">&quot;get_resource not implemented in </span><span class="si">{}</span><span class="s2"> for &#39;</span><span class="si">{}</span><span class="s2">&#39;. &quot;</span>
+                                   <span class="s2">&quot;You may need to install a python mpdule for this type of url&quot;</span><span class="p">)</span>
+                                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="Url.get_target"><a class="viewcode-back" href="../../usage.html#appurl.Url.get_target">[docs]</a>    <span class="k">def</span> <span class="nf">get_target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the contents of the target, and save it to the cache, returning a file-like object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">((</span><span class="s2">&quot;get_target not implemented in </span><span class="si">{}</span><span class="s2"> for &#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span>
+                                   <span class="s2">&quot;You may need to install a python mpdule for this type of url&quot;</span>
+                                   <span class="p">)</span>
+                                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span></div>
+
+
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">downloader</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the Downloader() for this URL&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span>
+
+<div class="viewcode-block" id="Url.list"><a class="viewcode-back" href="../../usage.html#appurl.Url.list">[docs]</a>    <span class="k">def</span> <span class="nf">list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return URLS for files contained in an container. This implementation just returns</span>
+<span class="sd">        ``[self]``, but sub classes may, for instance, list all of the sub-components of a directory,</span>
+<span class="sd">        or all of the worksheets in an Excel file. &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="p">]</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_archive</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return true if this URL is for an archive. Currently only ZIP is recognized&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resource_format</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">archive_formats</span>
+
+    <span class="c1"># property</span>
+<div class="viewcode-block" id="Url.archive_file"><a class="viewcode-back" href="../../usage.html#appurl.Url.archive_file">[docs]</a>    <span class="k">def</span> <span class="nf">archive_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the name of the archive file, if there is one.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_file</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_archive</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">resource_file</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_file</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="Url.join"><a class="viewcode-back" href="../../usage.html#appurl.Url.join">[docs]</a>    <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Join a component to the end of the path, using :py:func:`os.path.join`. The argument</span>
+<span class="sd">        ``s`` may be a :py:`appurl.Url` or a string. If ``s`` includes a ``netloc`` property,</span>
+<span class="sd">         it is assumed to be an absolute url, and it is returned after parsing as a Url. Otherwise,</span>
+<span class="sd">         the path component of ``s`` is extracted and joined to the path component of this url.</span>
+
+<span class="sd">        :param s: A Url object, or a string.</span>
+<span class="sd">        :return: A copy of this url.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">copy</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">path</span>
+            <span class="n">netloc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">netloc</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">s</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">parse_app_url</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">downloader</span><span class="p">)</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">path</span>
+            <span class="n">netloc</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">netloc</span>
+
+        <span class="c1"># If there is a netloc, it&#39;s an absolute URL</span>
+        <span class="k">if</span> <span class="n">netloc</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">u</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">url</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">url</span></div>
+
+<div class="viewcode-block" id="Url.join_dir"><a class="viewcode-back" href="../../usage.html#appurl.Url.join_dir">[docs]</a>    <span class="k">def</span> <span class="nf">join_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Join a component to the parent directory of the path, using join(dirname())</span>
+
+<span class="sd">        :param s:</span>
+<span class="sd">        :return: a copy of this url.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">copy</span> <span class="k">import</span> <span class="n">copy</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">path</span>
+            <span class="n">netloc</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">netloc</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">s</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">parse_app_url</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">downloader</span><span class="p">)</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">path</span>
+            <span class="n">netloc</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">netloc</span>
+
+        <span class="c1"># If there is a netloc, it&#39;s an absolute URL</span>
+        <span class="k">if</span> <span class="n">netloc</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">u</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">url</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">),</span> <span class="n">path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">url</span></div>
+
+<div class="viewcode-block" id="Url.join_target"><a class="viewcode-back" href="../../usage.html#appurl.Url.join_target">[docs]</a>    <span class="k">def</span> <span class="nf">join_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a new URL, possibly of a new class, with a new target_file&quot;&quot;&quot;</span>
+
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Not implemented in &#39;</span><span class="si">{}</span><span class="s2">&#39; &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inner</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the URL without the scheme extension and fragment. Re-parses the URL, so it should return</span>
+<span class="sd">        the correct class for the inner URL. &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme_extension</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="k">return</span> <span class="n">parse_app_url</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">scheme_extension</span><span class="o">=</span><span class="kc">None</span><span class="p">)),</span> <span class="n">downloader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">downloader</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Url.dirname"><a class="viewcode-back" href="../../usage.html#appurl.Url.dirname">[docs]</a>    <span class="k">def</span> <span class="nf">dirname</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the dirname of the path&quot;&quot;&quot;</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">dirname</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">u</span></div>
+
+<div class="viewcode-block" id="Url.clear_fragment"><a class="viewcode-back" href="../../usage.html#appurl.Url.clear_fragment">[docs]</a>    <span class="k">def</span> <span class="nf">clear_fragment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a copy of the URL with no fragment components</span>
+
+<span class="sd">        :return: A cloned URl object, with the fragment and fragment queries cleared.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">fragment</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">fragment_query</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">encoding</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">c</span></div>
+
+
+<div class="viewcode-block" id="Url.as_type"><a class="viewcode-back" href="../../usage.html#appurl.Url.as_type">[docs]</a>    <span class="k">def</span> <span class="nf">as_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the URL transformed to a different class. Copies the downloader and</span>
+<span class="sd">        build the new url using :py:meth:`Url.dict`</span>
+
+<span class="sd">        :param cls: Class of Url to construct</span>
+<span class="sd">        :return: A new Url object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">downloader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">downloader</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a dictionary of the object components.</span>
+
+<span class="sd">        :return: a dict.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_parts</span><span class="p">()</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="s2">&quot;url scheme scheme_extension netloc hostname path params query _fragment fragment_query username password port &quot;</span> \
+               <span class="s2">&quot;proto resource_url resource_file resource_format target_file target_format &quot;</span> \
+               <span class="s2">&quot;encoding target_segment&quot;</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">d</span>
+
+
+<div class="viewcode-block" id="Url.clone"><a class="viewcode-back" href="../../usage.html#appurl.Url.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return a clone of this Url, popssibly with some arguments replaced.</span>
+
+<span class="sd">        :param kwargs: Keyword arguments are arguments to set in the copy, using :py:func:`setattr`</span>
+<span class="sd">        :return: A cloned Url object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="kc">None</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span><span class="p">,</span> <span class="o">**</span><span class="n">d</span><span class="p">)</span>
+
+        <span class="n">c</span><span class="o">.</span><span class="n">fragment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span>
+
+        <span class="n">c</span><span class="o">.</span><span class="n">_update_parts</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t set attribute &#39;</span><span class="si">{}</span><span class="s2">&#39; on &#39;</span><span class="si">{}</span><span class="s2">&#39; &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">c</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the generator for this URL, if the rowgenerator package is installed.</span>
+
+<span class="sd">        :return: A row generator object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="kn">from</span> <span class="nn">rowgenerators</span> <span class="k">import</span> <span class="n">get_generator</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_resource</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">get_generator</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">get_target</span><span class="p">(),</span> <span class="n">source_url</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+
+    <span class="c1">#</span>
+    <span class="c1"># Property accessors</span>
+    <span class="c1">#</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fragment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fragment</span>
+
+    <span class="nd">@fragment</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">fragment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the fragment in place&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="nb">str</span><span class="p">)),</span> <span class="n">v</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># One string is the target_file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fragment</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fragment</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fragment</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Url.set_fragment"><a class="viewcode-back" href="../../usage.html#appurl.Url.set_fragment">[docs]</a>    <span class="k">def</span> <span class="nf">set_fragment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a clone with the fragment set&quot;&quot;&quot;</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">fragment</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">return</span> <span class="n">u</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">proto</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proto</span> <span class="ow">or</span> \
+               <span class="bp">self</span><span class="o">.</span><span class="n">scheme_extension</span> <span class="ow">or</span> \
+               <span class="p">{</span><span class="s1">&#39;https&#39;</span><span class="p">:</span> <span class="s1">&#39;http&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="s1">&#39;file&#39;</span><span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scheme</span><span class="p">)</span> <span class="ow">or</span> \
+               <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resource_url</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">unparse_url_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span>
+                                <span class="n">scheme</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scheme</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span> <span class="k">else</span> <span class="s1">&#39;file&#39;</span><span class="p">,</span>
+                                <span class="n">scheme_extension</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">fragment_query</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">fragment</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resource_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">resource_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_format</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resource_format</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">resource_file</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">file_ext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resource_file</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_file</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_file</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resource_file</span>
+
+    <span class="nd">@target_file</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">target_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+<div class="viewcode-block" id="Url.set_target_file"><a class="viewcode-back" href="../../usage.html#appurl.Url.set_target_file">[docs]</a>    <span class="k">def</span> <span class="nf">set_target_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a clone with a target_file set&quot;&quot;&quot;</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">fragment</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">u</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@target_segment</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">target_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fragment</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+<div class="viewcode-block" id="Url.set_target_segment"><a class="viewcode-back" href="../../usage.html#appurl.Url.set_target_segment">[docs]</a>    <span class="k">def</span> <span class="nf">set_target_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a clone with a target_file set&quot;&quot;&quot;</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">fragment</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">u</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target_format</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">target_format</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_format</span><span class="p">:</span>
+            <span class="n">target_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target_format</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">target_format</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_file</span><span class="p">:</span>
+            <span class="n">target_format</span> <span class="o">=</span> <span class="n">file_ext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_file</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">target_format</span><span class="p">:</span>
+            <span class="n">target_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resource_format</span>
+
+        <span class="c1"># handle URLS that end with package names, like:</span>
+        <span class="c1"># &#39;example.com-example_data_package-2017-us-1&#39;</span>
+        <span class="k">if</span> <span class="n">target_format</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_format</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">target_format</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">target_format</span>
+
+
+    <span class="c1">#</span>
+    <span class="c1"># Matching methods</span>
+    <span class="c1">#</span>
+
+    <span class="k">def</span> <span class="nf">_match_entry_point</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return true if this URL matches the entrypoint pattern</span>
+
+<span class="sd">        Entrypoint patterns:</span>
+
+<span class="sd">            &#39;scheme:&#39; Match the URL scheme</span>
+<span class="sd">            &#39;proto+&#39; Matches the protocol / scheme_extension</span>
+<span class="sd">            &#39;.ext&#39; Match the resource extension</span>
+<span class="sd">            &#39;#.ext&#39; Match the target extension</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="s1">&#39;&amp;&#39;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_match_entry_point</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&amp;&#39;</span><span class="p">))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># Maybe it&#39;s an entrypoint entry, not the name</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;+&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">proto</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">resource_format</span>
+        <span class="k">elif</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#.&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">name</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_format</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_match</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return True if this handler can handle the input URL&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">;</span>  <span class="c1"># raise NotImplementedError(&quot;Match is not implemented for class &#39;{}&#39; &quot;.format(str(cls)))</span>
+
+
+    <span class="c1">#</span>
+    <span class="c1"># Other support methods</span>
+    <span class="c1">#</span>
+
+    <span class="k">def</span> <span class="nf">_update_parts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update the fragement_query. Set the attribute for the query value to False to delete it from</span>
+<span class="sd">        the fragment query&quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="s2">&quot;encoding headers start end&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">==</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="p">:</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">fragment_query</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+                <span class="c1"># if self.fragment:</span>
+                <span class="c1">#    self.rebuild_fragment()</span>
+
+    <span class="k">def</span> <span class="nf">__deepcopy__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="kc">None</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span><span class="p">,</span> <span class="o">**</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__copy__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="kc">None</span><span class="p">,</span> <span class="n">downloader</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_downloader</span><span class="p">,</span> <span class="o">**</span><span class="n">d</span> <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_decompose_fragment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frag</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parse the fragment component&quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">unquote_plus</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">frag</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">frag</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">frag</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="n">frag_parts</span> <span class="o">=</span> <span class="n">unquote_plus</span><span class="p">(</span><span class="n">frag</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">frag_parts</span><span class="p">:</span>
+            <span class="n">file</span><span class="p">,</span> <span class="n">segment</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">frag_parts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="n">frag_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">segment</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">frag_parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="n">frag_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">segment</span> <span class="o">=</span> <span class="n">frag_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">file</span><span class="p">,</span> <span class="n">segment</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_parts</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">unparse_url_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Row Generators</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../file_urls.html">File Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../web_urls.html">Web Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../archive_urls.html">Archive Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../resolution.html">Resolving and Extending Urls</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Civic Knowledge.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -4,9 +4,9 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = python -msphinx
-SPHINXPROJ    = ApplicationUrls
+SPHINXPROJ    = RowGenerators
 SOURCEDIR     = .
-BUILDDIR      = _build
+BUILDDIR      = html
 
 # Put it first so that "make" without argument is like "make help".
 help:

@@ -1,0 +1,176 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Application Urls &#8212; Row Generators 0.7.14 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.7.14',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Basic Usage" href="usage.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="application-urls">
+<h1>Application Urls<a class="headerlink" href="#application-urls" title="Permalink to this headline">¶</a></h1>
+<p>Application Urls provide structure and operations on URLS where the file the
+URL refers to can’t, in general, simply be downloaded. For instance, you may
+want to refer to a CSV file inside a ZIP archive, or a worksheet in an Excel
+file. In conjunction with <a class="reference external" href="https://github.com/CivicKnowledge/rowgenerators">Row Generators</a>, Application Urls are often
+used to refer to tabular data stored on data repositories. For instance:</p>
+<ul class="simple">
+<li>Stored on the web: <code class="docutils literal"><span class="pre">http://examples.com/file.csv</span></code></li>
+<li>Inside a zip file on the web: <code class="docutils literal"><span class="pre">http://example.com/archive.zip#file.csv</span></code></li>
+<li>A worksheet in an Excel file: <code class="docutils literal"><span class="pre">http://example.com/excel.xls#worksheet</span></code></li>
+<li>A worksheet in an Excel file in a ZIP Archive:
+<code class="docutils literal"><span class="pre">http://example.com/archive.zip#excel.xls;worksheet</span></code></li>
+<li>An API: <code class="docutils literal"><span class="pre">socrata+http://chhs.data.ca.gov/api/views/tthg-z4mf</span></code></li>
+</ul>
+<p>The module defines an <code class="docutils literal"><span class="pre">entry_point</span></code>, so other modules can extend the types of
+URLs can that can produced by <code class="xref py py-meth docutils literal"><span class="pre">parse_app_url()</span></code>. For instance,
+the <a class="reference external" href="https://github.com/CivicKnowledge/pandas-reporter">pandas-reporter</a>
+module extends <code class="xref py py-mod docutils literal"><span class="pre">appurl</span></code> to access Census tables from Census
+Reporter, using URLs such as <code class="docutils literal"><span class="pre">censusreporter:B17001/140/05000US06073</span></code></p>
+<p>Typical use – for downloading an archive and extracting a file from it – is:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">appurl</span> <span class="kn">import</span>  <span class="n">parse_app_url</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">exists</span>
+
+<span class="n">url</span> <span class="o">=</span> <span class="n">parse_app_url</span><span class="p">(</span><span class="s2">&quot;http://example.com/archive.zip#file.csv&quot;</span><span class="p">)</span>
+
+<span class="n">resource_url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">get_resource</span><span class="p">()</span> <span class="c1"># Download the .zip file</span>
+
+<span class="n">target_path</span> <span class="o">=</span> <span class="n">resource_url</span><span class="o">.</span><span class="n">get_target</span><span class="p">()</span> <span class="c1"># Extract `file.csv` from the .zip</span>
+
+<span class="k">assert</span><span class="p">(</span><span class="n">exists</span><span class="p">(</span><span class="n">target_path</span><span class="p">))</span> <span class="c1"># The path to file.csv</span>
+</pre></div>
+</div>
+<div class="section" id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h2>
+<p>Use pip:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install appurl
+</pre></div>
+</div>
+<p>Or, from github:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span></span>$ pip install git+https://github.com/CivicKnowledge/appurl.git
+</pre></div>
+</div>
+</div>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Basic Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#creating-an-appurl">Creating an AppUrl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#using-appurls">Using AppUrls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#parsing-strings">Parsing Strings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#the-url-base-class">The URL Base Class</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="file_urls.html">File Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="web_urls.html">Web Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="archive_urls.html">Archive Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resolution.html">Resolving and Extending Urls</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Row Generators</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_urls.html">File Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="web_urls.html">Web Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="archive_urls.html">Archive Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resolution.html">Resolving and Extending Urls</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="usage.html" title="next chapter">Basic Usage</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Civic Knowledge.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

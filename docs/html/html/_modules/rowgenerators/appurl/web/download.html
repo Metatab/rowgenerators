@@ -1,0 +1,495 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rowgenerators.appurl.web.download &#8212; Row Generators 0.7.14 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.7.14',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for rowgenerators.appurl.web.download</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2017 Civic Knowledge. This file is licensed under the terms of the</span>
+<span class="c1"># MIT, included in this distribution as LICENSE</span>
+
+<span class="sd">&quot;&quot;&quot; &quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">from</span> <span class="nn">os.path</span> <span class="k">import</span> <span class="n">abspath</span><span class="p">,</span> <span class="n">join</span><span class="p">,</span> <span class="n">dirname</span><span class="p">,</span> <span class="n">basename</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">genericpath</span> <span class="k">import</span> <span class="n">exists</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlparse</span>
+<span class="kn">from</span> <span class="nn">urllib.request</span> <span class="k">import</span> <span class="n">urlopen</span>
+
+<span class="kn">from</span> <span class="nn">fs.errors</span> <span class="k">import</span> <span class="n">DirectoryExpected</span><span class="p">,</span> <span class="n">NoSysPath</span><span class="p">,</span> <span class="n">ResourceInvalid</span><span class="p">,</span> <span class="n">DirectoryExists</span>
+<span class="kn">from</span> <span class="nn">requests</span> <span class="k">import</span> <span class="n">HTTPError</span>
+<span class="kn">from</span> <span class="nn">requests.exceptions</span> <span class="k">import</span> <span class="n">SSLError</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="k">import</span> <span class="n">string_types</span>
+
+<span class="kn">from</span> <span class="nn">rowgenerators.appurl.util</span> <span class="k">import</span> <span class="n">parse_url_to_dict</span><span class="p">,</span> <span class="n">copy_file_or_flo</span>
+<span class="kn">from</span> <span class="nn">rowgenerators.appurl.url</span> <span class="k">import</span> <span class="n">Url</span>
+<span class="kn">from</span> <span class="nn">rowgenerators.exceptions</span> <span class="k">import</span> <span class="o">*</span>
+
+
+<span class="k">class</span> <span class="nc">_NoOpFileLock</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;No Op for pyfilesystem caches where locking wont work&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lf</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">exc_val</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">exc_val</span>
+
+    <span class="k">def</span> <span class="nf">acquire</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">release</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">Resource</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">cache_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">sys_path</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">download_time</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Downloader"><a class="viewcode-back" href="../../../../web_urls.html#rowgenerators.appurl.web.Downloader">[docs]</a><span class="k">class</span> <span class="nc">Downloader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Downloader objects handle downloading resrouces from the web, including authorization,</span>
+<span class="sd">    and storing the downloaded object in a cache. Since they are the primary interface to the file cache,</span>
+<span class="sd">    all Urls object have a link to a Downloader &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">account_accessor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">working_dir</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download and cache files, via HTTP and FTP, with retry and decompression.</span>
+
+<span class="sd">        :param self:</span>
+<span class="sd">        :param cache: A PyFs filesystem object for caching files</span>
+<span class="sd">        :param account_accessor: An objevct for acessing account credentials. Not currently used.</span>
+<span class="sd">        :param logger: Logging object to write debug logs to</span>
+<span class="sd">        :param working_dir:</span>
+<span class="sd">        :param callback: Call back to call with progress reports during downloads.</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">account_acessor</span> <span class="o">=</span> <span class="n">account_accessor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">working_dir</span> <span class="o">=</span> <span class="n">working_dir</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clean</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">rowgenerators</span> <span class="k">import</span> <span class="n">get_cache</span>
+            <span class="c1">#qn = self.__module__+&#39;.&#39;+self.__class__.__qualname__</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">get_cache</span><span class="p">()</span>
+
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
+
+    <span class="k">def</span> <span class="nf">get_resource</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+
+
+        <span class="n">working_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_dir</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_dir</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">Resource</span><span class="p">()</span>
+
+        <span class="c1"># For local files, don&#39;t download, just reference in place.</span>
+        <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;file&#39;</span><span class="p">:</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">cache_path</span> <span class="o">=</span> <span class="n">Url</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">resource_url</span><span class="p">)</span><span class="o">.</span><span class="n">path</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">download_time</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="c1"># Many places the file may exist</span>
+            <span class="n">locations</span> <span class="o">=</span> <span class="p">{</span>  <span class="c1"># What a mess ...</span>
+                <span class="n">abspath</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="p">),</span>
+                <span class="n">abspath</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)),</span>
+                <span class="n">abspath</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">working_dir</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="p">)),</span>
+                <span class="n">abspath</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">))</span>
+            <span class="p">}</span>
+
+            <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">locations</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">exists</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">sys_path</span> <span class="o">=</span> <span class="n">l</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">DownloadError</span><span class="p">((</span><span class="s2">&quot;File resource does not exist. Found none of:&quot;</span>
+                                     <span class="s2">&quot;</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n\n</span><span class="s2">Working dir = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">cache_path=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">spec_path=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+                                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">locations</span><span class="p">),</span> <span class="n">working_dir</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="n">url</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Not a local file, so actually need to download it.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">download_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_with_lock</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">resource_url</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">AccessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># Try again, using a URL that we may have configured an account for. This is</span>
+                <span class="c1"># primarily S3 urls, with Boto or AWS credential</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">download_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_download_with_lock</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">auth_resource_url</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+
+            <span class="n">r</span><span class="o">.</span><span class="n">sys_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">getsyspath</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">cache_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">r</span>
+
+    <span class="k">def</span> <span class="nf">_download_with_lock</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Download a URL and store it in the cache.</span>
+
+<span class="sd">        :param url:</span>
+<span class="sd">        :param cache_fs:</span>
+<span class="sd">        :param account_accessor: callable of one argument (url) returning dict with credentials.</span>
+<span class="sd">        :param clean: Remove files from cache and re-download</span>
+<span class="sd">        :param logger:</span>
+<span class="sd">        :param callback:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">string_types</span><span class="p">)</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="n">url</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+
+        <span class="c1"># .decode(&#39;utf8&#39;). The fs modulegets upset when given strings, so</span>
+        <span class="c1"># we need to decode to unicode. UTF8 is a WAG.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+        <span class="c1"># Create a name for the file in the cache, based on the URL</span>
+        <span class="c1"># the &#39;\&#39; replacement is because pyfs only wants to use UNIX path seperators, but</span>
+        <span class="c1"># python os.path.join will use the one specified for the operating system.</span>
+        <span class="n">cache_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">netloc</span><span class="p">,</span> <span class="n">parsed</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">))</span>
+
+        <span class="c1"># If there is a query, hash it and add it to the path</span>
+        <span class="k">if</span> <span class="n">parsed</span><span class="o">.</span><span class="n">query</span><span class="p">:</span>
+            <span class="nb">hash</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha224</span><span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+            <span class="c1"># We put the hash before the last path element, because that&#39;s the target faile, which gets</span>
+            <span class="c1"># used to figure out what the target format should be.</span>
+            <span class="n">cache_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">dirname</span><span class="p">(</span><span class="n">cache_path</span><span class="p">),</span> <span class="nb">hash</span><span class="p">,</span> <span class="n">basename</span><span class="p">(</span><span class="n">cache_path</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cache_path</span><span class="p">):</span>
+
+            <span class="n">cache_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">cache_dir</span><span class="p">,</span> <span class="n">recreate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">DirectoryExpected</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+                <span class="c1"># Probably b/c the dir name is already a file</span>
+                <span class="n">dn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+                <span class="n">bn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">cache_path</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">dn</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">bn</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">cache_path</span><span class="p">))</span>
+                        <span class="k">break</span>
+                    <span class="k">except</span> <span class="n">DirectoryExpected</span> <span class="k">as</span> <span class="n">e2</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                    <span class="k">except</span> <span class="n">DirectoryExists</span><span class="p">:</span>
+                        <span class="k">pass</span>  <span class="c1"># ? No idea what&#39;s supposed to happen here.</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">filelock</span> <span class="k">import</span> <span class="n">FileLock</span>
+            <span class="n">lock</span> <span class="o">=</span> <span class="n">FileLock</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">getsyspath</span><span class="p">(</span><span class="n">cache_path</span> <span class="o">+</span> <span class="s1">&#39;.lock&#39;</span><span class="p">))</span>
+
+        <span class="k">except</span> <span class="n">NoSysPath</span><span class="p">:</span>
+            <span class="c1"># mem: caches, and others, don&#39;t have sys paths.</span>
+            <span class="c1"># FIXME should check for MP operation and raise if there would be</span>
+            <span class="c1"># contention. Mem  caches are only for testing with single processes</span>
+            <span class="n">lock</span> <span class="o">=</span> <span class="n">_NoOpFileLock</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">lock</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cache_path</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="n">ResourceInvalid</span><span class="p">:</span>
+                        <span class="k">pass</span>  <span class="c1"># Well, we tried.</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">cache_path</span><span class="p">,</span> <span class="kc">None</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_download</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">cache_path</span><span class="p">)</span>
+
+                <span class="k">return</span> <span class="n">cache_path</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+            <span class="k">except</span> <span class="n">HTTPError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="mi">403</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">AccessError</span><span class="p">(</span><span class="s2">&quot;Access error on download: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">DownloadError</span><span class="p">(</span><span class="s2">&quot;Failed to download: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+            <span class="k">except</span> <span class="p">(</span><span class="ne">KeyboardInterrupt</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
+                <span class="c1"># This is really important -- its really bad to have partly downloaded</span>
+                <span class="c1"># files being confused with fully downloaded ones.</span>
+                <span class="c1"># FIXME. Should also handle signals. deleting partly downloaded files is important.</span>
+                <span class="c1"># Maybe should have a sentinel file, or download to another name and move the</span>
+                <span class="c1"># file after done.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cache_path</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span>
+
+                <span class="k">raise</span>
+
+        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Should never get here&#39;</span>
+
+    <span class="k">def</span> <span class="nf">_download</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">cache_path</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">requests</span>
+
+        <span class="k">def</span> <span class="nf">copy_callback</span><span class="p">(</span><span class="n">read</span><span class="p">,</span> <span class="n">total</span><span class="p">):</span>
+             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="s1">&#39;copy_file&#39;</span><span class="p">,</span><span class="n">read</span><span class="p">,</span> <span class="n">total</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="s1">&#39;download&#39;</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;s3:&#39;</span><span class="p">):</span>
+
+            <span class="kn">from</span> <span class="nn">appurl.url</span> <span class="k">import</span> <span class="n">Url</span>
+
+            <span class="n">s3url</span> <span class="o">=</span> <span class="n">Url</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">cache_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">s3url</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">download_fileobj</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">DownloadError</span><span class="p">(</span><span class="s2">&quot;Failed to fetch S3 url &#39;</span><span class="si">{}</span><span class="s2">&#39;: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">url</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ftp:&#39;</span><span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">contextlib</span> <span class="k">import</span> <span class="n">closing</span>
+
+            <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">))</span> <span class="k">as</span> <span class="n">fin</span><span class="p">:</span>
+
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">cache_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fout</span><span class="p">:</span>
+
+                    <span class="n">read_len</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span>
+                    <span class="n">total_len</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">while</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">buf</span> <span class="o">=</span> <span class="n">fin</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">read_len</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">buf</span><span class="p">:</span>
+                            <span class="k">break</span>
+                        <span class="n">fout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+                        <span class="n">total_len</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">:</span>
+                            <span class="n">copy_callback</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">buf</span><span class="p">),</span> <span class="n">total_len</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="k">except</span> <span class="n">SSLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">DownloadError</span><span class="p">(</span><span class="s2">&quot;Failed to GET </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+            <span class="c1"># Requests will auto decode gzip responses, but not when streaming. This following</span>
+            <span class="c1"># monkey patch is recommended by a core developer at</span>
+            <span class="c1"># https://github.com/kennethreitz/requests/issues/2155</span>
+            <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-encoding&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;gzip&#39;</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">read</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">read</span><span class="p">,</span> <span class="n">decode_content</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">cache_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">copy_file_or_flo</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">copy_callback</span><span class="p">)</span>
+
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cache_path</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">DelayedFlo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Holds functions to open and close a file-like object&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">open_f</span><span class="p">,</span> <span class="n">flo_f</span><span class="p">,</span> <span class="n">close_f</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">open_f</span> <span class="o">=</span> <span class="n">open_f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flo_f</span> <span class="o">=</span> <span class="n">flo_f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close_f</span> <span class="o">=</span> <span class="n">close_f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memo</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Set externally for debugging</span>
+
+    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_f</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">flo_f</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memo</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">memo</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">close_f</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memo</span><span class="p">)</span>
+
+
+
+<span class="k">def</span> <span class="nf">get_dflo</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">syspath</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a Delayed FLO &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">re</span>
+    <span class="kn">import</span> <span class="nn">io</span>
+    <span class="kn">from</span> <span class="nn">zipfile</span> <span class="k">import</span> <span class="n">ZipFile</span>
+
+    <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">is_archive</span><span class="p">:</span>
+
+        <span class="c1"># Create a DelayedFlo for the file in a ZIP file. We might have to find the file first, though</span>
+        <span class="k">def</span> <span class="nf">_open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">zf</span> <span class="o">=</span> <span class="n">ZipFile</span><span class="p">(</span><span class="n">syspath</span><span class="p">)</span>
+
+            <span class="n">nl</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">zf</span><span class="o">.</span><span class="n">namelist</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">target_file</span><span class="p">:</span>
+                <span class="c1"># The archive file names can be regular expressions</span>
+                <span class="n">real_file_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">([</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">nl</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">target_file</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                                        <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;__&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">e</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span>
+                                        <span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">real_file_names</span><span class="p">:</span>
+                    <span class="n">real_name</span> <span class="o">=</span> <span class="n">real_file_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">SourceError</span><span class="p">(</span><span class="s2">&quot;Didn&#39;t find target_file &#39;</span><span class="si">{}</span><span class="s2">&#39; in  &#39;</span><span class="si">{}</span><span class="s2">&#39; &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">target_file</span><span class="p">,</span> <span class="n">syspath</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No target file was specified, so use the first one.</span>
+                <span class="n">real_file_names</span> <span class="o">=</span> <span class="n">real_files_in_zf</span><span class="p">(</span><span class="n">zf</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">real_file_names</span><span class="p">:</span>
+                    <span class="n">real_name</span> <span class="o">=</span> <span class="n">real_file_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">SourceError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t find target file in &#39;</span><span class="si">{}</span><span class="s2">&#39; &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">target_file</span><span class="p">,</span> <span class="n">syspath</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="s1">&#39;b&#39;</span> <span class="ow">in</span> <span class="n">mode</span><span class="p">:</span>
+                <span class="n">flo</span> <span class="o">=</span> <span class="n">zf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">real_name</span><span class="p">,</span> <span class="n">mode</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">flo</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">TextIOWrapper</span><span class="p">(</span><span class="n">zf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">real_name</span><span class="p">,</span> <span class="n">mode</span><span class="p">),</span>
+                                       <span class="n">encoding</span><span class="o">=</span><span class="n">url</span><span class="o">.</span><span class="n">encoding</span> <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">encoding</span> <span class="k">else</span> <span class="s1">&#39;utf8&#39;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="p">(</span><span class="n">zf</span><span class="p">,</span> <span class="n">flo</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_close</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="n">f</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">f</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">DelayedFlo</span><span class="p">(</span><span class="n">syspath</span><span class="p">,</span> <span class="n">_open</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">m</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">_close</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">_open</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rbU&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;b&#39;</span> <span class="ow">in</span> <span class="n">mode</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">syspath</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">io</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">syspath</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span>
+                               <span class="n">encoding</span><span class="o">=</span><span class="n">url</span><span class="o">.</span><span class="n">encoding</span> <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">encoding</span> <span class="k">else</span> <span class="s1">&#39;utf8&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_close</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">DelayedFlo</span><span class="p">(</span><span class="n">syspath</span><span class="p">,</span> <span class="n">_open</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">_close</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">df</span>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Row Generators</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../file_urls.html">File Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../web_urls.html">Web Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../archive_urls.html">Archive Urls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../resolution.html">Resolving and Extending Urls</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Civic Knowledge.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
