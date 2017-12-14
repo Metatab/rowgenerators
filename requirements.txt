@@ -1,1 +1,13 @@
-
+boto
+codegen
+decorator
+filelock
+fs >= 2
+geoid
+livestats
+meta
+petl
+python-dateutil
+requests
+tabulate
+xlrd
