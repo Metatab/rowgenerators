@@ -16,7 +16,7 @@ tox:
 	$(DOCKER) run --rm --name $(NAME) $(PORTS) $(VOLUMES) $(ENV) $(NS)/$(REPO):$(VERSION) tox
 
 test:
-	$(DOCKER) run --rm --name $(NAME) $(PORTS) $(VOLUMES) $(ENV) $(NS)/$(REPO):$(VERSION) python setup.py text
+	$(DOCKER) run --rm --name $(NAME) $(PORTS) $(VOLUMES) $(ENV) $(NS)/$(REPO):$(VERSION) python setup.py test
 
 build:
 	$(DOCKER) build -t $(NS)/$(REPO):$(VERSION) .
