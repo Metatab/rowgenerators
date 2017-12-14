@@ -31,6 +31,7 @@ class TestJson(unittest.TestCase):
 
         print (json.dumps(d, indent=4))
 
+    @unittest.skip('Has loacal path')
     def test_table(self):
         import json
         from metapack import open_package

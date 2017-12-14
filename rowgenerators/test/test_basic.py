@@ -121,6 +121,7 @@ class BasicTests(unittest.TestCase):
         self.assertEqual('a', rows['prop-prop1'])
         self.assertEqual('{"prop1": "a", "prop2": "a"}', rows['env-PROPERTIES'])
 
+    @unittest.skip('Has local path')
     def test_fixed(self):
         from itertools import islice
 
