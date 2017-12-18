@@ -411,7 +411,8 @@ class ReplaceTG(ast.NodeTransformer):
     def missing_args(self):
         pass
 
-    def visit_Call(self, node):
+    def visit_Call(self, node):  # pragma: no cover
+
 
         import inspect
         from rowgenerators.valuetype import is_transform_generator

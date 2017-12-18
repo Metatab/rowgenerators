@@ -11,37 +11,14 @@ from urllib.parse import unquote_plus, ParseResult, urlparse, quote_plus, parse_
 
 from six import text_type
 
-# From http://stackoverflow.com/a/295466
-def slugify(value):
-    """
-    Normalizes string, converts to lowercase, removes non-alpha characters,
-    and converts spaces to hyphens.type(
-    """
-    import re
-    import unicodedata
-    from six import text_type
-    value = text_type(value)
-    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('utf8').strip().lower()
-    value = re.sub(r'[^\w\s\-\.]', '', value)
-    value = re.sub(r'[-\s]+', '-', value)
-    return value
 
-def fs_join(*args):
-    """Like os.path.join, but never returns '\' chars"""
-    from os.path import join
-    return join(*args).replace('\\','/')
 
 def path2url(path):
     "Convert a pathname to a file URL"
-    try:
-        # Python 3
-        # http://stackoverflow.com/a/30702300
-        from urllib.parse import urljoin
-        from urllib.request import pathname2url
-    except ImportError:
-        # Python 2
-        from urllib.parse import urljoin
-        from urllib import pathname2url
+
+    from urllib.parse import urljoin
+    from urllib.request import pathname2url
+
 
     return urljoin('file:', pathname2url(path))
 

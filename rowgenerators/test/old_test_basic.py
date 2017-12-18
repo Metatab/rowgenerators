@@ -364,7 +364,7 @@ if False:
             self.assertEqual('file:metatadata.csv', Url('file:metatadata.csv').rebuild_url())
 
         def test_parse_file_urls(self):
-            from rowgenerators.util import parse_url_to_dict, unparse_url_dict, reparse_url
+            from rowgenerators.util import parse_url_to_dict, unparse_url_dict
             urls = [
                 ('file:foo/bar/baz', 'foo/bar/baz', 'file:foo/bar/baz'),
                 ('file:/foo/bar/baz', '/foo/bar/baz', 'file:/foo/bar/baz'),
@@ -378,17 +378,7 @@ if False:
                 self.assertEqual(u, unparse_url_dict(p))
                 # self.assertEqual(o, parse_url_to_dict(u)['path'])
 
-            return
 
-            print(reparse_url("metatab+http://library.metatab.org/cdph.ca.gov-county_crosswalk-ca-2#county_crosswalk",
-                              scheme_extension=False, fragment=False))
-
-            d = {'netloc': 'library.metatab.org', 'params': '', 'path': '/cdph.ca.gov-county_crosswalk-ca-2',
-                 'password': None, 'query': '', 'hostname': 'library.metatab.org', 'fragment': 'county_crosswalk',
-                 'resource_format': 'gov-county_crosswalk-ca-2', 'port': None, 'scheme_extension': 'metatab',
-                 'proto': 'metatab', 'username': None, 'scheme': 'http'}
-
-            print(unparse_url_dict(d, scheme_extension=False, fragment=False))
 
         def test_metatab_url(self):
 

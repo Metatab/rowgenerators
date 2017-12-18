@@ -43,7 +43,6 @@ class _NoOpFileLock(object):
 
 
 class Resource(object):
-
     cache_path = None
     sys_path = None
     download_time = None
@@ -85,9 +84,8 @@ class Downloader(object):
     def cache(self):
         if not self._cache:
             from rowgenerators import get_cache
-            #qn = self.__module__+'.'+self.__class__.__qualname__
+            # qn = self.__module__+'.'+self.__class__.__qualname__
             self._cache = get_cache()
-
 
         return self._cache
 
@@ -95,7 +93,6 @@ class Downloader(object):
         pass
 
     def download(self, url):
-
 
         working_dir = self.working_dir if self.working_dir else ''
 
@@ -199,7 +196,6 @@ class Downloader(object):
                 else:
                     raise e
 
-
         try:
             from filelock import FileLock
             lock = FileLock(self.cache.getsyspath(cache_path + '.lock'))
@@ -248,9 +244,8 @@ class Downloader(object):
         import requests
 
         def copy_callback(read, total):
-             if self.callback:
-                self.callback('copy_file',read, total)
-
+            if self.callback:
+                self.callback('copy_file', read, total)
 
         if self.callback:
             self.callback('download', url, 0)
@@ -305,88 +300,4 @@ class Downloader(object):
 
             assert self.cache.exists(cache_path)
 
-
-class DelayedFlo(object):
-    """Holds functions to open and close a file-like object"""
-
-    def __init__(self, path, open_f, flo_f, close_f):
-        self.path = path
-        self.open_f = open_f
-        self.flo_f = flo_f
-        self.close_f = close_f
-        self.memo = None
-        self.message = None  # Set externally for debugging
-
-    def open(self, mode):
-        self.memo = self.open_f(mode)
-        return self.flo_f(self.memo)
-
-    def close(self):
-        if self.memo:
-            self.close_f(self.memo)
-
-
-
-def get_dflo(url, syspath):
-    """Return a Delayed FLO """
-    import re
-    import io
-    from zipfile import ZipFile
-
-    if url.is_archive:
-
-        # Create a DelayedFlo for the file in a ZIP file. We might have to find the file first, though
-        def _open(mode='r', encoding=None):
-            zf = ZipFile(syspath)
-
-            nl = list(zf.namelist())
-
-            if url.target_file:
-                # The archive file names can be regular expressions
-                real_file_names = list([e for e in nl if re.search(url.target_file, e)
-                                        and not (e.startswith('__') or e.startswith('.'))
-                                        ])
-
-                if real_file_names:
-                    real_name = real_file_names[0]
-                else:
-                    raise SourceError("Didn't find target_file '{}' in  '{}' ".format(url.target_file, syspath))
-            else:
-                # No target file was specified, so use the first one.
-                real_file_names = real_files_in_zf(zf)
-
-                if real_file_names:
-                    real_name = real_file_names[0]
-                else:
-                    raise SourceError("Can't find target file in '{}' ".format(url.target_file, syspath))
-
-            if 'b' in mode:
-                flo = zf.open(real_name, mode.replace('b', ''))
-            else:
-                flo = io.TextIOWrapper(zf.open(real_name, mode),
-                                       encoding=url.encoding if url.encoding else 'utf8')
-
-            return (zf, flo)
-
-        def _close(f):
-            f[1].close()
-            f[0].close()
-
-        df = DelayedFlo(syspath, _open, lambda m: m[1], _close)
-
-    else:
-
-        def _open(mode='rbU'):
-            if 'b' in mode:
-                return io.open(syspath, mode)
-            else:
-                return io.open(syspath, mode,
-                               encoding=url.encoding if url.encoding else 'utf8')
-
-        def _close(f):
-            f.close()
-
-        df = DelayedFlo(syspath, _open, lambda m: m, _close)
-
-    return df
 
