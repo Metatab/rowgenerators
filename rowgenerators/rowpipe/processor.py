@@ -27,7 +27,6 @@ class RowProcessor(object):
         :return:
         """
 
-
         self.source = source
         self.source_headers = source_headers if source_headers is not None else self.source.headers
         self.dest_table = dest_table
@@ -89,7 +88,7 @@ class RowProcessor(object):
 
     @headers.setter
     def headers(self, v):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @property
     def meta(self):
@@ -125,10 +124,6 @@ class RowProcessor(object):
 
         self.finish()
 
-
-    def _get_row_gen(self):
-        """ Returns generator over all rows of the source. """
-        raise NotImplementedError('Subclasses of SourceFile must provide a _get_row_gen() method')
 
     def start(self):
         pass

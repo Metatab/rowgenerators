@@ -8,14 +8,24 @@ from functools import partial
 from rowgenerators.appurl.file.shapefile import ShapefileUrl, ShapefileShpUrl
 from rowgenerators.source import Source
 
+
+# Looks like PyPy doesn't have ModuleNotFoundError
+
+try:
+    ModuleNotFoundError
+except NameError:
+    class ModuleNotFoundError(ImportError):
+        pass
+
 try:
     import fiona
     from fiona.crs import from_epsg
     from shapely.geometry import asShape
     from shapely.ops import transform
     import pyproj
-except ModuleNotFoundError as e:
-    raise ModuleNotFoundError("Using ShapefileSource requires installing fiona, shapely and pyproj ") from e
+except (ModuleNotFoundError, ImportError) as e:
+    #raise ImportError("Using ShapefileSource requires installing fiona, shapely and pyproj ") from e
+    pass # HACK Because this file gets collected by the test collectors
 
 class GeoSourceBase(Source):
     """ Base class for all geo sources. """

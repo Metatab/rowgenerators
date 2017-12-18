@@ -10,11 +10,11 @@ from __future__ import print_function
 from datetime import date, time, datetime
 
 from decorator import decorator
-from rowgenerators.util import Constant
+from rowgenerators.util import Constant, memoize
 from six import string_types
 from six import text_type, PY3
 
-from rowgenerators.rowpipe.exceptions import TooManyCastingErrors
+
 
 ROLE = Constant()
 ROLE.DIMENSION = 'd'
@@ -45,12 +45,15 @@ LOM.INTERVAL = 'i'
 LOM.RATIO = 'r'
 
 
+
+
 @decorator
 def valuetype(func, *args, **kw):
     return func(*args, **kw)
 
 
 def count_errors(errors):
+    from rowgenerators.rowpipe.exceptions import TooManyCastingErrors
 
     # Count at most 10 errors for each column
     c = sum(len(e) if len(e) < 10 else 10 for e in errors.values())
@@ -126,7 +129,7 @@ class ValueType(object):
 
     @classmethod
     def is_geoid(cls):
-        from ambry.valuetype import Geoid
+        from rowgenerators.valuetype import Geoid
         return issubclass(cls, Geoid)
 
 

@@ -1,42 +1,50 @@
 
-Application Urls
+Row Generators
 ****************
 
-Application Urls provide structure and operations on URLS where the file the
-URL refers to can't, in general, simply be downloaded. For instance, you may
-want to refer to a CSV file inside a ZIP archive, or a worksheet in an Excel
-file. In conjunction with `Row Generators
-<https://github.com/CivicKnowledge/rowgenerators>`_, Application Urls are often
-used to refer to tabular data stored on data repositories. For instance:
+This module provides services for creating references to data files, downloading those files,
+and iterating through them as a sequence of rows. For instance, you can define a URL to a CSV file
+within a ZIP archive on the web as:
 
--  Stored on the web: ``http://examples.com/file.csv``
--  Inside a zip file on the web: ``http://example.com/archive.zip#file.csv``
--  A worksheet in an Excel file: ``http://example.com/excel.xls#worksheet``
--  A worksheet in an Excel file in a ZIP Archive:
-   ``http://example.com/archive.zip#excel.xls;worksheet``
--  An API: ``socrata+http://chhs.data.ca.gov/api/views/tthg-z4mf``
+    http://example.com/archive.zip#file.csv
+
+After constructing this URL, the module provides an interface to access the CSV file as rows, downloading
+the archive,  caching it, and extracting the inner CSV file.
+
+Additionally, the module provides services for transforming data during iteration, to set default value
+cast to specific types, extract components of dates, and many other transformations.
 
 
-The module defines an ``entry_point``, so other modules can extend the types of
-URLs can that can produced by :py:meth:`.parse_app_url`. For instance,
-the `pandas-reporter <https://github.com/CivicKnowledge/pandas-reporter>`_
-module extends :py:mod:`appurl` to access Census tables from Census
-Reporter, using URLs such as ``censusreporter:B17001/140/05000US06073``
-
-Typical use -- for downloading an archive and extracting a file from it -- is:
+Example
+=======
 
 .. code-block:: python
 
-    from appurl import  parse_app_url
+    from rowgenerators import  parse_app_url
     from os.path import exists
 
-    url = parse_app_url("http://example.com/archive.zip#file.csv")
+    url_str = 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip#simple-example.csv'
+
+    url = parse_app_url(url_str) # Parse a string to an Application url
 
     resource_url = url.get_resource() # Download the .zip file
 
-    target_path = resource_url.get_target() # Extract `file.csv` from the .zip
+    target_url = resource_url.get_target() # Extract `file.csv` from the .zip
 
-    assert(exists(target_path)) # The path to file.csv
+    assert(target_url.path) # The path to file.csv
+
+    generator = target_url.generator
+
+    rows = list(generator) # Fetch all of the rows. First row is header
+
+    # Iterate rows as dicts
+    float_sum = sum(float(row['float']) for row in generator.iter_dict)
+
+    # Iterate with RowProxy objects
+    int_sum = sum(int(row.int) for row in generator.iter_rp)
+
+    print(len(rows), float_sum, int_sum)
+
 
 Install
 =======
@@ -45,14 +53,14 @@ Use pip:
 
 .. code-block:: bash
 
-    $ pip install appurl
+    $ pip install rowgenerators
 
 
 Or, from github:
 
 .. code-block:: bash
 
-    $ pip install git+https://github.com/CivicKnowledge/appurl.git
+    $ pip install git+https://github.com/CivicKnowledge/rowgenerators.git
 
 
 Contents
@@ -61,11 +69,12 @@ Contents
 .. toctree::
     :maxdepth: 2
 
-    usage
-    file_urls
-    web_urls
-    archive_urls
-    resolution
+    appurls/index.rst
+    rowgenerators/index.rst
+    transforms/index.rst
+    valuetypes/index.rst
+    rowpipe/index.rst
+
 
 
 

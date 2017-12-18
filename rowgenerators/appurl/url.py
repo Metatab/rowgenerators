@@ -260,10 +260,10 @@ class Url(object):
 
 
     def join(self, s):
-        """ Join a component to the end of the path, using :py:func:`os.path.join`. The argument
-        ``s`` may be a :py:`appurl.Url` or a string. If ``s`` includes a ``netloc`` property,
-         it is assumed to be an absolute url, and it is returned after parsing as a Url. Otherwise,
-         the path component of ``s`` is extracted and joined to the path component of this url.
+        """ Join a component to the end of the path, using :func:`os.path.join`. The argument
+        ``s`` may be a :class:`appurl.Url` or a string. If ``s`` includes a ``netloc`` property,
+        it is assumed to be an absolute url, and it is returned after parsing as a Url. Otherwise,
+        the path component of ``s`` is extracted and joined to the path component of this url.
 
         :param s: A Url object, or a string.
         :return: A copy of this url.

@@ -9,7 +9,7 @@ import datetime
 import dateutil.parser as dp
 import six
 from .measures import IntValue, FloatValue, DateValue
-from rowgenerators.rowpipe.exceptions import CastingError
+
 
 
 class NullValue(Exception):
@@ -126,6 +126,7 @@ def int_e(v):
 
 def parse_int(v, header_d):
     """Parse as an integer, or a subclass of Int."""
+    from rowgenerators.rowpipe.exceptions import CastingError
 
     v = nullify(v)
 
@@ -141,6 +142,8 @@ def parse_int(v, header_d):
 
 
 def parse_float(v, header_d):
+    from rowgenerators.rowpipe.exceptions import CastingError
+
     v = nullify(v)
 
     if v is None:
@@ -178,6 +181,8 @@ def parse_unicode(v, header_d):
 
 
 def parse_type(type_, v, header_d):
+    from rowgenerators.rowpipe.exceptions import CastingError
+
     v = nullify(v)
 
     if v is None:
@@ -190,6 +195,8 @@ def parse_type(type_, v, header_d):
 
 
 def parse_date(v, header_d):
+    from rowgenerators.rowpipe.exceptions import CastingError
+
     v = nullify(v)
 
     if v is None:
@@ -208,6 +215,8 @@ def parse_date(v, header_d):
 
 
 def parse_time(v, header_d):
+    from rowgenerators.rowpipe.exceptions import CastingError
+
     v = nullify(v)
 
     if v is None:
@@ -226,6 +235,8 @@ def parse_time(v, header_d):
 
 
 def parse_datetime(v, header_d):
+    from rowgenerators.rowpipe.exceptions import CastingError
+
     v = nullify(v)
 
     if v is None:
@@ -342,6 +353,8 @@ def _parse_text(v, header_d):
         unicode types for py2 and str types for py3.
 
     """
+
+    from rowgenerators.rowpipe.exceptions import CastingError
 
     v = nullify(v)
 

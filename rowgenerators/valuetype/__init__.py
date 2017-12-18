@@ -7,7 +7,7 @@ the Revised BSD License, included in this distribution as LICENSE.txt
 
 """
 
-from rowgenerators.valuetype import *
+
 from .types import *
 from .core import *
 from .dimensions import *
@@ -16,8 +16,6 @@ from .measures import *
 from .other import *
 from .times import *
 from .geo import *
-
-from rowgenerators.util import memoize
 
 value_types = {
     "int": IntMeasure,
@@ -76,4 +74,3 @@ def resolve_value_type(vt_code):
 
             except KeyError:
                 pass
-

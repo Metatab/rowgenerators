@@ -110,7 +110,7 @@ Install
 Documentation
 *************
 
-See the documentation at http://appurl.readthedocs.io/
+See the documentation at http://row-generators.readthedocs.io/
 
 Development Notes
 *****************

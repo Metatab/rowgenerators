@@ -202,9 +202,6 @@ class Pipe(object):
         return self.print_header()
 
 
-
-
-
 class DatafileSourcePipe(Pipe):
     """A Source pipe that generates rows from an MPR file.  """
 

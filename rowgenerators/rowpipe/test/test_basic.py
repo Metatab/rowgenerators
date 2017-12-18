@@ -23,7 +23,7 @@ class TestBasic(unittest.TestCase):
         for c in t:
             print(c)
 
-    # NOTE. This speed test is about 23x faster running in PyPy than CPython
+    # NOTE. This speed test is about 12x to 23x faster running in PyPy than CPython!
     def test_transform(self):
 
         from rowgenerators.rowpipe import Table
@@ -45,7 +45,7 @@ class TestBasic(unittest.TestCase):
         t.add_column('i2', datatype='int', transform='^row.a')
         t.add_column('f2', datatype='float', transform='^row.b')
 
-        N = 10
+        N = 20000
 
         class Source(object):
 
@@ -63,9 +63,8 @@ class TestBasic(unittest.TestCase):
             for row in rp:
                 count += 1
                 row_sum += sum(row)
-                print(row)
 
-        self.assertEquals(495, row_sum)
+        self.assertEquals(2199890000, row_sum)
 
         print('Rate=', float(N) / t.elapsed)
 
