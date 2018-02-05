@@ -3,10 +3,7 @@
 
 """ """
 
-from os.path import normpath, join, exists
-from os import environ
-import json
-
+import sys
 from rowgenerators.exceptions import SourceError, RowGeneratorError
 from rowgenerators.source import Source
 
@@ -16,6 +13,10 @@ class PythonSource(Source):
     def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
 
         super().__init__(ref, cache, working_dir, **kwargs)
+
+        if not working_dir in sys.path:
+
+            sys.path.append(working_dir)
 
         self.env = env or {}
 

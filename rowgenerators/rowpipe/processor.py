@@ -16,7 +16,7 @@ class RowProcessor(object):
     """
     """
 
-    def __init__(self, source, dest_table, source_headers=None, env=None, code_path=None):
+    def __init__(self, source, dest_table, source_headers=None, env=None, manager=None, code_path=None):
 
         """
 
@@ -24,10 +24,12 @@ class RowProcessor(object):
         :param dest_table: Destination table
         :param source_headers:
         :param env:
+        :param env: A higher-level controller object, to be referenced from user-written transforms.
         :return:
         """
 
         self.source = source
+        self.manager = manager
         self.source_headers = source_headers if source_headers is not None else self.source.headers
         self.dest_table = dest_table
         self.code_path = code_path
@@ -37,7 +39,6 @@ class RowProcessor(object):
         if env is not None:
             self.env.update(env)
 
-        self.env['bundle'] = None
         self.env['source'] = self.source
         self.env['pipe'] = None
 
@@ -99,7 +100,6 @@ class RowProcessor(object):
         from rowgenerators import RowProxy
         self.start()
 
-        bundle = self.env['bundle']
         pipe = self.env['pipe']
 
         rp1 = RowProxy(self.source_headers) # The first processor step uses the source row structure
@@ -112,7 +112,7 @@ class RowProcessor(object):
 
                 for proc in self.procs:
                     row = proc(rp.set_row(row), i, self.errors, self.scratch, self.accumulator,
-                               pipe, bundle, self.source)
+                               pipe, self.manager, self.source)
 
                     # After the first round, the row has the destination headers.
                     rp = rp2

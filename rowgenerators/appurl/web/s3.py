@@ -20,13 +20,9 @@ class S3Url(WebUrl):
         kwargs['proto'] = 's3'
         super().__init__(url,downloader=downloader, **kwargs)
 
-
-
     @classmethod
     def _match(cls, url, **kwargs):
         return url.proto == 's3';
-
-
 
     @property
     def auth_resource_url(self):

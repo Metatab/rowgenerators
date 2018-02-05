@@ -300,6 +300,10 @@ def ensure_dir(path):
 def import_name_or_class(name):
     " Import an obect as either a fully qualified, dotted name, "
 
+    from os import getcwd
+    import sys
+
+
     if isinstance(name, str):
 
         # for "a.b.c.d" -> [ 'a.b.c', 'd' ]
@@ -308,11 +312,13 @@ def import_name_or_class(name):
         # the top level, which we have to descend into
         mod = __import__(module_name)
 
+
         components = name.split('.')
 
         for comp in components[1:]: # Already got the top level, so start at 1
-
             mod = getattr(mod, comp)
+
+
         return mod
     else:
         return name # Assume it is already the thing we want to import

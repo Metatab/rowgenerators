@@ -12,11 +12,41 @@ from rowgenerators.table import Table as RGTable
 from rowgenerators.valuetype import resolve_value_type
 
 from rowgenerators.exceptions import ConfigurationError
+from itertools import zip_longest
 
 class Table(RGTable):
 
     def add_column(self, name, datatype=None, valuetype=None, transform=None, width=None):
         self.columns.append(Column(name, datatype, width, valuetype, transform))
+
+    @property
+    def stage_transforms(self):
+        """Expanded transforms, organized as stages. Each entry is a list of one stage of transforms for all columns.
+        Each stage has an entry for every colum, even when no transform is specified for that column, either
+        setting the datatype for the first stage, or a passthrough function for any others."""
+
+        stages = list(zip_longest(*[c.expanded_transform for c in self]))
+
+        new_stages = []
+
+        columns = list(self)
+
+        for i, stage in enumerate(stages):
+            new_stage = []
+            for j, tr in enumerate(stage):
+                if tr:
+                    new_stage.append(tr)
+                elif i == 0:
+                    new_stage.append(TransformSegment(datatype=columns[j].valuetype or columns[j].datatype,
+                                                      column=columns[j]))
+                else:
+                    new_stage.append(TransformSegment(transforms=['v'], column=columns[j]))
+
+
+            new_stages.append(new_stage)
+
+        return new_stages
+
 
     def __str__(self):
         from tabulate import tabulate
@@ -25,7 +55,52 @@ class Table(RGTable):
 
         return ('Table: {}\n'.format(self.name)) + tabulate(rows, headers)
 
-    pass
+class TransformSegment(object):
+
+    def __init__(self,  init=None, datatype=None, transforms=None, exception=None, column=None):
+        self.init = init
+        self.transforms = transforms or []
+        self.datatype = datatype
+        self.exception = exception
+        self.column = column
+
+    def __getitem__(self, item):
+        return getattr(self, item)
+
+    def __setitem__(self, key, value):
+        return setattr(self, key, value)
+
+    def __iter__(self):
+        """Iterate the sequence of parts, including the init, datatype and transforms"""
+
+        if self.init:
+            yield self.init
+
+        if self.datatype:
+            yield self.datatype
+
+        yield from self.transforms
+
+    def __repr__(self):
+        fields = []
+        for f in 'init datatype transforms exception'.split():
+            if self[f]:
+                if f == 'datatype':
+                    fields.append(f'{f}={self[f].__name__}')
+                else:
+                    fields.append(f'{f}={self[f]}')
+
+        return f"<Transform {self.column.name} {' '.join(fields)} >"
+
+
+    def str(self,stage_n):
+
+        return '|'.join(e.__name__ if isinstance(e, type) else e for e in list(self))
+
+        if stage_n == 0:
+            return self.init if self.init else self.datatype.__name__
+        else:
+            return '|'.join(list(self))
 
 
 class Column(RGColumn):
@@ -52,30 +127,6 @@ class Column(RGColumn):
         super().__init__(name, self.valuetype.python_type(), width)
 
 
-    @property
-    def expanded_transform(self):
-        """Expands the transform string into segments """
-
-        segments = Column._expand_transform_to_segments(self.transform)
-
-        vt = self.valuetype if self.valuetype else self.datatype
-
-        if segments:
-
-            segments[0]['datatype'] = vt
-
-            for s in segments:
-                s['column'] = self
-
-        else:
-
-            segments = [Column.make_xform_seg(datatype=vt, column=self)]
-
-        # If we want to add the find datatype cast to a transform.
-        # segments.append(self.make_xform_seg(transforms=["cast_"+self.datatype], column=self))
-
-        return segments
-
     def __repr__(self):
         return "<Column {name} dt={datatype} vt={valuetype} {transform}>"\
                 .format(name=self.name, datatype=self.datatype.__name__, valuetype=self.valuetype.__name__,
@@ -92,31 +143,24 @@ class Column(RGColumn):
 
         )
 
-    @staticmethod
-    def make_xform_seg(init_=None, datatype=None, transforms=None, exception=None, column=None):
-        return {
-            'init': init_,
-            'transforms': transforms if transforms else [],
-            'exception': exception,
-            'datatype': datatype,
-            'column': column
-        }
+    @property
+    def expanded_transform(self):
+        """Expands the transform string into segments """
 
-    @staticmethod
-    def _expand_transform_to_segments(transform):
-
-
-        if not bool(transform):
+        if not bool(self.transform):
             return []
 
-        transform = transform.rstrip('|')
+        transform = self.transform.rstrip('|')
 
-        segments = []
+        segments = [TransformSegment(column=self, datatype = self.valuetype or self.datatype)]
+
+        exception = None
 
         for i, seg_str in enumerate(transform.split(';')):  # ';' seperates pipe stages
-            pipes = seg_str.split('|')  # eperates pipes in each stage.
 
-            d = Column.make_xform_seg()
+            pipes = seg_str.split('|')  # seperate pipes in each stage.
+
+            d = TransformSegment(column=self)
 
             for pipe in pipes:
 
@@ -124,22 +168,24 @@ class Column(RGColumn):
                     continue
 
                 if pipe[0] == '^':  # First, the initializer
-                    if d['init']:
+                    if segments[0].init:
                         raise ConfigurationError('Can only have one initializer in a pipeline segment')
                     if i != 0:
                         raise ConfigurationError('Can only have an initializer in the first pipeline segment')
-                    d['init'] = pipe[1:]
+                    segments[0].init = pipe[1:] # initializers only go on the first segment
                 elif pipe[0] == '!':  # Exception Handler
-                    if d['exception']:
+                    if exception:
                         raise ConfigurationError('Can only have one exception handler in a pipeline segment')
-                    d['exception'] = pipe[1:]
+                    exception = pipe[1:]
                 else:  # Assume before the datatype
-                    d['transforms'].append(pipe)
+                    d['transforms'].append(pipe.strip())
 
-            segments.append(d)
-
-        return segments
-
+            if d['transforms']:
+                segments.append(d)
 
 
+        # exceptions go on the last segment
+        if exception:
+            segments[-1].exception = exception
 
+        return  segments

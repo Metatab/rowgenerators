@@ -36,6 +36,7 @@ Types of path elements:
 import json
 
 def parse_path(path):
+    """Decompose a JSON structure path"""
 
     parts = []
 
@@ -56,7 +57,7 @@ def parse_path(path):
     return parts
 
 def add_to_struct(s, path, v):
-
+    """Add a value v into a complex data structure s at a given path. """
     o = s
 
     path_parts = parse_path(path)
@@ -98,6 +99,7 @@ def add_to_struct(s, path, v):
             print("G ", type, is_terminal)
 
 class VTEncoder(json.JSONEncoder):
+     """A JSON object encoder that can handle dates and times. Just converts them to strings"""
 
      def default(self, obj):
          from rowgenerators.valuetype import DateTimeVT, DateVT, TimeVT

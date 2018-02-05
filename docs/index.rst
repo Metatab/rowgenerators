@@ -23,7 +23,8 @@ Example
     from rowgenerators import  parse_app_url
     from os.path import exists
 
-    url_str = 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip#simple-example.csv'
+    url_str = 'http://public.source.civicknowledge.com/'\
+              'example.com/sources/test_data.zip#simple-example.csv'
 
     url = parse_app_url(url_str) # Parse a string to an Application url
 
