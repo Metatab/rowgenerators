@@ -39,7 +39,6 @@ col_args_t = """col_args = dict(v=v, i_s=i_s, i_d=i_d, header_s=header_s, header
 file_header = """
 # {}
 import sys
-from six import string_types
 from rowgenerators.valuetype import resolve_value_type
 from rowgenerators.rowpipe.exceptions import CasterExceptionError
 """.format(file_loc())

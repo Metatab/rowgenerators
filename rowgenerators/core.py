@@ -109,7 +109,7 @@ class SelectiveRowGenerator(object):
     @property
     def coalesce_headers(self):
         """Collects headers that are spread across multiple lines into a single row"""
-        from six import text_type
+
         import re
 
         if not self.headers:
@@ -128,13 +128,13 @@ class SelectiveRowGenerator(object):
         for hl in header_lines:
             last = None
             for i in range(len(hl)):
-                hli = text_type(hl[i])
+                hli = str(hl[i])
                 if not hli.strip():
                     hl[i] = last
                 else:
                     last = hli
 
-        headers = [' '.join(text_type(col_val).strip() if col_val else '' for col_val in col_set)
+        headers = [' '.join(str(col_val).strip() if col_val else '' for col_val in col_set)
                    for col_set in zip(*header_lines)]
 
         headers = [re.sub(r'\s+', ' ', h.strip()) for h in headers]

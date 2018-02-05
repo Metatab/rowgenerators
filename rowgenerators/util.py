@@ -4,19 +4,9 @@ Copyright (c) 2015 Civic Knowledge. This file is licensed under the terms of the
 Revised BSD License, included in this distribution as LICENSE.txt
 """
 
-import collections
-import datetime
-import os
-import re
-import unicodedata
 from functools import wraps
 from os.path import basename
 from os.path import join
-
-from six import string_types
-from six import text_type
-from urllib.parse import urljoin, urlparse, quote_plus, unquote_plus, ParseResult
-from urllib.request import pathname2url
 
 from rowgenerators import get_cache, clean_cache, nuke_cache
 
@@ -68,8 +58,8 @@ def slugify(value):
     """
     import re
     import unicodedata
-    from six import text_type
-    value = text_type(value)
+
+    value = str(value)
     value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('utf8').strip().lower()
     value = re.sub(r'[^\w\s\-\.]', '', value)
     value = re.sub(r'[-\s]+', '-', value)

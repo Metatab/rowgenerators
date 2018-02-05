@@ -143,6 +143,7 @@ class Url(object):
     end = None  # end line for data
 
     match_priority = 100
+    match_proto = None
 
     downloader = None
 
@@ -578,7 +579,10 @@ class Url(object):
     @classmethod
     def _match(cls, url, **kwargs):
         """Return True if this handler can handle the input URL"""
-        return True;  # raise NotImplementedError("Match is not implemented for class '{}' ".format(str(cls)))
+        if cls.match_proto:
+            return url.proto == cls.match_proto
+        else:
+            return True;  # raise NotImplementedError("Match is not implemented for class '{}' ".format(str(cls)))
 
 
     #

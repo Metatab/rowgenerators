@@ -7,7 +7,7 @@ the Revised BSD License, included in this distribution as LICENSE.txt
 
 import datetime
 import dateutil.parser as dp
-import six
+
 from .measures import IntValue, FloatValue, DateValue
 
 
@@ -18,22 +18,14 @@ class NullValue(Exception):
 
 def transform_generator(fn):
     """A decorator that marks transform pipes that should be called to create the real transform"""
-    if six.PY2:
-        fn.func_dict['is_transform_generator'] = True
-    else:
-        # py3
-        fn.__dict__['is_transform_generator'] = True
+    fn.__dict__['is_transform_generator'] = True
     return fn
 
 
 def is_transform_generator(fn):
     """Return true of the function has been marked with @transform_generator"""
     try:
-        if six.PY2:
-            fn.func_dict['is_transform_generator'] = True
-        else:
-            # py3
-            return fn.__dict__.get('is_transform_generator', False)
+        return fn.__dict__.get('is_transform_generator', False)
     except AttributeError:
         return False
 
@@ -45,7 +37,7 @@ def row_number(row_n):
 def nullify(v):
     """Convert empty strings and strings with only spaces to None values. """
 
-    if isinstance(v, six.string_types):
+    if isinstance(v, str):
         v = v.strip()
 
     if v is None or v == '':
@@ -165,11 +157,7 @@ def parse_str(v, header_d):
     if v is None:
         return None
 
-    if six.PY2:
-        return _parse_binary(v, header_d)
-    else:
-        # py3
-        return _parse_text(v, header_d)
+    return _parse_text(v, header_d)
 
 
 def parse_bytes(v, header_d):
@@ -202,7 +190,7 @@ def parse_date(v, header_d):
     if v is None:
         return None
 
-    if isinstance(v, six.string_types):
+    if isinstance(v, str):
         try:
             return dp.parse(v).date()
         except (ValueError, TypeError) as e:
@@ -222,7 +210,7 @@ def parse_time(v, header_d):
     if v is None:
         return None
 
-    if isinstance(v, six.string_types):
+    if isinstance(v, str):
         try:
             return dp.parse(v).time()
         except ValueError as e:
@@ -242,7 +230,7 @@ def parse_datetime(v, header_d):
     if v is None:
         return None
 
-    if isinstance(v, six.string_types):
+    if isinstance(v, str):
         try:
             return dp.parse(v)
         except (ValueError, TypeError) as e:
@@ -362,9 +350,9 @@ def _parse_text(v, header_d):
         return None
 
     try:
-        return six.text_type(v).strip()
+        return str(v).strip()
     except Exception as e:
-        raise CastingError(six.text_type, header_d, v, str(e))
+        raise CastingError(str, header_d, v, str(e))
 
 
 def _parse_binary(v, header_d):
@@ -382,17 +370,10 @@ def _parse_binary(v, header_d):
     if v is None:
         return None
 
-    if six.PY2:
-        try:
-            return six.binary_type(v).strip()
-        except UnicodeEncodeError:
-            return six.text_type(v).strip()
-    else:
-        # py3
-        try:
-            return six.binary_type(v, 'utf-8').strip()
-        except UnicodeEncodeError:
-            return six.text_type(v).strip()
+    try:
+        return bytes(v, 'utf-8').strip()
+    except UnicodeEncodeError:
+        return str(v).strip()
 
 
 def excel_dt_1900(v):

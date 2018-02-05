@@ -54,7 +54,7 @@ setup(
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',
-            'appurl=rowgenerators.cli:appurl'
+            'appurl=rowgenerators.appurl.cli:appurl'
         ],
 
         'rowgenerators': [
@@ -91,6 +91,9 @@ setup(
 
             "shape+ = rowgenerators.appurl.file.shapefile:ShapefileUrl",
             "gs: = rowgenerators.appurl.web.google:GoogleSpreadsheetUrl",
+
+            #Sql Alchemy
+            "oracle: = rowgenerators.appurl.sql:OracleSql",
         ]
 
     },

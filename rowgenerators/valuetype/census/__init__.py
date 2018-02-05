@@ -13,8 +13,6 @@ import geoid.acs
 import geoid.civick
 import geoid.tiger
 
-import six
-
 from .. import TextValue, ValueType
 
 
@@ -41,7 +39,7 @@ class Geoid(ValueType):
     def parse(cls,  v):
         """Parse a value of this type and return a list of parsed values"""
 
-        if not isinstance(v, six.string_types):
+        if not isinstance(v, str):
             raise ValueError('Value must be a string')
 
         return

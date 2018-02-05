@@ -12,13 +12,13 @@ class DictRowGenerator(object):
         self._rg = rg
 
     def __iter__(self):
-        from six import text_type
+
 
         headers = None
 
         for row in self._rg:
             if not headers:
-                headers = [text_type(e).strip() for e in row]
+                headers = [str(e).strip() for e in row]
                 continue
 
             yield dict(zip(headers, row))

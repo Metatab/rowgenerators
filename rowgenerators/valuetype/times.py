@@ -9,7 +9,7 @@ the Revised BSD License, included in this distribution as LICENSE.txt
 from .core import *
 import re
 from datetime import date, time, datetime
-
+from  dateutil.parser import parse
 
 def cast_date(v, header_d, errors):
     if v is None or v is NoneValue or v == '':
@@ -18,6 +18,8 @@ def cast_date(v, header_d, errors):
         return v
     elif isinstance(v, ValueType):
         return v.__date__()
+    elif isinstance(v, str):
+        return parse(v).date
 
     errors[header_d].add(u"Failed to cast '{}' ({}) to date in '{}': {}".format(v, type(v), header_d, v.exc))
     count_errors(errors)
@@ -25,15 +27,21 @@ def cast_date(v, header_d, errors):
 
 
 def cast_datetime(v, header_d, errors):
+
     if v is None or v is NoneValue or v == '':
         return None
     elif isinstance(v, datetime):
         return v
     elif isinstance(v, ValueType):
         return v.__datetime__()
+    elif isinstance(v, str):
+        return parse(v)
+    elif isinstance(v, Exception):
+        errors[header_d].add(u"Failed to cast '{}' ({}) to datetime in '{}': {}".format(v, type(v), header_d, v.exc))
+        count_errors(errors)
+    else:
+        raise Exception(f"Unknown value! type={type(v)} value={v}")
 
-    errors[header_d].add(u"Failed to cast '{}' ({}) to datetime in '{}': {}".format(v, type(v), header_d, v.exc))
-    count_errors(errors)
     return None
 
 
@@ -44,6 +52,8 @@ def cast_time(v, header_d, errors):
         return v
     elif isinstance(v, ValueType):
         return v.__time__()
+    elif isinstance(v, str):
+        return parse(v).time
 
     errors[header_d].add(u"Failed to cast '{}' ({}) to time in '{}': {}".format(v, type(v), header_d, v.exc))
     count_errors(errors)

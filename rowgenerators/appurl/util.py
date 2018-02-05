@@ -5,12 +5,10 @@
 """ """
 
 import re
+import os
 from os import makedirs
 from os.path import isdir, dirname, splitext, exists
 from urllib.parse import unquote_plus, ParseResult, urlparse, quote_plus, parse_qs, urlencode, unquote
-
-from six import text_type
-
 
 
 def path2url(path):
@@ -32,7 +30,7 @@ def parse_url_to_dict(url, assume_localhost=False):
 
     assert url is not None
 
-    url = text_type(url)
+    url = str(url)
 
     if re.match(r'^[a-zA-Z]:', url):
         url = path2url(url)

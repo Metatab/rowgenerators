@@ -1693,7 +1693,7 @@ class SelectPartition(Pipe):
         # Under the theory that removing an if is faster.
         if select_f:
 
-            if not six.callable(select_f):
+            if not callable(select_f):
                 self._code = 'lambda pipe, bundle, source, row: {}'.format(select_f)
                 select_f = eval(self._code)
             else:
@@ -2342,10 +2342,11 @@ def _to_ascii(s):
         str:
     """
     # TODO: Always use unicode within ambry.
-    from six import text_type, binary_type
-    if isinstance(s, text_type):
+
+
+    if isinstance(s, str):
         ascii_ = s.encode('ascii', 'ignore')
-    elif isinstance(s, binary_type):
+    elif isinstance(s, bytes):
         ascii_ = s.decode('utf-8').encode('ascii', 'ignore')
     else:
         raise Exception('Unknown text type - {}'.format(type(s)))

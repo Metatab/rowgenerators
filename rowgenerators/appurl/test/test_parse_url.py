@@ -116,6 +116,16 @@ class TestUrlParse(unittest.TestCase):
 
         self.assertEqual(45, sum(list(g)))
 
+    def test_sql_url(self):
+
+        url = """oracle://coredev:$(CREATIONS_PW)@creations.bc.edu:1521/SISCNV#"FINAID"."COMMENTS_TEXT_LINE_RECORD" """
+
+        u = parse_app_url(url)
+
+        print(type(u), u.dict)
+        print(u.dsn)
+
+
 
 if __name__ == '__main__':
     unittest.main()

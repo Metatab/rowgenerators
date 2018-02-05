@@ -11,7 +11,6 @@ import geoid.acs
 import geoid.census
 import geoid.civick
 import geoid.tiger
-from six import string_types
 
 from rowgenerators.valuetype import (FailedValue, GeoMixin, IntDimension, FloatDimension, LabelValue, ROLE,
                                      NoneValue, ValueType, LOM)
@@ -34,7 +33,7 @@ class Geoid(StrDimension, GeoMixin):
 
         v = args[0]
 
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
         if isinstance(v, geoid.core.Geoid):

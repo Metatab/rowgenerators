@@ -11,9 +11,6 @@ from datetime import date, time, datetime
 
 from decorator import decorator
 from rowgenerators.util import Constant, memoize
-from six import string_types
-from six import text_type, PY3
-
 
 
 ROLE = Constant()
@@ -81,7 +78,7 @@ class LabelMixin(object):
 class ValueType(object):
     role = ROLE.UNKNOWN
     low = LOM.UNKNOWN
-    _pythontype = text_type
+    _pythontype = str
     desc = ''
 
     def raise_for_error(self):
@@ -242,7 +239,7 @@ def cast_long(v, header_d, errors):
         return None
     else:
         try:
-            return long(v)
+            return int(v)
         except Exception as e:
             errors[header_d].add(u"Failed to cast '{}' ( {} ) to long in '{}': {}".format(v, type(v), header_d, e))
             count_errors(errors)
@@ -320,8 +317,8 @@ class StrValue(str, ValueType):
             return FailedValue(v, e)
 
 
-class TextValue(text_type, ValueType):
-    _pythontype = text_type
+class TextValue(str, ValueType):
+    _pythontype = str
     desc = 'Text String'
     vt_code = 'text'
     low = LOM.NOMINAL
@@ -332,7 +329,7 @@ class TextValue(text_type, ValueType):
             return NoneValue
 
         try:
-            return text_type.__new__(cls, v)
+            return str.__new__(cls, v)
         except Exception as e:
             return FailedValue(v, e)
 
@@ -356,17 +353,14 @@ class IntValue(int, ValueType):
             return FailedValue(v, e)
 
 
-if PY3:
-    long = int
-
-class LongValue(long, ValueType):
-    _pythontype = long
+class LongValue(int, ValueType):
+    _pythontype = int
     desc = 'Long'
     vt_code = 'long'
 
     def __new__(cls, v):
         try:
-            return long.__new__(cls, v)
+            return int.__new__(cls, v)
         except Exception as e:
 
             if v is None or v is NoneValue or v == '':
@@ -402,7 +396,7 @@ class DateValue(date, ValueType):
     def __new__(cls, v):
         from dateutil import parser
 
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
         try:
@@ -429,7 +423,7 @@ class TimeValue(time, ValueType):
     def __new__(cls, v):
         from dateutil import parser
 
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
         try:
@@ -456,7 +450,7 @@ class DateTimeValue(datetime, ValueType):
     def __new__(cls, v):
         from dateutil import parser
 
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
         try:

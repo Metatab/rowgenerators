@@ -15,7 +15,7 @@ from urllib.request import urlopen
 from fs.errors import DirectoryExpected, NoSysPath, ResourceInvalid, DirectoryExists
 from requests import HTTPError
 from requests.exceptions import SSLError
-from six import string_types
+
 
 from rowgenerators.appurl.util import parse_url_to_dict, copy_file_or_flo
 from rowgenerators.appurl.url import Url
@@ -149,7 +149,7 @@ class Downloader(object):
         :return:
         """
 
-        assert isinstance(url, string_types)
+        assert isinstance(url, str)
 
         url = url.replace('\\', '/')
 
