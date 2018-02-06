@@ -4,6 +4,7 @@
 """Appurls or sql databases"""
 
 from rowgenerators.appurl import Url
+from rowgenerators.exceptions import SourceError, RowGeneratorError
 
 class Sql(Url):
 
@@ -22,6 +23,12 @@ class Sql(Url):
 
         super().__init__(url,downloader=downloader, **kwargs)
 
+    def get_resource(self):
+        return self
+
+    def get_target(self):
+        return self
+
     @property
     def dsn(self):
         """Return a database connection string. The string will have values interpolated from
@@ -30,15 +37,24 @@ class Sql(Url):
         import os
 
         u = self.clone()
-        u.password = u.password.format(**os.environ)
         u.fragment = []
+        try:
+            u.password = u.password.format(**os.environ)
+        except KeyError:
+            raise RowGeneratorError(f"Failed to set password from environment variable in connection string '{str(u)}' ")
 
         return str(u)
 
+    @property
+    def sql(self):
+        """Return the query, which is embedded in the fragment"""
 
+        return self._fragment[0]
 
 
 class OracleSql(Sql):
+
+    generator_class = Sql
 
     @classmethod
     def _match(cls, url, **kwargs):

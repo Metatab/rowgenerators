@@ -7,7 +7,7 @@ import sys
 from rowgenerators.exceptions import SourceError, RowGeneratorError
 from rowgenerators.source import Source
 
-class PythonSource(Source):
+class SqlSource(Source):
     """Generate rows from a callable object. Takes kwargs from the spec to pass into the program. """
 
     def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
@@ -22,11 +22,16 @@ class PythonSource(Source):
 
         self.kwargs = kwargs
 
-
     def __iter__(self):
-        try:
-            yield from self.ref(env=self.env, cache=self.cache, **self.kwargs)
-        except TypeError as e:
-            # call to Python Url has wrong signature
 
-            raise RowGeneratorError(str(e))
+        from sqlalchemy import create_engine
+
+        engine = create_engine(self.ref.dsn)
+        connection = engine.connect()
+
+        r = connection.execute("SELECT * FROM "+self.ref.sql)
+
+        yield r.keys()
+
+        yield from r
+

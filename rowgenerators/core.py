@@ -58,6 +58,13 @@ def get_generator(source, **kwargs):
         except AttributeError:
             pass
 
+        try:
+            if ref.generator_class:
+                names.append('<{}>'.format(ref.generator_class.__name__))
+        except AttributeError:
+            pass
+
+
 
     else:
         raise RowGeneratorError("Unknown arg type for source: '{}'".format(type(source)))
@@ -67,8 +74,9 @@ def get_generator(source, **kwargs):
 
 
     if not classes:
-        raise RowGeneratorError("Can't find generator for source '{}' \nproto={}, resource_format={}, target_format={} "
-                                 .format(source, ref.proto, ref.resource_format, ref.target_format))
+        raise RowGeneratorError(("Can't find generator for source '{}' \nproto={}, "
+                                  "resource_format={}, target_format={}, names={} ")
+                                 .format(source, ref.proto, ref.resource_format, ref.target_format, names))
 
     try:
         return classes[0](ref, **kwargs)

@@ -101,10 +101,16 @@ def unparse_url_dict(d, **kwargs):
     if '_fragment' in d and 'fragment' not in d:
         d['fragment'] = d['_fragment']
 
-    if 'netloc' in d and d['netloc']:
-        host_port = d['netloc']
+
+    # Using netloc preserves case for the host, which the host value does not do,
+    # but netloc also will have the username, password and port in it
+    if '@' not in d['netloc'] and ':' not in d['netloc']:
+        if 'netloc' in d and d['netloc']:
+            host_port = d['netloc']
+        else:
+            host_port = ''
     else:
-        host_port = ''
+        host_port = d['hostname']
 
     if 'port' in d and d['port']:
         host_port += ':' + str(d['port'])

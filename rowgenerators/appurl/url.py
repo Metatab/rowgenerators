@@ -144,6 +144,7 @@ class Url(object):
 
     match_priority = 100
     match_proto = None
+    generator_class = None # If set, generators match with name = <{generator_class}>
 
     downloader = None
 

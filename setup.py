@@ -69,6 +69,7 @@ setup(
             ".shp = rowgenerators.generator.shapefile:ShapefileSource",
             "python: = rowgenerators.generator.python:PythonSource",
             "fixed+ = rowgenerators.generator.fixed:FixedSource",
+            "<Sql> = rowgenerators.generator.sql:SqlSource",
         ],
         'appurl.urls': [
             "* = rowgenerators.appurl.url:Url",

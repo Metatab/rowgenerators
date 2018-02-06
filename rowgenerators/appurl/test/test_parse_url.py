@@ -118,14 +118,16 @@ class TestUrlParse(unittest.TestCase):
 
     def test_sql_url(self):
 
-        url = """oracle://coredev:$(CREATIONS_PW)@creations.bc.edu:1521/SISCNV#"FINAID"."COMMENTS_TEXT_LINE_RECORD" """
+        url = """oracle://coredev:{CREATIONS_PW}@creations.bc.edu:1521/SISCNV#"FINAID"."COMMENTS_TEXT_LINE_RECORD" """
 
         u = parse_app_url(url)
 
-        print(type(u), u.dict)
-        print(u.dsn)
+        g = u.generator
 
+        print(type(g), g)
 
+        for row in g:
+            print(row)
 
 if __name__ == '__main__':
     unittest.main()
