@@ -95,6 +95,7 @@ setup(
 
             #Sql Alchemy
             "oracle: = rowgenerators.appurl.sql:OracleSql",
+            "sql: = rowgenerators.appurl.sql:SqlDsn",
         ]
 
     },

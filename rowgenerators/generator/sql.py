@@ -29,7 +29,9 @@ class SqlSource(Source):
         engine = create_engine(self.ref.dsn)
         connection = engine.connect()
 
-        r = connection.execute("SELECT * FROM "+self.ref.sql)
+        #print("!!!!", self.ref.sql)
+
+        r = connection.execute(self.ref.sql)
 
         yield r.keys()
 

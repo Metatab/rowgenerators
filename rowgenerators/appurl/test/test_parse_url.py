@@ -126,8 +126,16 @@ class TestUrlParse(unittest.TestCase):
 
         print(type(g), g)
 
-        for row in g:
-            print(row)
+        dsn_url = "oracle://coredev:{CREATIONS_PW}@creations.bc.edu:1521/SISCNV"
+
+        url = 'sql://creations#sql://creations#SELECT * FROM  "FINAID"."COMMENTS_TEXT_LINE_RECORD"'
+
+        dsn_dict = { 'creations' : dsn_url}
+
+        u = parse_app_url(url, dsns=dsn_dict).get_resource().get_target()
+
+        print(type(u), u)
+
 
 if __name__ == '__main__':
     unittest.main()
