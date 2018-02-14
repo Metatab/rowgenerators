@@ -147,10 +147,7 @@ class Column(RGColumn):
     def expanded_transform(self):
         """Expands the transform string into segments """
 
-        if not bool(self.transform):
-            return []
-
-        transform = self.transform.rstrip('|')
+        transform = self.transform.rstrip('|') if  self.transform else ''
 
         # First segment is a transformation to the datatype
         segments = [TransformSegment(column=self, datatype = self.valuetype or self.datatype)]
