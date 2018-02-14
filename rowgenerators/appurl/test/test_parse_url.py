@@ -137,5 +137,20 @@ class TestUrlParse(unittest.TestCase):
         print(type(u), u)
 
 
+    def test_interpolate(self):
+
+        from rowgenerators.appurl import Downloader
+
+        Downloader.context = {
+            'PASSWORD' : 'correcthorse',
+            'HOST': 'sajak'
+        }
+
+        u = parse_app_url('http://user:{PASSWORD}@{HOST}/foo/bar')
+
+        print(u.interpolate())
+
+
+
 if __name__ == '__main__':
     unittest.main()
