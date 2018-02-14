@@ -152,6 +152,7 @@ class Column(RGColumn):
 
         transform = self.transform.rstrip('|')
 
+        # First segment is a transformation to the datatype
         segments = [TransformSegment(column=self, datatype = self.valuetype or self.datatype)]
 
         exception = None
@@ -174,18 +175,13 @@ class Column(RGColumn):
                         raise ConfigurationError('Can only have an initializer in the first pipeline segment')
                     segments[0].init = pipe[1:] # initializers only go on the first segment
                 elif pipe[0] == '!':  # Exception Handler
-                    if exception:
-                        raise ConfigurationError('Can only have one exception handler in a pipeline segment')
-                    exception = pipe[1:]
+                    d.exception = pipe[1:]
                 else:  # Assume before the datatype
                     d['transforms'].append(pipe.strip())
 
-            if d['transforms']:
+            if d['transforms'] or d.exception:
                 segments.append(d)
 
 
-        # exceptions go on the last segment
-        if exception:
-            segments[-1].exception = exception
 
         return  segments

@@ -154,6 +154,18 @@ class TestBasic(unittest.TestCase):
 
         print("Code: ", rp.code_path)
 
+        headers = rp.headers
+
+        for row in rp:
+
+            d = dict(zip(headers, row))
+
+            self.assertEqual(d['a'], d['v1'], d)
+            self.assertEqual(2 * d['a'], d['v2'], d)
+            self.assertEqual(2 * d['a'], d['v3'], d)
+            self.assertEqual(4 * d['a'], d['v4'], d)
+            self.assertEqual(4 * d['a'], d['v5'], d)
+
         count = 0
         row_sum = 0
         with Timer() as t:
@@ -163,7 +175,7 @@ class TestBasic(unittest.TestCase):
                 row_sum += round(sum(row[:6]))
 
 
-        self.assertEqual(2799860000, row_sum)
+        self.assertEqual(2199890000, row_sum)
 
         print('Rate=', float(N) / t.elapsed)
 

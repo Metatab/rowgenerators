@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.7.14",
+    version="0.7.15",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -45,7 +45,8 @@ setup(
         'python-dateutil',
         'requests',
         'tabulate',
-        'xlrd'
+        'xlrd',
+        'aniso8601'
     ],
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']

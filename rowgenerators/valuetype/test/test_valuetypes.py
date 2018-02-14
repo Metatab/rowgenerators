@@ -10,22 +10,25 @@ from rowgenerators.exceptions import ConfigurationError
 
 def ct(t):
 
-    segs = Column._expand_transform_to_segments(t)
+    col = Column('name', datatype='str',  transform=t)
+
+    segs = col.expanded_transform
 
     o = []
 
     for seg in segs:
 
+
         seg_str = []
 
-        if 'init' in seg and seg['init']:
-            seg_str.append('^' + seg['init'])
+        if seg.init:
+            seg_str.append('^' + seg.init)
 
-        if 'transforms' in seg:
-            seg_str += seg['transforms']
+        if seg.transforms:
+            seg_str += seg.transforms
 
-        if 'exception' in seg and seg['exception']:
-            seg_str.append('!' + seg['exception'])
+        if seg.exception:
+            seg_str.append('!' + seg.exception)
 
         o.append('|'.join(seg_str))
 
@@ -36,37 +39,27 @@ class Test(unittest.TestCase):
     def test_clean_transform(self):
 
 
+        self.assertEqual('^init;t1|t2|t3|t4|!except',
+                         ct('^init;t1|t2|t3|t4|!except'))
 
-        self.assertEqual('^init|t1|t2|t3|t4|!except',
-                         ct('!except|t1|t2|t3|t4|^init'))
+        self.assertEqual('^init;t1|t2|t3|t4|!except1;t1|t2|t3|t4|!except2',
+                         ct('t1|^init|t2|!except1|t3|t4;t1|t2|!except2|t3|t4'))
 
-        self.assertEqual('^init|t1|t2|t3|t4|!except;t1|t2|t3|t4|!except',
-                         ct('t1|^init|t2|!except|t3|t4;t1|t2|!except|t3|t4'))
-
-        self.assertEqual('^init|t1|t2|t3|t4|!except;t4',
+        self.assertEqual('^init;t1|t2|t3|t4|!except;t4',
                          ct('t1|^init|t2|!except|t3|t4;t4'))
 
-        self.assertEqual('^init|t1|t2|t3|t4|!except;;',
+        self.assertEqual('^init;t1|t2|t3|t4|!except',
                          ct('t1|^init|t2|!except|t3|t4;;'))
 
-        self.assertEqual('^init|t1|t2|t3|t4|!except;;',
+        self.assertEqual('^init;t1|t2|t3|t4|!except',
                          ct('|t1|^init|t2|!except|t3|t4;;'))
 
         self.assertEqual('^init', ct('^init'))
 
-        self.assertEqual('!except', ct('!except'))
+        self.assertEqual(';!except', ct('!except'))
 
         self.assertEqual(ct(';transform2'), ';transform2')
 
-        with self.assertRaises(ConfigurationError):  # Init in second  segment
-            try:
-                ct('t1|^init|t2|!except|t3|t4;t1|^init|t2|!except|t3|t4')
-            except Exception as e:
-                print(type(e))
-                raise
-
-        with self.assertRaises(ConfigurationError):  # Two excepts in a segment
-            ct('t1|^init|t2|!except|t3|t4||!except1|!except2')
 
         with self.assertRaises(ConfigurationError):  # Two inits in a segment
             ct('t1|^init|t2|^init|!except|t3|t4')
@@ -75,8 +68,8 @@ class Test(unittest.TestCase):
 
         c.transform = 't1|^init|t2|!except|t3|t4'
 
-        self.assertEqual(['init'], [e['init'] for e in c.expanded_transform])
-        self.assertEqual([['t1', 't2', 't3', 't4']], [e['transforms'] for e in c.expanded_transform])
+        #self.assertEqual(['init'], [e['init'] for e in c.expanded_transform])
+        #self.assertEqual([['t1', 't2', 't3', 't4']], [e['transforms'] for e in c.expanded_transform])
 
     def test_raceeth(self):
 
@@ -118,37 +111,37 @@ class Test(unittest.TestCase):
 
         self.assertEqual('1981-04-05/1981-03-06',str(IntervalIsoVT('P1M/1981-04-05')))
 
-        self.assertEquals(4, DateValue('1981-04-05').month)
+        self.assertEqual(4, DateValue('1981-04-05').month)
 
-        self.assertEquals(34,TimeValue('12:34').minute)
+        self.assertEqual(34,TimeValue('12:34').minute)
 
         i = resolve_value_type('interval')('2000-2001')
         i.raise_for_error()
-        self.assertEquals(2000, i.start.year)
-        self.assertEquals(2001, i.end.year)
+        self.assertEqual(2000, i.start.year)
+        self.assertEqual(2001, i.end.year)
 
         i = resolve_value_type('interval')('2000')
         i.raise_for_error()
-        self.assertEquals(2000, i.start.year)
-        self.assertEquals(2001, i.end.year)
+        self.assertEqual(2000, i.start.year)
+        self.assertEqual(2001, i.end.year)
 
         i = resolve_value_type('interval')(2000)
         i.raise_for_error()
-        self.assertEquals(2000, i.start.year)
-        self.assertEquals(2001, i.end.year)
+        self.assertEqual(2000, i.start.year)
+        self.assertEqual(2001, i.end.year)
 
         i = resolve_value_type('interval')(' 2000 ')
         i.raise_for_error()
-        self.assertEquals(2000, i.start.year)
-        self.assertEquals(2001, i.end.year)
+        self.assertEqual(2000, i.start.year)
+        self.assertEqual(2001, i.end.year)
 
         with self.assertRaises(ValueError):
             i = resolve_value_type('interval')(' foobar ')
 
         i = resolve_value_type('interval')(2010.0)
         i.raise_for_error()
-        self.assertEquals(2010, i.start.year)
-        self.assertEquals(2011, i.end.year)
+        self.assertEqual(2010, i.start.year)
+        self.assertEqual(2011, i.end.year)
 
 
     def test_geo(self):
@@ -176,9 +169,9 @@ class Test(unittest.TestCase):
 
         self.assertEqual(402600, cls('06001402600').tract)
 
-        self.assertEquals('4026.00', cls('06001402600').dotted)
+        self.assertEqual('4026.00', cls('06001402600').dotted)
 
-        self.assertEquals('4002.00',cast_unicode(cls('06001400200').dotted, 'tract', {}))
+        self.assertEqual('4002.00',cast_unicode(cls('06001400200').dotted, 'tract', {}))
 
     def test_numbers(self):
         from collections import defaultdict
@@ -245,11 +238,11 @@ class Test(unittest.TestCase):
         print(t)
         self.assertIsNotNone(t)
         self.assertEqual(vt.ConfidenceIntervalHalfVT, resolve_value_type('ci'))
-        self.assertEquals(12.34, float(t(12.34)))
+        self.assertEqual(12.34, float(t(12.34)))
         self.assertEqual('ci/u/95', t(12.34).vt_code)
 
         t = resolve_value_type('margin/90')
-        self.assertEquals(12.34, float(t(12.34)))
+        self.assertEqual(12.34, float(t(12.34)))
         self.assertEqual('margin/90', t(12.34).vt_code)
 
         self.assertAlmostEqual(10.0, resolve_value_type('margin/90')(16.45).se)

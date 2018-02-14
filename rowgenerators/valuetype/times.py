@@ -95,7 +95,7 @@ class YearValue(IntValue, TimeMixin):
     year_re = re.compile(r'^(\d{4})$')
 
     def __new__(cls, v):
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
         return IntValue.__new__(cls, v)
@@ -130,7 +130,7 @@ class YearRangeValue(StrDimension, TimeMixin):
 
     def __new__(cls, v):
 
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
         o = StrValue.__new__(cls, v)
@@ -140,7 +140,7 @@ class YearRangeValue(StrDimension, TimeMixin):
             o.y2 = v + 1
             return o
 
-        if isinstance(v, string_types):
+        if isinstance(v, str):
             v = v.strip()
 
         m = YearValue.year_re.match(v)
@@ -183,7 +183,7 @@ class IntervalValue(StrDimension, TimeMixin):
 
     def __new__(cls, v):
 
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
         # P1Y1D: This is probably
@@ -191,7 +191,7 @@ class IntervalValue(StrDimension, TimeMixin):
         if isinstance(v, (int, float)):
             return IntervalIsoVT('{}/{}'.format(int(v), int(v) + 1))
 
-        if isinstance(v, string_types):
+        if isinstance(v, str):
             v = v.strip()
 
         m = YearValue.year_re.match(v)
@@ -218,7 +218,7 @@ class IntervalIsoVT(StrValue, TimeMixin):
     def __new__(cls, *args, **kwargs):
         v = args[0]
 
-        if v is None or (isinstance(v, string_types) and v.strip() == ''):
+        if v is None or (isinstance(v, str) and v.strip() == ''):
             return None
 
         return StrValue.__new__(cls, *args, **kwargs)
