@@ -384,6 +384,15 @@ class Url(object):
         return d
 
 
+    def interpolate(self):
+        """Use the Downloader.context to interpolate format strings in the URL. Re-parses the URL,
+         returning a new URL"""
+
+        try:
+            return parse_app_url( str(self).format(**self.downloader.context), downloader=self.downloader)
+        except KeyError as e:
+            raise AppUrlError(f"Failed to interpolate '{str(self)}'; context is {self.downloader.context}. Missing key: {e} ")
+
     def clone(self, **kwargs):
         """
         Return a clone of this Url, popssibly with some arguments replaced.
