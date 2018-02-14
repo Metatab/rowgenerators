@@ -59,6 +59,8 @@ class Downloader(object):
     and storing the downloaded object in a cache. Since they are the primary interface to the file cache,
     all Urls object have a link to a Downloader """
 
+    context = {} # A variable substitution context, for substituting hostnames, pathnames, etc
+
     def __init__(self, cache=None, account_accessor=None, logger=None,
                  working_dir='', callback=None):
         """
