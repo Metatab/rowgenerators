@@ -77,11 +77,21 @@ def parse_url_to_dict(url, assume_localhost=False):
     else:
         frag_sub_parts = [None, None]
 
+    # Urlparse converts the hostname to lowercase, which we'd prefer it not do when the
+    # hostname is specified as an interpoation string.
+    # Note that this will only work if the hostname is entirely uppercase, and will fail if
+    # it is mixed case.
+
+    if p.hostname and (p.hostname[0] == '{' and p.hostname[-1] == '}' and p.hostname.upper() in url):
+        p_hostname = p.hostname.upper()
+    else:
+        p_hostname = p.hostname
+
     return {
         'scheme': scheme,
         'scheme_extension': scheme_extension,
         'netloc': p.netloc,
-        'hostname': p.hostname,
+        'hostname': p_hostname,
         'path': p.path,
         'params': p.params,
         'query': p.query,
