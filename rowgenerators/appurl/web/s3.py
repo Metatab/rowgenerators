@@ -79,6 +79,10 @@ class S3Url(WebUrl):
 
         return s3.Object(self.bucket_name, self.key)
 
+    def list(self):
+        raise NotImplementedError()
+
+
     @property
     def signed_resource_url(self):
         import boto3

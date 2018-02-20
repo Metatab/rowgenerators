@@ -264,6 +264,7 @@ def get_cache(cache_name=DEFAULT_CACHE_NAME, clean=False):
     from fs.errors import CreateFailed
     import os
 
+    # If the environmental variable for the cache is set, change the cache directory.
     env_var = (cache_name+'_cache').upper()
 
     cache_dir = os.getenv(env_var, None)

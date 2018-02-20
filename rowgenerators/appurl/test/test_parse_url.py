@@ -2,8 +2,12 @@ from __future__ import print_function
 
 import unittest
 
+
+
 from rowgenerators.appurl.url import parse_app_url
+
 from rowgenerators.appurl.web.download import Downloader
+
 
 
 class TestUrlParse(unittest.TestCase):

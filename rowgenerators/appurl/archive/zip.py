@@ -10,7 +10,7 @@ from rowgenerators.appurl.file import FileUrl
 from rowgenerators.exceptions import AppUrlError
 from zipfile import ZipFile
 import io
-from os.path import join, dirname
+from os.path import join, dirname, abspath
 from rowgenerators.appurl.util import copy_file_or_flo, ensure_dir
 
 class ZipUrlError(AppUrlError):
@@ -35,7 +35,7 @@ class ZipUrl(FileUrl):
     def target_file(self):
         """
         Returns the target file, which is usually stored in the first slot in the ``fragment``,
-        but may have been overridded with a ``fragment_query``.
+        but may have been overridden with a ``fragment_query``.
 
         :return:
         """
@@ -75,7 +75,17 @@ class ZipUrl(FileUrl):
 
     @property
     def zip_dir(self):
-        return self.path+'_d'
+        """Directory that files will be extracted to"""
+
+        cache_dir = self.downloader.cache.getsyspath('/')
+        target_path = abspath(self.path)
+
+        if target_path.startswith(cache_dir): # Case when file is already in cache
+            return self.path + '_d'
+        else: # file is not in cache.
+            return self.downloader.cache.getsyspath(target_path.lstrip('/'))
+
+        
 
     def get_target(self):
         """
@@ -109,6 +119,7 @@ class ZipUrl(FileUrl):
                              fragment=[self.target_segment,None],
                              scheme_extension=self.scheme_extension,
                              # Clear out the resource info so we don't get a ZipUrl
+                             downloader=self.downloader
                              )
 
     def list(self):

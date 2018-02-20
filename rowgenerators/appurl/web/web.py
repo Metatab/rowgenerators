@@ -18,6 +18,7 @@ class WebUrl(Url):
     match_priority = 20
 
     def __init__(self, url=None, downloader=None, **kwargs):
+
         super().__init__(url,downloader=downloader, **kwargs)
 
         self._resource = None # return value from the downloader
@@ -32,8 +33,8 @@ class WebUrl(Url):
 
         r = self.get_resource()
 
-
         return list(self.set_fragment(u.fragment) for u in r.list())
+
 
     @property
     def auth_resource_url(self):

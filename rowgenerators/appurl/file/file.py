@@ -39,15 +39,10 @@ class FileUrl(Url):
     def ensure_dir(self):
         ensure_dir(self.path)
 
-    def list(self):
-        """This function does something.
 
-        :param name: The name to use.
-        :type name: str.
-        :param state: Current state to be in.
-        :type state: bool.
-        :returns:  int -- the return code.
-        :raises: AttributeError, KeyError
+
+    def list(self):
+        """List the contents of a directory
 
         """
 
@@ -58,6 +53,8 @@ class FileUrl(Url):
 
         else:
             return [self]
+
+
 
     def get_resource(self):
         """Return a url to the resource, which for FileUrls is always ``self``."""

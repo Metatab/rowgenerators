@@ -11,7 +11,6 @@ from rowgenerators.exceptions import AppUrlError
 
 # from traitlets import HasTraits, Unicode, Any, Dict, observe, TraitError
 
-
 def match_url_classes(u_str, **kwargs):
     """
     Return the classes for which the url matches an entry_point specification, sorted by priority
@@ -32,6 +31,7 @@ def match_url_classes(u_str, **kwargs):
 
     return classes
 
+default_downloader = None
 
 def parse_app_url(u_str, downloader='default', **kwargs):
     """
@@ -43,7 +43,7 @@ def parse_app_url(u_str, downloader='default', **kwargs):
     :param kwargs: Args passed to the Url constructor.
     :return:
     """
-
+    from rowgenerators.appurl import Downloader
     if not u_str:
         return None
 
@@ -54,8 +54,11 @@ def parse_app_url(u_str, downloader='default', **kwargs):
         raise AppUrlError("Input isn't a string nor Url")
 
     if downloader == 'default':
-        from rowgenerators.appurl import Downloader
-        downloader = Downloader()
+        global default_downloader
+        if default_downloader is None:
+            default_downloader = Downloader()
+
+        downloader = default_downloader
 
     classes = match_url_classes(u_str, **kwargs)
 
@@ -145,8 +148,6 @@ class Url(object):
     match_priority = 100
     match_proto = None
     generator_class = None # If set, generators match with name = <{generator_class}>
-
-    downloader = None
 
     def __init__(self, url=None, downloader=None, **kwargs):
         """  Initialize a new Application Url
@@ -243,6 +244,8 @@ class Url(object):
     def downloader(self):
         """Return the Downloader() for this URL"""
         return self._downloader
+
+
 
     def list(self):
         """Return URLS for files contained in an container. This implementation just returns

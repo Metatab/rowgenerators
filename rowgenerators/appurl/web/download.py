@@ -82,9 +82,11 @@ class Downloader(object):
         self.callback = callback
         self.clean = False
 
+
     @property
     def cache(self):
         if not self._cache:
+
             from rowgenerators import get_cache
             # qn = self.__module__+'.'+self.__class__.__qualname__
             self._cache = get_cache()
