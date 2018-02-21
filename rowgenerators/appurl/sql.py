@@ -81,7 +81,6 @@ class SqlDsn(Sql):
 
         u = parse_app_url(self.dsns[self.dsn_name])
 
-
         u._fragment[0] = self.sql
 
         return u

@@ -23,6 +23,7 @@ value_types = {
     "float": FloatMeasure,
     "text": TextDimension,
     "str": StrDimension,
+    "unknown": StrDimension,
     "unicode": TextDimension,
     "geometry": ShapeValue,
 }
