@@ -74,6 +74,9 @@ def rowgen():
     parser.add_argument('-I', '--info', default=None, action='store_true',
                         help="Print information about the url")
 
+    parser.add_argument('-T', '--table', action='store_true',
+                        help="When generating rows, output 20 rows in a table form. Otherwise, output CSV")
+
     parser.add_argument('url')
 
     cache = get_cache()
@@ -82,17 +85,19 @@ def rowgen():
 
     ss = Url(url=args.url, target_format=args.format, encoding=args.encoding, resource_format=args.urlfiletype)
 
-    contents = list(enumerate_contents(ss, cache_fs=cache))
 
     if args.info:
         prt(tabulate(ss.dict.items()))
         sys.exit(0)
 
     if args.enumerate:
+        contents = list(enumerate_contents(ss, cache_fs=cache))
+
         for s in contents:
             print(s.rebuild_url())
 
     elif args.intuit:
+        contents = list(enumerate_contents(ss, cache_fs=cache))
         for s in contents:
 
             try:
@@ -106,15 +111,23 @@ def rowgen():
             except SourceError as e:
                 warn("{}: {}".format(s.rebuild_url(), e))
 
-    elif len(contents) == 1:
-        s = contents.pop(0)
+    else:
+        from rowgenerators import parse_app_url
 
-        rg = s.get_generator(cache=cache)
+        t =  parse_app_url(args.url, target_format=args.format, encoding=args.encoding,
+                           resource_format=args.urlfiletype)\
+                         .get_resource().get_target()
 
-        print(tabulate(islice(rg,20)))
+        rg = t.generator
 
-    elif len(contents) > 1 and not args.enumerate:
-        warn("URL has multiple content files; enumerating instead")
-        for s in contents:
-            print(s.rebuild_url())
+        if args.table:
+            print(tabulate(islice(rg,20)))
+        else:
+
+            import csv
+
+            w = csv.writer(sys.stdout)
+
+            w.writerows(rg)
+
 

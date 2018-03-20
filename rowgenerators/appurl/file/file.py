@@ -20,7 +20,11 @@ class FileUrl(Url):
     def __init__(self, url=None, downloader=None,**kwargs):
         """
         """
+
         super().__init__(url, downloader=downloader, **kwargs)
+
+        # For resolving relative paths
+        self.working_dir = self._kwargs.get('working_dir')
 
     match_priority = 90
 
@@ -54,8 +58,6 @@ class FileUrl(Url):
         else:
             return [self]
 
-
-
     def get_resource(self):
         """Return a url to the resource, which for FileUrls is always ``self``."""
 
@@ -64,18 +66,24 @@ class FileUrl(Url):
     def get_target(self):
         """Return the url of the target file in the local file system.
         """
+        from os.path import isabs, join, normpath
 
-        t =  self.clear_fragment()
+        t = self.clear_fragment()
 
         if self.encoding:
             t.encoding = self.encoding
 
+        if not isabs(t.path) and self.working_dir:
+            t.path = normpath(join(self.working_dir, t.path))
 
         return t
 
     def read(self, mode='rb'):
         """Return contents of the target file"""
-        with open(self.get_target().path, mode=mode) as f:
+
+        path = self.get_resource().get_target().path
+
+        with open(path, mode=mode) as f:
             return f.read()
 
     def join_target(self, tf):
