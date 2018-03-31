@@ -3,8 +3,8 @@
 
 """ """
 
-from rowgenerators.appurl import WebUrl, parse_app_url
-from rowgenerators.appurl.file.csv import CsvFileUrl
+from rowgenerators.appurl.web.web import WebUrl
+
 
 class GoogleProtoCsvUrl(WebUrl):
     """Access a Google spreadheet as a CSV format download"""
@@ -70,6 +70,8 @@ class GoogleSpreadsheetUrl(WebUrl):
     gid_siffix = '&gid={gid}'
 
     def __init__(self, url=None, downloader=None, **kwargs):
+        from rowgenerators.appurl.url import parse_app_url
+
         super().__init__(url, downloader, **kwargs)
 
         self._proto = 'gs'
@@ -91,6 +93,8 @@ class GoogleSpreadsheetUrl(WebUrl):
         return url.proto == 'gs'
 
     def get_resource(self):
+
+        from rowgenerators.appurl.file.csv import CsvFileUrl
         return CsvFileUrl(str(self.web_url.get_resource()))
 
     def get_target(self):

@@ -5,8 +5,6 @@
 
 """
 
-import ast
-import meta # Byte-code and ast programming tools
 
 
 def file_loc():
@@ -414,6 +412,7 @@ def mk_kwd_args(fn, fn_name=None):
 
     return "{}({})".format(fn_name, ','.join(a + '=' + v for a, v in kwargs.items()))
 
+import ast
 
 class ReplaceTG(ast.NodeTransformer):
     """Replace a transform generator with the transform function"""
@@ -529,6 +528,8 @@ def rewrite_tg(env, tg_name, code):
         tg.foo.bar
 
     """
+
+    import meta  # Byte-code and ast programming tools
 
     visitor = ReplaceTG(env, tg_name)
     assert visitor.tg_name

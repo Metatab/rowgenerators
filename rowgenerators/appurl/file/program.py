@@ -3,7 +3,7 @@
 
 """ """
 
-from rowgenerators.appurl.file import FileUrl
+from .file import FileUrl
 
 class ProgramUrl(FileUrl):
     """URL that references an executable file"""

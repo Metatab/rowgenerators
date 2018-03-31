@@ -143,7 +143,7 @@ class TestUrlParse(unittest.TestCase):
 
     def test_interpolate(self):
 
-        from rowgenerators.appurl import Downloader
+        from rowgenerators.appurl.web.download import Downloader
 
         Downloader.context = {
             'PASSWORD' : 'correcthorse',

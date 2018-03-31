@@ -4,7 +4,7 @@
 """ """
 
 from rowgenerators.generator.csv import CsvSource
-from rowgenerators import Source
+from rowgenerators.source import Source
 
 
 class GooglePublicSource(CsvSource):

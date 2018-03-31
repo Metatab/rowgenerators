@@ -4,23 +4,18 @@ Copyright (c) 2015 Civic Knowledge. This file is licensed under the terms of the
 Revised BSD License, included in this distribution as LICENSE.txt
 """
 
-from functools import wraps
-from os.path import basename
-from os.path import join
+from .appurl.util import clean_cache, nuke_cache, get_cache
 
-from rowgenerators import get_cache, clean_cache, nuke_cache
-
-# Keep code cleanups from deleteing these they are imported her
+# Keep code cleanups from deleteing these they are imported here
 # because they got moved to appurl
 assert clean_cache
 assert get_cache
 assert nuke_cache
 
 
-
 def real_files_in_zf(zf):
     """Return a list of internal paths of real files in a zip file, based on the 'external_attr' values"""
-
+    from os.path import basename
 
     for e in zf.infolist():
 
@@ -38,6 +33,7 @@ def real_files_in_zf(zf):
 
 def fs_join(*args):
     """Like os.path.join, but never returns '\' chars"""
+    from os.path import join
 
     return join(*args).replace('\\','/')
 
@@ -66,6 +62,8 @@ def slugify(value):
     return value
 
 def memoize(obj):
+    from functools import wraps
+
     cache = obj.cache = {}
 
     @wraps(obj)

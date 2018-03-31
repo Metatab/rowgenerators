@@ -4,15 +4,15 @@
 from __future__ import print_function
 
 import sys
-from itertools import islice
 
 from tabulate import tabulate
 
-from rowgenerators import Source, SourceError, Url
+from rowgenerators.source import Source
+from rowgenerators.exceptions import SourceError, TextEncodingError
+from rowgenerators.appurl.url import Url
 from rowgenerators.appurl.enumerate import enumerate_contents
 from tableintuit import RowIntuiter
 from itertools import islice
-from rowgenerators import TextEncodingError
 
 #Change the row cache name
 from rowgenerators.util import  get_cache
