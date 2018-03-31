@@ -83,6 +83,11 @@ class WebUrl(Url):
 
             return u
 
+class FtpUrl(WebUrl):
 
+    @classmethod
+    def _match(cls, url, **kwargs):
+        """Return True if this handler can handle the input URL"""
+        return url.scheme.startswith('ftp')
 
 

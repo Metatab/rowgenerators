@@ -14,5 +14,6 @@ from .program import ProgramUrl
 from .python import PythonUrl
 from .csv import CsvFileUrl
 from .excel import ExcelFileUrl
+from .shapefile import ShapefileShpUrl, ShapefileUrl
 
 __all__ = "FileUrl ProgramUrl PythonUrl CsvFileUrl ExcelFileUrl".split()

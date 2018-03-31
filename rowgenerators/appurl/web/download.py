@@ -20,7 +20,11 @@ from requests.exceptions import SSLError
 from rowgenerators.appurl.util import parse_url_to_dict, copy_file_or_flo
 from rowgenerators.appurl.url import Url
 from rowgenerators.exceptions import *
+from ftplib import FTP
 
+import logging
+
+logger = logging.getLogger('rowgenerators.appurl.web.download')
 
 class _NoOpFileLock(object):
     """No Op for pyfilesystem caches where locking wont work"""
@@ -98,6 +102,8 @@ class Downloader(object):
 
     def download(self, url):
 
+        #logger.debug(f"Download {url}")
+
         working_dir = self.working_dir if self.working_dir else ''
 
         r = Resource()
@@ -118,6 +124,7 @@ class Downloader(object):
             for l in locations:
                 if exists(l):
                     r.sys_path = l
+                    logger.debug(f"Found '{str(url)}'as local file '{l}'")
                     break
             else:
                 raise DownloadError(("File resource does not exist. Found none of:"
@@ -218,6 +225,7 @@ class Downloader(object):
                     except ResourceInvalid:
                         pass  # Well, we tried.
                 else:
+                    logger.debug(f"Found {cache_path} in cache")
                     return cache_path, None
 
             try:
@@ -256,7 +264,7 @@ class Downloader(object):
 
         if url.startswith('s3:'):
 
-            from appurl.url import Url
+            from rowgenerators.appurl.url import Url
 
             s3url = Url(url)
 
@@ -267,25 +275,48 @@ class Downloader(object):
                 raise DownloadError("Failed to fetch S3 url '{}': {}".format(url, e))
 
         elif url.startswith('ftp:'):
-            from contextlib import closing
 
-            with closing(urlopen(url)) as fin:
+            logger.debug("Fetch "+str(url))
 
-                with self.cache.open(cache_path, 'wb') as fout:
+            u = parse_url_to_dict(url)
 
-                    read_len = 16 * 1024
-                    total_len = 0
-                    while 1:
-                        buf = fin.read(read_len)
-                        if not buf:
-                            break
-                        fout.write(buf)
-                        total_len += len(buf)
+            with FTP(u['netloc']) as ftp, self.cache.open(cache_path, 'wb') as fout:
 
-                        if self.callback:
-                            copy_callback(len(buf), total_len)
+                total_len = [0]
 
+                def _read(d):
+
+                    fout.write(d)
+
+                    total_len[0] = total_len[0]+len(d)
+
+                    if self.callback:
+                        copy_callback(len(d), total_len[0])
+
+                ftp.login()
+                ftp.retrbinary('RETR ' + u['path'], _read )
+                ftp.quit()
+
+            if False:
+                from contextlib import closing
+                with closing(urlopen(url)) as fin:
+
+                    with self.cache.open(cache_path, 'wb') as fout:
+
+                        read_len = 16 * 1024
+                        total_len = 0
+                        while 1:
+                            buf = fin.read(read_len)
+                            if not buf:
+                                break
+                            fout.write(buf)
+                            total_len += len(buf)
+
+                            if self.callback:
+                                copy_callback(len(buf), total_len)
         else:
+
+            logger.debug("Request " + str(url))
 
             try:
                 r = requests.get(url, stream=True)

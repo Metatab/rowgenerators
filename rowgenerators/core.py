@@ -5,7 +5,7 @@ import collections
 from pkg_resources import  iter_entry_points
 
 from rowgenerators.exceptions import RowGeneratorError
-from rowgenerators import parse_app_url, Url
+from rowgenerators.appurl import parse_app_url, Url
 
 def get_generator(source, **kwargs):
 
@@ -77,11 +77,9 @@ def get_generator(source, **kwargs):
         raise RowGeneratorError(("Can't find generator for source '{}' \nproto={}, "
                                   "resource_format={}, target_format={}, names={} ")
                                  .format(source, ref.proto, ref.resource_format, ref.target_format, names))
-
     try:
         return classes[0](ref, **kwargs)
     except Exception as e:
-
         raise RowGeneratorError("Failed to instantiate generator for class '{}', ref '{}'".format(classes[0], ref)) from e
 
 class SelectiveRowGenerator(object):

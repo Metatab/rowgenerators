@@ -77,6 +77,7 @@ setup(
             # Web Urls
             "http: = rowgenerators.appurl.web.web:WebUrl",
             "https: = rowgenerators.appurl.web.web:WebUrl",
+            "ftp: = rowgenerators.appurl.web.web:FtpUrl",
             "s3: = rowgenerators.appurl.web.s3:S3Url",
             "socrata+ = rowgenerators.appurl.web.socrata:SocrataUrl",
             #
