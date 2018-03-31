@@ -90,7 +90,7 @@ class TransformSegment(object):
                 else:
                     fields.append(f'{f}={self[f]}')
 
-        return f"<Transform {self.column.name} {' '.join(fields)} >"
+        return "<Transform {} {} >".format(self.column.name, ' '.join(fields))
 
 
     def str(self,stage_n):

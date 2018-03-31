@@ -124,7 +124,7 @@ class Downloader(object):
             for l in locations:
                 if exists(l):
                     r.sys_path = l
-                    logger.debug(f"Found '{str(url)}'as local file '{l}'")
+                    logger.debug("Found '{}'as local file '{}'".format(str(url), l))
                     break
             else:
                 raise DownloadError(("File resource does not exist. Found none of:"

@@ -401,7 +401,8 @@ class Url(object):
         try:
             return parse_app_url( str(self).format(**self.downloader.context), downloader=self.downloader)
         except KeyError as e:
-            raise AppUrlError(f"Failed to interpolate '{str(self)}'; context is {self.downloader.context}. Missing key: {e} ")
+            raise AppUrlError("Failed to interpolate '{}'; context is {}. Missing key: {} "
+                              .format(str(self), self.downloader.context, e))
 
     def clone(self, **kwargs):
         """

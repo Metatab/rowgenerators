@@ -31,12 +31,12 @@ class SqlSource(Source):
             engine = create_engine(self.ref.dsn)
             connection = engine.connect()
         except DatabaseError as e:
-            raise RowGeneratorError(f"Database connection failed for dsn '{self.ref.dsn}' : {str(e)} ")
+            raise RowGeneratorError("Database connection failed for dsn '{}' : {} ".format(self.ref.dsn,str(e)))
 
         try:
             r = connection.execute(self.ref.sql)
         except DatabaseError as e:
-            raise RowGeneratorError(f"Database query failed for dsn '{self.ref.dsn}' : {str(e)} ")
+            raise RowGeneratorError("Database query failed for dsn '{}' : {} ".format(self.ref.dsn,str(e) ))
 
         yield r.keys()
 
