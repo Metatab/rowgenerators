@@ -33,6 +33,7 @@ setup(
     long_description=readme,
     packages=find_packages(),
     install_requires=[
+        'python-dateutil<2.7.0,>=2.1', # Requirement of botocore
         'boto',
         'codegen',
         'decorator',
@@ -51,7 +52,7 @@ setup(
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
     },
-    test_requires=['aniso8601', 'dateutil', 'fiona', 'shapely','pyproj', 'pyproject'],
+    test_requires=['aniso8601', 'dateutil', 'fiona', 'shapely','pyproj', 'pyproject', 'contexttimer'],
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',

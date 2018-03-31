@@ -1,6 +1,6 @@
 
 Row Generators
-****************
+**************
 
 This module provides services for creating references to data files, downloading those files,
 and iterating through them as a sequence of rows. For instance, you can define a URL to a CSV file
