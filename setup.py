@@ -33,7 +33,7 @@ setup(
     long_description=readme,
     packages=find_packages(),
     install_requires=[
-        'python-dateutil<2.7.0,>=2.1', # Requirement of botocore
+        'python-dateutil<2.7.0', # Requirement of botocore
         'boto',
         'codegen',
         'decorator',
