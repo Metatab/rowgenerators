@@ -9,6 +9,7 @@ CLI program for managing Metatab files
 import sys
 from pkg_resources import iter_entry_points
 from tabulate import tabulate
+from rowgenerators.appurl import parse_app_url
 
 def appurl():
 
@@ -23,6 +24,8 @@ def appurl():
     g.add_argument('-l', '--list', action='store_true',
                    help="List all of the registered AppUrl handlers")
 
+    g.add_argument('-i', '--info', help="INformatino about a URL. May download resources")
+
     args = parser.parse_args(sys.argv[1:])
 
     entries = []
@@ -31,8 +34,21 @@ def appurl():
         entries.append([c.match_priority, ep.name, ep.module_name,  c.__name__, ])
 
 
-    print(tabulate(sorted(entries), ['Priority', 'EP Name', 'Module', 'Class'] ))
+    if args.list:
+        print(tabulate(sorted(entries), ['Priority', 'EP Name', 'Module', 'Class'] ))
+    elif args.info:
 
+        u = parse_app_url(args.info)
+        r = u.get_resource()
+        t = r.get_target()
+
+        t = [
+            ('Url', str(u)),
+            ('Resource', str(r)),
+            ('Target', str(t))
+        ]
+
+        print(tabulate(t))
 
 if __name__ == "__main__":
     # execute only if run as a script

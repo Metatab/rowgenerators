@@ -175,6 +175,8 @@ class Url(object):
         """
         assert 'is_archive' not in kwargs
 
+        self._kwargs = kwargs
+
         if url is not None:
 
             parts = parse_url_to_dict(url)
@@ -222,6 +224,11 @@ class Url(object):
             pass
 
         self._downloader = downloader
+
+    def resolve(self):
+        """Resolve a URL to another format, such as by looking up a URL that specified a
+        search, into another URL. The default implementation returns self. """
+        return self
 
     def get_resource(self):
         """Get the contents of resource and save it to the cache, returning a file-like object"""
@@ -406,7 +413,7 @@ class Url(object):
 
         d = self.dict.copy()
         c = type(self)(None, downloader=self._downloader, **d)
-
+        c._kwargs = self._kwargs
         c.fragment = self.fragment
 
         c._update_parts()
@@ -617,10 +624,12 @@ class Url(object):
 
     def __deepcopy__(self, memo):
         d = self.dict.copy()
+        d.update(self._kwargs)
         return type(self)(None, downloader=self._downloader, **d)
 
     def __copy__(self):
         d = self.dict.copy()
+        d.update(self._kwargs)
         return type(self)(None, downloader=self._downloader, **d )
 
     def _decompose_fragment(self, frag):

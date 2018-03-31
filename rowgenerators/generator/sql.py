@@ -25,13 +25,18 @@ class SqlSource(Source):
     def __iter__(self):
 
         from sqlalchemy import create_engine
+        from sqlalchemy.exc import  DatabaseError
 
-        engine = create_engine(self.ref.dsn)
-        connection = engine.connect()
+        try:
+            engine = create_engine(self.ref.dsn)
+            connection = engine.connect()
+        except DatabaseError as e:
+            raise RowGeneratorError(f"Database connection failed for dsn '{self.ref.dsn}' : {str(e)} ")
 
-        #print("!!!!", self.ref.sql)
-
-        r = connection.execute(self.ref.sql)
+        try:
+            r = connection.execute(self.ref.sql)
+        except DatabaseError as e:
+            raise RowGeneratorError(f"Database query failed for dsn '{self.ref.dsn}' : {str(e)} ")
 
         yield r.keys()
 
