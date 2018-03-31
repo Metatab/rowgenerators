@@ -190,7 +190,7 @@ def make_row_processors(source_headers, dest_table, env=None):
             assert column_name, (dest_table.name, i, col_name)
             assert table_name
 
-            f_name = "{}_{}_{i}".format(table_name,column_name,i)
+            f_name = "{}_{}_{}".format(table_name,column_name,i)
 
             exception = (exception if exception
                          else 'raise CasterExceptionError("'+f_name+'",header_d, v, exc, sys.exc_info())')
