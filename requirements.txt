@@ -11,3 +11,5 @@ petl
 requests
 tabulate
 xlrd
+# For testing
+contexttimer
