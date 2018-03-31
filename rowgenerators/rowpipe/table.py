@@ -86,9 +86,9 @@ class TransformSegment(object):
         for f in 'init datatype transforms exception'.split():
             if self[f]:
                 if f == 'datatype':
-                    fields.append(f'{f}={self[f].__name__}')
+                    fields.append('{}={}'.format(f,self[f].__name__))
                 else:
-                    fields.append(f'{f}={self[f]}')
+                    fields.append('{}={}'.format(f,self[f]))
 
         return "<Transform {} {} >".format(self.column.name, ' '.join(fields))
 

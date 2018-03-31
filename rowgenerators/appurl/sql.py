@@ -42,8 +42,8 @@ class Sql(Url):
         try:
             u.password = u.password.format(**os.environ)
         except KeyError as e:
-            raise RowGeneratorError(f"Failed to set password from environment variable in connection string '{str(u)}'. "
-                                    f" exception = {str(e)}")
+            raise RowGeneratorError(("Failed to set password from environment variable in connection string '{}'. "
+                                    " exception = {}").format(str(u),str(e)))
 
         return str(u)
 
@@ -76,8 +76,8 @@ class SqlDsn(Sql):
     def get_resource(self):
 
         if self.dsn_name not in self.dsns:
-            raise AppUrlError(f"Resolving a SqlDsn URL requires a DSN dict with the name '{self.dsn_name}' in it. "
-                              "Pass the dict to parse_app_url as parse_app_url('urlstr', dsns={<dsn_dict>}) ")
+            raise AppUrlError(("Resolving a SqlDsn URL requires a DSN dict with the name '{}' in it. ".format(self.dsn_name)+
+                              "Pass the dict to parse_app_url as parse_app_url('urlstr', dsns={<dsn_dict>}) "))
 
         u = parse_app_url(self.dsns[self.dsn_name])
 

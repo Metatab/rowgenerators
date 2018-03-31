@@ -225,7 +225,7 @@ class Downloader(object):
                     except ResourceInvalid:
                         pass  # Well, we tried.
                 else:
-                    logger.debug(f"Found {cache_path} in cache")
+                    logger.debug("Found {} in cache".format(cache_path))
                     return cache_path, None
 
             try:
