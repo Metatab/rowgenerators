@@ -43,7 +43,6 @@ setup(
         'livestats',
         'meta',
         'petl',
-        'python-dateutil',
         'requests',
         'tabulate',
         'xlrd',
