@@ -4,8 +4,7 @@
 """ """
 
 from .file import FileUrl
-from os.path import basename
-from rowgenerators.appurl.util import unparse_url_dict, file_ext
+
 
 class CsvFileUrl(FileUrl):
     """URL that references a CSV file"""
@@ -19,6 +18,9 @@ class CsvFileUrl(FileUrl):
 
     @property
     def resource_url(self):
+
+        from rowgenerators.appurl.util import unparse_url_dict
+
         return unparse_url_dict(self.__dict__,
                                 scheme=self.scheme if self.scheme else 'file',
                                 scheme_extension=False,

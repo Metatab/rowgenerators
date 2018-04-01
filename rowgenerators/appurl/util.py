@@ -4,11 +4,7 @@
 
 """ """
 
-import re
-import os
-from os import makedirs
-from os.path import isdir, dirname, splitext, exists
-from urllib.parse import unquote_plus, ParseResult, urlparse, quote_plus, parse_qs, urlencode, unquote
+
 
 
 def path2url(path):
@@ -27,6 +23,9 @@ def parse_url_to_dict(url, assume_localhost=False):
     with properties.
 
     """
+
+    import re
+    from urllib.parse import unquote_plus, ParseResult, urlparse, parse_qs
 
     assert url is not None
 
@@ -103,6 +102,7 @@ def parse_url_to_dict(url, assume_localhost=False):
     }
 
 def unparse_url_dict(d, **kwargs):
+    from urllib.parse import quote_plus, urlencode, unquote
 
     d = dict(d.items())
 
@@ -184,6 +184,8 @@ def reparse_url(url, **kwargs):
 def join_url_path(url, *paths):
     """Like path.os.join, but operates on the url path, ignoring the query and fragments."""
 
+    import os
+
     parts = parse_url_to_dict(url)
 
     return reparse_url(url, path=os.path.join(parts['path']))
@@ -192,6 +194,8 @@ def file_ext(v):
     """Split of the extension of a filename, without throwing an exception of there is no extension. Does not
     return the leading '.'
     :param v: """
+
+    from os.path import splitext
 
     try:
         v = splitext(v)[1][1:]
@@ -207,6 +211,9 @@ def file_ext(v):
 
 def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
     """ Copy a file name or file-like-object to another file name or file-like object"""
+
+    from os import makedirs
+    from os.path import isdir, dirname
 
     assert bool(input_)
     assert bool(output)
@@ -307,6 +314,8 @@ def nuke_cache(cache = None, cache_name=DEFAULT_CACHE_NAME):
             cache.remove(step[0])
 
 def ensure_dir(path):
+    from os import makedirs
+    from os.path import exists
 
     if path and not exists(path):
             makedirs(path)
@@ -314,10 +323,6 @@ def ensure_dir(path):
 
 def import_name_or_class(name):
     " Import an obect as either a fully qualified, dotted name, "
-
-    from os import getcwd
-    import sys
-
 
     if isinstance(name, str):
 

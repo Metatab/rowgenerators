@@ -9,10 +9,4 @@ the local file system, and the :py:meth:`FileUrl.get_resource()` just returns ``
 
 """
 
-from .file import FileUrl
-from .program import ProgramUrl
-from .python import PythonUrl
-from .csv import CsvFileUrl
-from .excel import ExcelFileUrl
 
-__all__ = "FileUrl ProgramUrl PythonUrl CsvFileUrl ExcelFileUrl".split()

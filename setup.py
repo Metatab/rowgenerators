@@ -28,11 +28,12 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.7.17",
+    version="0.7.22",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
     install_requires=[
+        'python-dateutil<2.7.0', # Requirement of botocore
         'boto',
         'codegen',
         'decorator',
@@ -42,7 +43,6 @@ setup(
         'livestats',
         'meta',
         'petl',
-        'python-dateutil',
         'requests',
         'tabulate',
         'xlrd',
@@ -51,7 +51,7 @@ setup(
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
     },
-    test_requires=['aniso8601', 'dateutil', 'fiona', 'shapely','pyproj', 'pyproject'],
+    test_requires=['aniso8601', 'dateutil', 'fiona', 'shapely','pyproj', 'pyproject', 'contexttimer'],
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',
@@ -77,6 +77,7 @@ setup(
             # Web Urls
             "http: = rowgenerators.appurl.web.web:WebUrl",
             "https: = rowgenerators.appurl.web.web:WebUrl",
+            "ftp: = rowgenerators.appurl.web.web:FtpUrl",
             "s3: = rowgenerators.appurl.web.s3:S3Url",
             "socrata+ = rowgenerators.appurl.web.socrata:SocrataUrl",
             #

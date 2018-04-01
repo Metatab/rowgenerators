@@ -3,23 +3,9 @@
 
 """ """
 
-import functools
-import hashlib
-import os.path
-from os.path import abspath, join, dirname, basename
-import time
-from genericpath import exists
-from urllib.parse import urlparse
-from urllib.request import urlopen
+import logging
 
-from fs.errors import DirectoryExpected, NoSysPath, ResourceInvalid, DirectoryExists
-from requests import HTTPError
-from requests.exceptions import SSLError
-
-
-from rowgenerators.appurl.util import parse_url_to_dict, copy_file_or_flo
-from rowgenerators.appurl.url import Url
-from rowgenerators.exceptions import *
+logger = logging.getLogger('rowgenerators.appurl.web.download')
 
 
 class _NoOpFileLock(object):
@@ -59,7 +45,7 @@ class Downloader(object):
     and storing the downloaded object in a cache. Since they are the primary interface to the file cache,
     all Urls object have a link to a Downloader """
 
-    context = {} # A variable substitution context, for substituting hostnames, pathnames, etc
+    context = {}  # A variable substitution context, for substituting hostnames, pathnames, etc
 
     def __init__(self, cache=None, account_accessor=None, logger=None,
                  working_dir='', callback=None):
@@ -82,11 +68,9 @@ class Downloader(object):
         self.callback = callback
         self.clean = False
 
-
     @property
     def cache(self):
         if not self._cache:
-
             from rowgenerators import get_cache
             # qn = self.__module__+'.'+self.__class__.__qualname__
             self._cache = get_cache()
@@ -97,6 +81,13 @@ class Downloader(object):
         pass
 
     def download(self, url):
+        from os.path import abspath, join
+        from genericpath import exists
+
+        from rowgenerators.appurl.url import Url
+        from rowgenerators.exceptions import DownloadError, AccessError
+
+        # logger.debug(f"Download {url}")
 
         working_dir = self.working_dir if self.working_dir else ''
 
@@ -118,6 +109,7 @@ class Downloader(object):
             for l in locations:
                 if exists(l):
                     r.sys_path = l
+                    logger.debug("Found '{}'as local file '{}'".format(str(url), l))
                     break
             else:
                 raise DownloadError(("File resource does not exist. Found none of:"
@@ -152,6 +144,16 @@ class Downloader(object):
         :param callback:
         :return:
         """
+
+        import hashlib
+        import os.path
+        from os.path import join, dirname, basename
+        import time
+        from urllib.parse import urlparse
+
+        from fs.errors import DirectoryExpected, NoSysPath, ResourceInvalid, DirectoryExists
+        from requests import HTTPError
+        from rowgenerators.exceptions import AccessError, DownloadError
 
         assert isinstance(url, str)
 
@@ -218,6 +220,7 @@ class Downloader(object):
                     except ResourceInvalid:
                         pass  # Well, we tried.
                 else:
+                    logger.debug("Found {} in cache".format(cache_path))
                     return cache_path, None
 
             try:
@@ -246,6 +249,14 @@ class Downloader(object):
 
     def _download(self, url, cache_path):
         import requests
+        import functools
+        from urllib.request import urlopen
+
+        from requests.exceptions import SSLError
+
+        from rowgenerators.appurl.util import parse_url_to_dict, copy_file_or_flo
+        from rowgenerators.exceptions import DownloadError
+        from ftplib import FTP
 
         def copy_callback(read, total):
             if self.callback:
@@ -256,7 +267,7 @@ class Downloader(object):
 
         if url.startswith('s3:'):
 
-            from appurl.url import Url
+            from rowgenerators.appurl.url import Url
 
             s3url = Url(url)
 
@@ -267,25 +278,47 @@ class Downloader(object):
                 raise DownloadError("Failed to fetch S3 url '{}': {}".format(url, e))
 
         elif url.startswith('ftp:'):
-            from contextlib import closing
 
-            with closing(urlopen(url)) as fin:
+            logger.debug("Fetch " + str(url))
 
-                with self.cache.open(cache_path, 'wb') as fout:
+            u = parse_url_to_dict(url)
 
-                    read_len = 16 * 1024
-                    total_len = 0
-                    while 1:
-                        buf = fin.read(read_len)
-                        if not buf:
-                            break
-                        fout.write(buf)
-                        total_len += len(buf)
+            with FTP(u['netloc']) as ftp, self.cache.open(cache_path, 'wb') as fout:
 
-                        if self.callback:
-                            copy_callback(len(buf), total_len)
+                total_len = [0]
 
+                def _read(d):
+                    fout.write(d)
+
+                    total_len[0] = total_len[0] + len(d)
+
+                    if self.callback:
+                        copy_callback(len(d), total_len[0])
+
+                ftp.login()
+                ftp.retrbinary('RETR ' + u['path'], _read)
+                ftp.quit()
+
+            if False:
+                from contextlib import closing
+                with closing(urlopen(url)) as fin:
+
+                    with self.cache.open(cache_path, 'wb') as fout:
+
+                        read_len = 16 * 1024
+                        total_len = 0
+                        while 1:
+                            buf = fin.read(read_len)
+                            if not buf:
+                                break
+                            fout.write(buf)
+                            total_len += len(buf)
+
+                            if self.callback:
+                                copy_callback(len(buf), total_len)
         else:
+
+            logger.debug("Request " + str(url))
 
             try:
                 r = requests.get(url, stream=True)
@@ -303,5 +336,3 @@ class Downloader(object):
                 copy_file_or_flo(r.raw, f, cb=copy_callback)
 
             assert self.cache.exists(cache_path)
-
-

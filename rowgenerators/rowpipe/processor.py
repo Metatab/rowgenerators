@@ -8,7 +8,6 @@ Row generating row processor
 """
 
 from collections import defaultdict
-
 from rowgenerators.rowpipe.codegen import make_row_processors, exec_context
 
 
@@ -97,7 +96,8 @@ class RowProcessor(object):
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""
-        from rowgenerators import RowProxy
+        from rowgenerators.rowproxy import RowProxy
+
         self.start()
 
         pipe = self.env['pipe']

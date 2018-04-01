@@ -94,7 +94,7 @@ class BasicTests(unittest.TestCase):
     def test_fixed(self):
         from itertools import islice
 
-        from rowgenerators import Table
+        from rowgenerators.table import  Table, Column
 
         t = Table()
         t.add_column('id',int,6)

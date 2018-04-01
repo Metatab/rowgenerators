@@ -24,7 +24,7 @@ try:
     from shapely.ops import transform
     import pyproj
 except (ModuleNotFoundError, ImportError) as e:
-    #raise ImportError("Using ShapefileSource requires installing fiona, shapely and pyproj ") from e
+    raise ImportError("Using ShapefileSource requires installing fiona, shapely and pyproj ") from e
     pass # HACK Because this file gets collected by the test collectors
 
 class GeoSourceBase(Source):

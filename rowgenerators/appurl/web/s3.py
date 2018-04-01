@@ -3,10 +3,7 @@
 
 """ """
 
-from rowgenerators.appurl import parse_app_url
-from rowgenerators.appurl.util import file_ext
-from rowgenerators.appurl.web import WebUrl
-from os.path import basename, join, dirname
+from rowgenerators.appurl.web.web import WebUrl
 
 
 class S3Url(WebUrl):
@@ -37,16 +34,30 @@ class S3Url(WebUrl):
 
     @property
     def resource_file(self):
+
+        from rowgenerators.appurl import parse_app_url
+        from rowgenerators.appurl.util import file_ext
+        from os.path import basename, join, dirname
+
         return basename(self.resource_url)
 
     @property
     def resource_format(self):
+
+        from rowgenerators.appurl import parse_app_url
+        from rowgenerators.appurl.util import file_ext
+        from os.path import basename, join, dirname
+
         if self._resource_format:
             return self._resource_format
         else:
             return file_ext(self.resource_file)
 
     def join_dir(self, s):
+
+        from rowgenerators.appurl import parse_app_url
+        from rowgenerators.appurl.util import file_ext
+        from os.path import basename, join, dirname
 
         try:
             path = s.path

@@ -3,7 +3,7 @@
 
 """ """
 
-from rowgenerators import Source
+from rowgenerators.source import Source
 
 class SocrataSource(Source):
     """Iterates a CSV soruce from the JSON produced by Socrata  """

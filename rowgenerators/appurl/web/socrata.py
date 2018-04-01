@@ -2,9 +2,9 @@
 # MIT, included in this distribution as LICENSE
 
 """ """
-from rowgenerators.appurl.util import parse_url_to_dict, unparse_url_dict, file_ext
+
 from os.path import basename, join
-from rowgenerators.appurl.web import WebUrl
+from rowgenerators.appurl.web.web import WebUrl
 
 class SocrataUrl(WebUrl):
     """Url to represent a dataset stored in a Socrata data repository. """
@@ -26,12 +26,12 @@ class SocrataUrl(WebUrl):
 
     @property
     def resource_url(self):
+        from rowgenerators.appurl.util import unparse_url_dict
+
         return unparse_url_dict(self.__dict__,
                                 scheme_extension=False,
                                 fragment=False,
                                 path=join(self.path, 'rows.csv'))
-
-
 
     @property
     def resource_file(self):

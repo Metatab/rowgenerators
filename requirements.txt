@@ -1,14 +1,15 @@
+python-dateutil<2.7.0
 boto
+aniso8601
 codegen
 decorator
 filelock
-fs >= 2
+fs==2.0.20
 geoid
-livestats
-meta
+LiveStats
 petl
-python-dateutil
 requests
 tabulate
 xlrd
+# For testing
 contexttimer
