@@ -7,3 +7,10 @@ WebUrls represent resources that are accessible on the web. They provide impleme
 cache, returning a new Url object pointing to the downloaded file.
 """
 
+from .download import Downloader
+from .ckan import CkanUrl
+from .google import GoogleProtoCsvUrl, GoogleSpreadsheetUrl
+from .s3 import S3Url
+from .socrata import SocrataUrl
+from .web import WebUrl, FtpUrl
+from .webpage import WebPageUrl
