@@ -3,9 +3,7 @@
 
 """ """
 
-import sys
-import inspect
-from rowgenerators.source import Source
+
 from .iterator import IteratorSource
 
 class GeneratorSource(IteratorSource):
