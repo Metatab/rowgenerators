@@ -5,7 +5,6 @@
 the files containes in Excel and ZIP files"""
 
 
-from rowgenerators.appurl import Url, parse_app_url
 
 def inspect(url, callback=None):
     """Return a list of possible extensions to the url, such as files within a ZIP archive, or
@@ -54,6 +53,8 @@ def inspect(url, callback=None):
 def enumerate_contents(base_spec, cache_fs, callback=None):
     """Inspect the URL, and if it is a container ( ZIP Or Excel ) inspect each of the contained
     files. Yields all of the lower-level URLs"""
+
+    from rowgenerators.appurl.url import Url, parse_app_url
 
     if not isinstance(base_spec, Url):
         base_spec = parse_app_url(url=base_spec)

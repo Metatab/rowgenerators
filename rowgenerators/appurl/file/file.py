@@ -55,7 +55,7 @@ class FileUrl(Url):
         import re
 
         if self.netloc: # Windows UNC name
-            return pathlib.PureWindowsPath("//{}{}".format(self.netloc,unquote(self._path)))
+            return pathlib.WindowsPath("//{}{}".format(self.netloc,unquote(self._path)))
 
         elif re.match('[a-zA-Z]:', self._path): # Windows absolute path
             return pathlib.PureWindowsPath(unquote(self._path))

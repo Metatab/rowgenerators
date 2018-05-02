@@ -6,9 +6,9 @@
 
 """
 
+from .file import FileUrl
 
-from rowgenerators.appurl import ZipUrl, FileUrl
-from zipfile import ZipFile
+from rowgenerators.appurl.archive.zip import ZipUrl
 
 class ShapefileUrl(ZipUrl):
 
@@ -31,6 +31,8 @@ class ShapefileUrl(ZipUrl):
 
     def list(self):
         """List the files in the referenced Zip file"""
+
+        from zipfile import ZipFile
 
         real_files = ZipUrl.real_files_in_zf(ZipFile(self.path))
         return list(self.set_target_file(rf) for rf in real_files)

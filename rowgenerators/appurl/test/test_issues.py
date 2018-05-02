@@ -6,7 +6,7 @@ from rowgenerators.appurl.url import parse_app_url
 
 from rowgenerators.appurl.archive.zip import ZipUrl
 from rowgenerators.appurl.file.csv import CsvFileUrl
-from rowgenerators.appurl.web import WebUrl
+from rowgenerators.appurl.web.web import WebUrl
 
 class TestIssues(unittest.TestCase):
 

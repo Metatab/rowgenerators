@@ -143,7 +143,7 @@ class TestUrlParse(unittest.TestCase):
 
     def test_interpolate(self):
 
-        from rowgenerators.appurl import Downloader
+        from rowgenerators.appurl.web.download import Downloader
 
         Downloader.context = {
             'PASSWORD' : 'correcthorse',
@@ -153,6 +153,17 @@ class TestUrlParse(unittest.TestCase):
         u = parse_app_url('http://user:{PASSWORD}@{HOST}/foo/bar')
 
         print(u.interpolate())
+
+    def test_maintain_target(self):
+
+        b = 'https://www2.census.gov/programs-surveys/acs/summary_file/2016/data/5_year_seq_by_state/RhodeIsland/Tracts_Block_Groups_Only'
+
+        us = b+'/20165ri0001000.zip#m20165ri0001000.txt&target_format=csv'
+
+
+        u = parse_app_url(us)
+
+        print (u)
 
 
 

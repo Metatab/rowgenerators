@@ -3,24 +3,15 @@
 
 """ """
 
-
-from rowgenerators.appurl.url import Url, parse_app_url
-from rowgenerators.appurl.util import file_ext
-from rowgenerators.appurl.file import FileUrl
+from rowgenerators.appurl.file.file import FileUrl
 from rowgenerators.exceptions import AppUrlError
-from zipfile import ZipFile
-import io
-from os.path import join, dirname, abspath
-from rowgenerators.appurl.util import copy_file_or_flo, ensure_dir
+
 
 class ZipUrlError(AppUrlError):
     pass
 
 
-
-
 class ZipUrl(FileUrl):
-
     """Zip URLS represent a zip file, as a local resource. """
 
     match_priority = FileUrl.match_priority - 10
@@ -28,8 +19,6 @@ class ZipUrl(FileUrl):
     def __init__(self, url=None, downloader=None, **kwargs):
         kwargs['resource_format'] = 'zip'
         super().__init__(url, downloader=downloader, **kwargs)
-
-
 
     @property
     def target_file(self):
@@ -52,7 +41,6 @@ class ZipUrl(FileUrl):
         # Want to return none, so get_files_from-zip can assume to use the first file in the archive.
         return None
 
-
     def join_target(self, tf):
         """
         Joins the target ``tf`` by setting the value of the first slot of the fragment.
@@ -67,7 +55,7 @@ class ZipUrl(FileUrl):
         except:
             pass
 
-        u.fragment = [tf, u.fragment[1]] # In case its a tuple, don't edit in place
+        u.fragment = [tf, u.fragment[1]]  # In case its a tuple, don't edit in place
         return u
 
     def get_resource(self):
@@ -77,15 +65,15 @@ class ZipUrl(FileUrl):
     def zip_dir(self):
         """Directory that files will be extracted to"""
 
+        from os.path import abspath
+
         cache_dir = self.downloader.cache.getsyspath('/')
         target_path = abspath(self.path)
 
-        if target_path.startswith(cache_dir): # Case when file is already in cache
+        if target_path.startswith(cache_dir):  # Case when file is already in cache
             return self.path + '_d'
-        else: # file is not in cache.
+        else:  # file is not in cache.
             return self.downloader.cache.getsyspath(target_path.lstrip('/'))
-
-        
 
     def get_target(self):
         """
@@ -93,6 +81,12 @@ class ZipUrl(FileUrl):
         cached file.
 
         """
+
+        from rowgenerators.appurl.url import parse_app_url
+        from zipfile import ZipFile
+        import io
+        from os.path import join, dirname
+        from rowgenerators.appurl.util import copy_file_or_flo, ensure_dir
 
         assert self.zip_dir
 
@@ -116,7 +110,7 @@ class ZipUrl(FileUrl):
 
         return parse_app_url(target_path,
                              fragment_query=fq,
-                             fragment=[self.target_segment,None],
+                             fragment=[self.target_segment, None],
                              scheme_extension=self.scheme_extension,
                              # Clear out the resource info so we don't get a ZipUrl
                              downloader=self.downloader
@@ -125,12 +119,13 @@ class ZipUrl(FileUrl):
     def list(self):
         """List the files in the referenced Zip file"""
 
+        from zipfile import ZipFile
+
         if self.target_file:
             return list(self.set_target_segment(tl.target_segment) for tl in self.get_target().list())
         else:
             real_files = ZipUrl.real_files_in_zf(ZipFile(self.path))
             return list(self.set_target_file(rf) for rf in real_files)
-
 
     @staticmethod
     def get_file_from_zip(url):
@@ -151,7 +146,6 @@ class ZipUrl(FileUrl):
             # sometimes real_files_in_zf doesn't work at all. I don't know why it does work,
             # so I certainly don't know why it does not.
             nl = list(zf.namelist())
-
 
         # the target_file may be a string, or a regular expression
 
@@ -177,7 +171,8 @@ class ZipUrl(FileUrl):
             return nl[0]
         else:
             raise ZipUrlError("Could not find file in Zip {} for target='{}' nor segment='{}'"
-                              .format(url.path, url.target_file,url.target_segment))
+                              .format(url.path, url.target_file, url.target_segment))
+
     @staticmethod
     def real_files_in_zf(zf):
         """Return a list of internal paths of real files in a zip file, based on the 'external_attr' values"""
@@ -201,6 +196,3 @@ class ZipUrl(FileUrl):
     def _match(cls, url, **kwargs):
 
         return url.resource_format == 'zip' or kwargs.get('force_archive')
-
-
-

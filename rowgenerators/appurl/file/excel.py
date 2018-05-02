@@ -5,8 +5,6 @@
 """ """
 
 from .file import FileUrl
-from os.path import basename
-from rowgenerators.appurl.util import unparse_url_dict, file_ext
 
 class ExcelFileUrl(FileUrl):
     """URL that references an Excl file, either .xls or .xlsx"""
@@ -22,6 +20,8 @@ class ExcelFileUrl(FileUrl):
 
     @property
     def resource_url(self):
+        from rowgenerators.appurl.util import unparse_url_dict
+
         return unparse_url_dict(self.dict,
                                 scheme_extension=False,
                                 fragment=False)

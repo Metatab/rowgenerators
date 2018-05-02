@@ -3,13 +3,6 @@
 
 """ """
 
-from .util import reparse_url, unparse_url_dict, file_ext, parse_url_to_dict
-from os.path import basename, join, dirname
-from pkg_resources import iter_entry_points
-from rowgenerators.exceptions import AppUrlError
-
-
-# from traitlets import HasTraits, Unicode, Any, Dict, observe, TraitError
 
 def match_url_classes(u_str, **kwargs):
     """
@@ -20,18 +13,22 @@ def match_url_classes(u_str, **kwargs):
     :return:
     """
 
+    from pkg_resources import iter_entry_points
+
     u = Url(str(u_str), downloader=None, **kwargs)
 
     try:
         classes = sorted([ep.load() for ep in iter_entry_points(group='appurl.urls') if u._match_entry_point(ep.name)],
-                     key=lambda cls: cls.match_priority)
+                         key=lambda cls: cls.match_priority)
     except ModuleNotFoundError as e:
         raise ModuleNotFoundError("Failed to find module for url string '{}', entrypoint: "
                                   .format(u_str, e))
 
     return classes
 
+
 default_downloader = None
+
 
 def parse_app_url(u_str, downloader='default', **kwargs):
     """
@@ -43,7 +40,9 @@ def parse_app_url(u_str, downloader='default', **kwargs):
     :param kwargs: Args passed to the Url constructor.
     :return:
     """
-    from rowgenerators.appurl import Downloader
+    from rowgenerators.appurl.web.download import Downloader
+    from rowgenerators.exceptions import AppUrlError
+
     if not u_str:
         return None
 
@@ -147,7 +146,7 @@ class Url(object):
 
     match_priority = 100
     match_proto = None
-    generator_class = None # If set, generators match with name = <{generator_class}>
+    generator_class = None  # If set, generators match with name = <{generator_class}>
 
     def __init__(self, url=None, downloader=None, **kwargs):
         """  Initialize a new Application Url
@@ -173,6 +172,9 @@ class Url(object):
         - port
 
         """
+
+        from .util import parse_url_to_dict
+
         assert 'is_archive' not in kwargs
 
         self._kwargs = kwargs
@@ -244,15 +246,10 @@ class Url(object):
                                    )
                                   .format(self.__class__.__name__, str(self)))
 
-
-
-
     @property
     def downloader(self):
         """Return the Downloader() for this URL"""
         return self._downloader
-
-
 
     def list(self):
         """Return URLS for files contained in an container. This implementation just returns
@@ -283,6 +280,7 @@ class Url(object):
     def fspath(self):
         """The path in a form suitable for use in a filesystem"""
         return self.path
+
 
     def join(self, s):
         """ Join a component to the end of the path, using :func:`os.path.join`. The argument
@@ -324,6 +322,7 @@ class Url(object):
         :return: a copy of this url.
         """
 
+        from os.path import join, dirname
         from copy import copy
         import pathlib
 
@@ -360,9 +359,10 @@ class Url(object):
 
         return parse_app_url(str(self.clone(scheme_extension=None)), downloader=self.downloader)
 
-
     def dirname(self):
         """Return the dirname of the path"""
+        from os.path import dirname
+
         u = self.clone()
         u.path = dirname(self.path)
         return u
@@ -382,7 +382,6 @@ class Url(object):
         c.end = None
         c.headers = None
         return c
-
 
     def as_type(self, cls):
         """
@@ -413,15 +412,17 @@ class Url(object):
 
         return d
 
-
     def interpolate(self):
         """Use the Downloader.context to interpolate format strings in the URL. Re-parses the URL,
          returning a new URL"""
 
+        from rowgenerators.exceptions import AppUrlError
+
         try:
-            return parse_app_url( str(self).format(**self.downloader.context), downloader=self.downloader)
+            return parse_app_url(str(self).format(**self.downloader.context), downloader=self.downloader)
         except KeyError as e:
-            raise AppUrlError(f"Failed to interpolate '{str(self)}'; context is {self.downloader.context}. Missing key: {e} ")
+            raise AppUrlError("Failed to interpolate '{}'; context is {}. Missing key: {} "
+                              .format(str(self), self.downloader.context, e))
 
     def clone(self, **kwargs):
         """
@@ -454,13 +455,12 @@ class Url(object):
         :return: A row generator object.
         """
 
-        from rowgenerators import get_generator
+        from rowgenerators.core import get_generator
 
         r = self.get_resource()
         t = r.get_target()
 
         return get_generator(t.get_target(), source_url=self)
-
 
     #
     # Property accessors
@@ -498,6 +498,8 @@ class Url(object):
 
     @property
     def resource_url(self):
+        from .util import unparse_url_dict
+
         return unparse_url_dict(self.dict,
                                 scheme=self.scheme if self.scheme else 'file',
                                 scheme_extension=False,
@@ -506,6 +508,9 @@ class Url(object):
 
     @property
     def resource_file(self):
+
+        from os.path import basename
+
         if self.path:
             return basename(self.path)
         else:
@@ -513,6 +518,9 @@ class Url(object):
 
     @property
     def resource_format(self):
+
+        from .util import file_ext
+
         if self._resource_format:
             return self._resource_format
         elif not self.resource_file:
@@ -560,6 +568,7 @@ class Url(object):
 
     @property
     def target_format(self):
+        from .util import file_ext
 
         target_format = None
 
@@ -578,7 +587,6 @@ class Url(object):
             target_format = None
 
         return target_format
-
 
     #
     # Matching methods
@@ -624,7 +632,6 @@ class Url(object):
         else:
             return True;  # raise NotImplementedError("Match is not implemented for class '{}' ".format(str(cls)))
 
-
     #
     # Other support methods
     #
@@ -650,7 +657,7 @@ class Url(object):
     def __copy__(self):
         d = self.dict.copy()
         d.update(self._kwargs)
-        return type(self)(None, downloader=self._downloader, **d )
+        return type(self)(None, downloader=self._downloader, **d)
 
     def _decompose_fragment(self, frag):
         """Parse the fragment component"""
@@ -679,5 +686,8 @@ class Url(object):
         return "<{} {}>".format(self.__class__.__name__, str(self))
 
     def __str__(self):
+
+        from .util import unparse_url_dict
+
         self._update_parts()
         return unparse_url_dict(self.dict)

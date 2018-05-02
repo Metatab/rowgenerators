@@ -5,7 +5,7 @@
 URLS for referencing python code.
 """
 
-from rowgenerators.appurl.file import FileUrl
+from .file import FileUrl
 
 
 class PythonUrl(FileUrl):

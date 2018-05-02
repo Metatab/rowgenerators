@@ -6,12 +6,13 @@ CLI program for managing Metatab files
 """
 
 
-import sys
-from pkg_resources import iter_entry_points
-from tabulate import tabulate
-from rowgenerators.appurl import parse_app_url
+
 
 def appurl():
+    import sys
+    from pkg_resources import iter_entry_points
+    from tabulate import tabulate
+    from rowgenerators.appurl import parse_app_url
 
     import argparse
     parser = argparse.ArgumentParser(

@@ -1,6 +1,6 @@
 
 Row Generators
-****************
+**************
 
 This module provides services for creating references to data files, downloading those files,
 and iterating through them as a sequence of rows. For instance, you can define a URL to a CSV file
@@ -13,6 +13,14 @@ the archive,  caching it, and extracting the inner CSV file.
 
 Additionally, the module provides services for transforming data during iteration, to set default value
 cast to specific types, extract components of dates, and many other transformations.
+
+The components of this module include:
+
+* Application Urls: exensible URLs for referencing row data
+* Row Generators: Objects that yield rows that are referenced by an Application Url
+* Row Transforms: Construct pipelines that transform the value of columns while rows are being iterated
+* Value Types: Rich types for column values, allowing sophisticated interactions and transformations with Row Transforms.
+* Row Pipes: Composable functions that alter and filter entire rows.
 
 
 Example

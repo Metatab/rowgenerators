@@ -3,8 +3,7 @@
 
 """ """
 
-from rowgenerators import Source
-from rowgenerators.exceptions import SourceError
+from rowgenerators.source import Source
 
 class FixedSource(Source):
     """Generate rows from a fixed-width source"""

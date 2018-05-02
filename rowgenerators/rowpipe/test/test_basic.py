@@ -249,7 +249,7 @@ class TestBasic(unittest.TestCase):
             t.add_column('c', datatype='int', transform=tr)
             rp = RowProcessor(Source(), t, env=env,
                               manager=Manager(),
-                              code_path=f'/tmp/rowgenerators/test_many_transform_{i}.py')
+                              code_path='/tmp/rowgenerators/test_many_transform_{}.py'.format(i))
 
             row_sum = 0
             with Timer() as t:

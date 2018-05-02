@@ -40,7 +40,7 @@ def cast_datetime(v, header_d, errors):
         errors[header_d].add(u"Failed to cast '{}' ({}) to datetime in '{}': {}".format(v, type(v), header_d, v.exc))
         count_errors(errors)
     else:
-        raise Exception(f"Unknown value! type={type(v)} value={v}")
+        raise Exception("Unknown value! type={} value={}".format(type(v),v))
 
     return None
 
