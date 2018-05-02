@@ -40,7 +40,7 @@ class ExcelSource(Source):
 
         self.start()
 
-        wb = open_workbook(filename=self.url.path)
+        wb = open_workbook(filename=str(self.url.fspath))
 
         ts = self.url.target_segment
 
