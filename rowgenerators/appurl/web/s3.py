@@ -48,6 +48,8 @@ class S3Url(WebUrl):
 
     def join_dir(self, s):
 
+        import pathlib
+
         try:
             path = s.path
         except AttributeError:
@@ -57,7 +59,7 @@ class S3Url(WebUrl):
         if s.netloc:
             return s
 
-        new_key = join(dirname(self.key), path)
+        new_key = str(pathlib.PurePosixPath(dirname(self.key)).joinpath(path))
 
         return parse_app_url('s3://{bucket}/{key}'.format(bucket=self.bucket_name.strip('/'), key=new_key.lstrip('/')))
 

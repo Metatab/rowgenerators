@@ -123,7 +123,7 @@ class Url(object):
     scheme_extension = None
     netloc = None
     hostname = None
-    path = None
+    _path = None
     params = None
     query = None
     fragment = [None, None]
@@ -271,6 +271,19 @@ class Url(object):
         return self.target_file if self.is_archive and self.resource_file != self.target_file else None
 
 
+    @property
+    def path(self):
+        return self._path
+
+    @path.setter
+    def path(self,v):
+        self._path = v
+
+    @property
+    def fspath(self):
+        """The path in a form suitable for use in a filesystem"""
+        return self.path
+
     def join(self, s):
         """ Join a component to the end of the path, using :func:`os.path.join`. The argument
         ``s`` may be a :class:`appurl.Url` or a string. If ``s`` includes a ``netloc`` property,
@@ -282,6 +295,7 @@ class Url(object):
         """
 
         from copy import copy
+        import pathlib
 
         try:
             path = s.path
@@ -297,7 +311,9 @@ class Url(object):
             return u
 
         url = copy(self)
-        url.path = join(self.path, path)
+
+        # Using pathlib.PurePosixPath ensures using '/' on windows. os.path.join will use '\'
+        url.path = str(pathlib.PurePosixPath(self.path).joinpath(path))
 
         return url
 
@@ -309,6 +325,7 @@ class Url(object):
         """
 
         from copy import copy
+        import pathlib
 
         try:
             path = s.path
@@ -324,7 +341,8 @@ class Url(object):
             return u
 
         url = copy(self)
-        url.path = join(dirname(self.path), path)
+        # Using pathlib.PurePosixPath ensures using '/' on windows. os.path.join will use '\'
+        url.path = str(pathlib.PurePosixPath(dirname(self.path)).joinpath(path))
 
         return url
 
@@ -377,6 +395,8 @@ class Url(object):
 
         return cls(downloader=self.downloader, **self.dict)
 
+
+
     @property
     def dict(self):
         """
@@ -385,11 +405,11 @@ class Url(object):
         :return: a dict.
         """
         self._update_parts()
-        keys = "url scheme scheme_extension netloc hostname path params query _fragment fragment_query username password port " \
-               "proto resource_url resource_file resource_format target_file target_format " \
-               "encoding target_segment"
+        keys = "scheme scheme_extension netloc hostname path params query _fragment fragment_query username password " \
+               "port proto resource_file resource_format target_file target_format " \
+               "encoding target_segment".split()
 
-        d = dict((k, v) for k, v in self.__dict__.items() if k in keys)
+        d = dict((k, getattr(self,k)) for k in keys)
 
         return d
 

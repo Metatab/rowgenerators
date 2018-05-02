@@ -6,7 +6,8 @@
 from rowgenerators.appurl.url import Url
 from rowgenerators.appurl.util import ensure_dir
 from os.path import exists, isdir, dirname, basename, join
-
+import pathlib
+from urllib.parse import unquote
 
 class FileUrl(Url):
     """FileUrl is the baseclass for URLs that reference a general file, assumed to be
@@ -26,28 +27,44 @@ class FileUrl(Url):
         # For resolving relative paths
         self.working_dir = self._kwargs.get('working_dir')
 
+
+
     match_priority = 90
 
     def exists(self):
-        return exists(self.path)
+        return exists(self.fspath)
 
     def isdir(self):
-        return isdir(self.path)
+        return isdir(self.fspath)
 
     def dirname(self):
-        return dirname(self.path)
+        return dirname(self.fspath)
 
     def basename(self):
-        return basename(self.path)
+        return basename(self.fspath)
 
     def ensure_dir(self):
-        ensure_dir(self.path)
+        ensure_dir(self.fspath)
 
+    def join(self, s):
+        return super().join(s)
 
+    @property
+    def fspath(self):
+        import pathlib
+        import re
+
+        if self.netloc: # Windows UNC name
+            return pathlib.PureWindowsPath("//{}{}".format(self.netloc,unquote(self._path)))
+
+        elif re.match('[a-zA-Z]:', self._path): # Windows absolute path
+            return pathlib.PureWindowsPath(unquote(self._path))
+
+        else:
+            return pathlib.Path(pathlib.PurePosixPath(unquote(self._path)))
 
     def list(self):
         """List the contents of a directory
-
         """
 
         if self.isdir():
@@ -110,5 +127,8 @@ class FileUrl(Url):
         new_path = join(dirname(self.path), new_name)
 
         return self.rename(new_path)
+
+    def __str__(self):
+        return super().__str__()
 
 

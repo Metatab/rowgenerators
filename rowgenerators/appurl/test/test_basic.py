@@ -110,7 +110,7 @@ class BasicTests(unittest.TestCase):
 
                 self.assertEqual(e['target_class'], t.__class__.__name__, e['name'])
                 self.assertEqual(e['target_format'], t.target_format, e['name'])
-                self.assertTrue(exists(t.path))
+                self.assertTrue(exists(t.fspath))
 
     def test_url_classes(self):
 
@@ -138,10 +138,8 @@ class BasicTests(unittest.TestCase):
                 c = parse_app_url(e['component_url'])
 
                 self.assertEqual(e['class'], b.__class__.__name__, e['base_url'])
-
                 self.assertEqual(e['join_dir'], str(b.join_dir(c)), e['base_url'])
                 self.assertEqual(e['join'], str(b.join(c)), e['base_url'])
-
                 self.assertEqual(str(e['join_target']), str(b.join_target(c)), e['base_url'])
 
 
@@ -160,15 +158,23 @@ class BasicTests(unittest.TestCase):
         self.assertEqual('resource.zip', Url('http://server.com/a/b/c/resource.zip#file.csv').resource_file)
 
 
-
-
-
     def test_parse_file_urls(self):
         urls = [
             ('file:foo/bar/baz', 'foo/bar/baz', 'file:foo/bar/baz'),
-            ('file:/foo/bar/baz', '/foo/bar/baz', 'file:/foo/bar/baz'),
+            ('file:/foo/bar/baz', '/foo/bar/baz', 'file:///foo/bar/baz'),
             ('file://example.com/foo/bar/baz', '/foo/bar/baz', 'file://example.com/foo/bar/baz'),
-            ('file:///foo/bar/baz', '/foo/bar/baz', 'file:/foo/bar/baz'),
+            ('file:///foo/bar/baz', '/foo/bar/baz', 'file:///foo/bar/baz'),
+        ]
+
+        for i, o, u in urls:
+            p = parse_app_url(i)
+            self.assertEqual(o, p.path)
+
+            self.assertEqual(u, str(p))
+
+        urls = [
+            ('foo/bar/baz', 'foo/bar/baz', 'file:foo/bar/baz'),
+            ('/foo/bar/baz', '/foo/bar/baz', 'file:///foo/bar/baz'),
         ]
 
         for i, o, u in urls:
@@ -176,11 +182,54 @@ class BasicTests(unittest.TestCase):
             self.assertEqual(o, p.path)
             self.assertEqual(u, str(p))
 
+
     def test_windows_urls(self):
 
-        url = 'w:/metatab36/metatab-py/metatab/templates/metatab.csv'
+        from rowgenerators.appurl.util import parse_url_to_dict, parse_file_to_uri
+        from urllib.parse import  urlparse
+        import pathlib
+        import tabulate
 
-        self.assertEqual('file:w:/metatab36/metatab-py/metatab/templates/metatab.csv',
+        self.assertEqual(
+            "file:///C:/Documents%20and%20Settings/davris/FileSchemeURIs.doc",
+            str(parse_file_to_uri('C:\Documents and Settings\davris\FileSchemeURIs.doc'))
+        )
+
+        self.assertEqual(
+            "file://laptop/My%20Documents/FileSchemeURIs.doc",
+            str(parse_file_to_uri(r'\\laptop\My Documents\FileSchemeURIs.doc'))
+        )
+
+        rows = []
+
+        urls = [
+            'C:\Documents and Settings\davris\FileSchemeURIs.doc',
+            'C:\\Documents and Settings\\davris\\FileSchemeURIs.doc',
+            'c:/Documents and Settings/davris/FileSchemeURIs.doc',
+            '\\\\laptop\\My Documents\\FileSchemeURIs.doc',
+            r'\\laptop\My Documents\FileSchemeURIs.doc',
+            '//laptop/My Documents/FileSchemeURIs.doc',
+            'foo/bar/baz',
+            '/foo/bar/baz',
+            'http://a/b/c',
+            'file:///a/b/s',
+            'file://a/b/s',
+            'file:/a/b/s',
+            'file:a/b/s',
+        ]
+
+        for ou in urls:
+            u = parse_app_url(ou)
+            rows.append([ou,u, u.fspath])
+            
+
+
+        print(tabulate.tabulate(rows))
+
+        return
+
+
+        self.assertEqual('file:W:/metatab36/metatab-py/metatab/templates/metatab.csv',
                           str(parse_app_url(url)))
 
         url = 'N:/Desktop/metadata.csv#renter_cost'

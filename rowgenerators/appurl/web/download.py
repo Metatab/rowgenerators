@@ -7,6 +7,7 @@ import functools
 import hashlib
 import os.path
 from os.path import abspath, join, dirname, basename
+import os
 import time
 from genericpath import exists
 from urllib.parse import urlparse
@@ -175,6 +176,9 @@ class Downloader(object):
             # We put the hash before the last path element, because that's the target faile, which gets
             # used to figure out what the target format should be.
             cache_path = join(dirname(cache_path), hash, basename(cache_path))
+
+        cache_path  = cache_path.replace(os.sep,'/')
+
 
         if not self.cache.exists(cache_path):
 
