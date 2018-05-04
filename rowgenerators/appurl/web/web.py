@@ -62,6 +62,14 @@ class WebUrl(Url):
 
         return ru
 
+    def dirname(self):
+        from os.path import dirname
+        return dirname(self.path)
+
+    def basename(self):
+        from os.path import basename
+        return basename(self.path)
+
     def join_dir(self, s):
 
 

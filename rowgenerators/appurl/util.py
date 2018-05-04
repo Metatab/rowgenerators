@@ -291,18 +291,21 @@ def get_cache(cache_name=DEFAULT_CACHE_NAME, clean=False):
 
 
 def clean_cache(cache = None, cache_name=DEFAULT_CACHE_NAME):
-    """Delete items in the cache older than 4 hours"""
+    """Delete items in the cache older than 24 hours"""
     import datetime
 
     cache = cache if cache else get_cache(cache_name)
+
+    ignores = ['index.json', 'index.json.bak']
 
     for step in cache.walk.info():
         details = cache.getdetails(step[0])
         mod = details.modified
         now = datetime.datetime.now(tz=mod.tzinfo)
         age = (now - mod).total_seconds()
-        if age > (60 * 60 * 4) and details.is_file:
-            cache.remove(step[0])
+        if age > (60 * 60 * 24) and details.is_file:
+            if step[0] not in ignores:
+                cache.remove(step[0])
 
 def nuke_cache(cache = None, cache_name=DEFAULT_CACHE_NAME):
     """Delete Everythong in the cache"""

@@ -391,14 +391,25 @@ class Url(object):
 
         return d
 
-    def interpolate(self):
-        """Use the Downloader.context to interpolate format strings in the URL. Re-parses the URL,
-         returning a new URL"""
+    def interpolate(self, context=None):
+        """
+        Use the Downloader.context to interpolate format strings in the URL. Re-parses the URL,
+         returning a new URL
+
+        :param context: Extra context to interpolate with
+        :return:
+        """
+
+        from copy import copy
+
+        cxt = copy(self.downloader.context)
+
+        cxt.update(context or {})
 
         from rowgenerators.exceptions import AppUrlError
 
         try:
-            return parse_app_url(str(self).format(**self.downloader.context), downloader=self.downloader)
+            return parse_app_url(str(self).format(**cxt), downloader=self.downloader)
         except KeyError as e:
             raise AppUrlError("Failed to interpolate '{}'; context is {}. Missing key: {} "
                               .format(str(self), self.downloader.context, e))
