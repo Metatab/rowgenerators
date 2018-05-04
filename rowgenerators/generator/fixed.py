@@ -23,7 +23,7 @@ class FixedSource(Source):
         parse = self.table.make_fw_row_parser()
 
 
-        with open(self.ref.path) as f:
+        with open(self.ref.fspath) as f:
             for line in f.readlines():
                 yield parse(line)
 

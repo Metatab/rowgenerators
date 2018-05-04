@@ -5,7 +5,7 @@
 
 import unittest
 from os.path import dirname
-
+import sys
 
 from rowgenerators import get_generator, parse_app_url
 from rowgenerators.generator.csv import CsvSource
@@ -58,8 +58,7 @@ class BasicTests(unittest.TestCase):
 
                 self.assertEquals(int(e['n_rows']), (len(list(g))))
 
-
-
+    @unittest.skipIf(sys.platform.startswith("win"), "requires Windows")
     def test_program(self):
 
         u = parse_app_url(script_path('rowgen.py'))

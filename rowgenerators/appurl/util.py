@@ -16,6 +16,34 @@ def path2url(path):
 
     return urljoin('file:', pathname2url(path))
 
+def parse_file_to_uri(url):
+    """If this is a file path, return a Path object, otherwise, return None"""
+    import pathlib
+    from urllib.parse import urlparse
+    import re
+
+    url = str(url)
+
+    p = urlparse(url)
+
+    if p.scheme == 'file':
+        return url
+
+    elif re.match(r'^[a-zA-Z]:', url): # Has a drive letter
+        return pathlib.PureWindowsPath(url.replace('\\','/')).as_uri()
+
+    elif url.startswith('//') or url.startswith('\\\\'): # Windows share
+        return pathlib.PureWindowsPath(url.replace('\\', '/')).as_uri()
+
+    elif not p.scheme: # No scheme, but can't use .as_uri if relative
+        try:
+            return pathlib.PurePath(url.replace('\\', '/')).as_uri()
+        except ValueError:
+            return 'file:'+url
+
+    else:
+        return None
+
 def parse_url_to_dict(url, assume_localhost=False):
     """Parse a url and return a dict with keys for all of the parts.
 
@@ -29,18 +57,9 @@ def parse_url_to_dict(url, assume_localhost=False):
 
     assert url is not None
 
-    url = str(url)
+    url = str(parse_file_to_uri(url) or url)
 
-    if re.match(r'^[a-zA-Z]:', url):
-        url = path2url(url)
-
-        p = urlparse(unquote_plus(url))
-
-        # urlparse leaves a '/' before the drive letter.
-        p = ParseResult(p.scheme, p.netloc, p.path.lstrip('/'), p.params, p.query, p.fragment)
-
-    else:
-        p = urlparse(url)
+    p = urlparse(url)
 
     #  '+' indicates that the scheme has a scheme extension
     if '+' in p.scheme:
@@ -86,12 +105,19 @@ def parse_url_to_dict(url, assume_localhost=False):
     else:
         p_hostname = p.hostname
 
+    def unmangle_windows_path(scheme, path):
+        import re
+        if scheme == 'file' and re.match("/[a-zA-Z]:", path):
+            return path.lstrip('/')
+        else:
+            return path
+
     return {
         'scheme': scheme,
         'scheme_extension': scheme_extension,
         'netloc': p.netloc,
         'hostname': p_hostname,
-        'path': p.path,
+        'path': unmangle_windows_path(scheme,p.path),
         'params': p.params,
         'query': p.query,
         'fragment':  frag_sub_parts,
@@ -101,8 +127,33 @@ def parse_url_to_dict(url, assume_localhost=False):
         'port': p.port
     }
 
+def unparse_fragment(d, **kwargs):
+
+    from urllib.parse import quote_plus, urlencode, unquote
+
+    if d.get('fragment') or d.get('fragment_query'):
+
+        if isinstance(d.get('fragment'),(list, tuple)):
+
+            seg = ';'.join(quote_plus(str(e)) for e in [ e for e in d.get('fragment') if e])
+        else:
+            seg = quote_plus(d.get('fragment'))
+
+        if d.get('fragment_query'):
+            fqt = sorted(d.get('fragment_query').items())
+            query = '&' + urlencode(fqt,doseq=True)
+        else:
+            query = ''
+
+
+        if seg or query:
+            return "#"+seg+unquote(query)
+
+    return ''
+
 def unparse_url_dict(d, **kwargs):
     from urllib.parse import quote_plus, urlencode, unquote
+    import re
 
     d = dict(d.items())
 
@@ -114,7 +165,7 @@ def unparse_url_dict(d, **kwargs):
 
     # Using netloc preserves case for the host, which the host value does not do,
     # but netloc also will have the username, password and port in it
-    if '@' not in d['netloc'] and ':' not in d['netloc']:
+    if d.get('netloc') and ('@' not in d['netloc'] and ':' not in d['netloc']):
         if 'netloc' in d and d['netloc']:
             host_port = d['netloc']
         else:
@@ -135,17 +186,34 @@ def unparse_url_dict(d, **kwargs):
     if user_pass:
         host_port = '{}@{}'.format(user_pass, host_port)
 
-    if d.get('scheme') and host_port:
-        url = '{}://{}/{}'.format(d['scheme'],host_port, d.get('path', '').lstrip('/'))
-    elif d.get('scheme') in ('mailto', 'file'):
+    if d.get('scheme') == 'file':
+        if d['netloc']: # Windows UNC path
+            url = 'file://{}/{}'.format(d['netloc'], d.get('path', '').lstrip('/'))
+
+        elif d.get('path','').startswith('/'): # absolute path
+            url = 'file://{}'.format( d.get('path', ''))
+
+        elif re.match('[a-zA-Z]:/', d.get('path','')): # windows path
+            url = 'file:///{}'.format(d.get('path', ''))
+
+        else: # relative path
+            url = 'file:{}'.format( d.get('path', ''))
+
+    elif d.get('scheme') == 'mailto':
         url = '{}:{}'.format(d['scheme'], d.get('path', ''))
+
+    elif d.get('scheme') and host_port:
+        url = '{}://{}/{}'.format(d['scheme'], host_port, d.get('path', '').lstrip('/'))
+
     elif d.get('scheme'):
         url = '{}://{}'.format(d['scheme'], d.get('path', '').lstrip('/'))
+
     elif d.get('path'):
-        # It's possible just a local file url.
+        raise AppUrlError("Can only unparse file urls that have a file: scheme")
+        # It's possibly just a local file url.
         # This isn't the standard file: url form, which is specified to have a :// and a host part,
         # like 'file://localhost/etc/config', but that form can't handle relative URLs ( which don't start with '/')
-        url = 'file:'+d['path'].lstrip('/')
+        # url = 'file:'+d['path']
     else:
         url = ''
 
@@ -155,23 +223,7 @@ def unparse_url_dict(d, **kwargs):
     if 'query' in d and d['query']:
         url += '?' + d['query']
 
-    if d.get('fragment') or d.get('fragment_query'):
-
-        if isinstance(d.get('fragment'),(list, tuple)):
-
-            seg = ';'.join(quote_plus(str(e)) for e in [ e for e in d.get('fragment') if e])
-        else:
-            seg = quote_plus(d.get('fragment'))
-
-        if d.get('fragment_query'):
-            fqt = sorted(d.get('fragment_query').items())
-            query = '&' + urlencode(fqt,doseq=True)
-        else:
-            query = ''
-
-
-        if seg or query:
-            url += "#"+seg+unquote(query)
+    url = url + unparse_fragment(d,**kwargs)
 
     return url
 

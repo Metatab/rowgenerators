@@ -79,6 +79,8 @@ def get_generator(source, **kwargs):
                                  .format(source, ref.proto, ref.resource_format, ref.target_format, names))
     try:
         return classes[0](ref, **kwargs)
+    except NotImplementedError:
+        raise
     except Exception as e:
         raise RowGeneratorError("Failed to instantiate generator for class '{}', ref '{}'".format(classes[0], ref)) from e
 

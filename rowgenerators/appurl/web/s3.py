@@ -58,6 +58,7 @@ class S3Url(WebUrl):
         from rowgenerators.appurl import parse_app_url
         from rowgenerators.appurl.util import file_ext
         from os.path import basename, join, dirname
+        import pathlib
 
         try:
             path = s.path
@@ -68,7 +69,7 @@ class S3Url(WebUrl):
         if s.netloc:
             return s
 
-        new_key = join(dirname(self.key), path)
+        new_key = str(pathlib.PurePosixPath(dirname(self.key)).joinpath(path))
 
         return parse_app_url('s3://{bucket}/{key}'.format(bucket=self.bucket_name.strip('/'), key=new_key.lstrip('/')))
 

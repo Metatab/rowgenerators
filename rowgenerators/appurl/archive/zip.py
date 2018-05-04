@@ -90,7 +90,7 @@ class ZipUrl(FileUrl):
 
         assert self.zip_dir
 
-        zf = ZipFile(self.path)
+        zf = ZipFile(str(self.fspath))
 
         self._target_file = ZipUrl.get_file_from_zip(self)
 
@@ -135,7 +135,7 @@ class ZipUrl(FileUrl):
         from zipfile import ZipFile
         import re
 
-        zf = ZipFile(url.path)
+        zf = ZipFile(str(url.fspath))
 
         nl = list(ZipUrl.real_files_in_zf(zf))  # Old way, but maybe gets links? : list(zf.namelist())
 

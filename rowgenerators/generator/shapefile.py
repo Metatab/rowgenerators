@@ -5,9 +5,9 @@
 
 
 from functools import partial
+
 from rowgenerators.appurl.file.shapefile import ShapefileUrl, ShapefileShpUrl
 from rowgenerators.source import Source
-
 
 # Looks like PyPy doesn't have ModuleNotFoundError
 
@@ -17,15 +17,19 @@ except NameError:
     class ModuleNotFoundError(ImportError):
         pass
 
-try:
-    import fiona
-    from fiona.crs import from_epsg
-    from shapely.geometry import asShape
-    from shapely.ops import transform
-    import pyproj
-except (ModuleNotFoundError, ImportError) as e:
-    raise ImportError("Using ShapefileSource requires installing fiona, shapely and pyproj ") from e
-    pass # HACK Because this file gets collected by the test collectors
+
+def _import_requirements():
+    """Check that the requirements are available. These are in a seperate function because test collectors will
+    import the file looking for tests, causing a failure, even if no geo tests are run"""
+    try:
+        import fiona
+        from fiona.crs import from_epsg
+        from shapely.geometry import asShape
+        from shapely.ops import transform
+        import pyproj
+    except (ModuleNotFoundError, ImportError) as e:
+        raise ImportError("Using ShapefileSource requires installing fiona, shapely and pyproj ") from e
+        pass  # HACK Because this file gets collected by the test collectors
 
 class GeoSourceBase(Source):
     """ Base class for all geo sources. """
@@ -37,6 +41,8 @@ class ShapefileSource(GeoSourceBase):
 
     def __init__(self, url, cache=None, working_dir=None, **kwargs):
         super().__init__(url, cache, working_dir)
+
+        _import_requirements()
 
         assert isinstance(url,(ShapefileUrl, ShapefileShpUrl))
 
@@ -98,6 +104,7 @@ class ShapefileSource(GeoSourceBase):
 
     @property
     def _parameters(self):
+        import fiona
 
         vfs, shp_file, layer_index = self._open_file_params()
 
@@ -119,6 +126,11 @@ class ShapefileSource(GeoSourceBase):
         # These imports are nere, not at the module level, so the geo
         # support can be an extra
 
+        import fiona
+        from fiona.crs import from_epsg
+        from shapely.geometry import asShape
+        from shapely.ops import transform
+        import pyproj
 
         self.start()
 
@@ -168,7 +180,6 @@ class GeoJsonSource(Source):
         super().__init__(ref, cache, working_dir, **kwargs)
 
         self.url = ref
-        from shapely.geometry import shape
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""

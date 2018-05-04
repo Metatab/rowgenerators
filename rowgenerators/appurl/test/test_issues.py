@@ -47,7 +47,7 @@ class TestIssues(unittest.TestCase):
 
         r = u.get_resource()
         self.assertEqual('file', r.proto)
-        self.assertTrue(r.exists())
+        self.assertTrue(r.exists(), r)
 
         self.assertEqual('renter_cost_excel07.zip', u.target_file)
 
@@ -68,7 +68,7 @@ class TestIssues(unittest.TestCase):
         self.assertIsInstance(r, ZipUrl)
         self.assertEqual('zip', r.resource_format)
         self.assertEqual('file', r.proto)
-        self.assertTrue(r.exists())
+        self.assertTrue(r.exists(), r.fspath)
 
 
         t = r.get_target()
@@ -120,7 +120,20 @@ class TestIssues(unittest.TestCase):
 
         self.assertIsInstance(ru, ZipUrl)
 
+    def test_Url_parsing(self):
+        from rowgenerators import Url
+        from rowgenerators.appurl.util import parse_url_to_dict, unparse_url_dict
 
+        us = '/a/b/c'
+
+        d = parse_url_to_dict(us)
+        print(d)
+
+        print(unparse_url_dict(d))
+
+        u = Url(us)
+        print(u.dict)
+        print(unparse_url_dict(u.dict))
 
 
 

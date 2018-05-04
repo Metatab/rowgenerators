@@ -178,6 +178,9 @@ class Downloader(object):
             # used to figure out what the target format should be.
             cache_path = join(dirname(cache_path), hash, basename(cache_path))
 
+        cache_path  = cache_path.replace(os.sep,'/')
+
+
         if not self.cache.exists(cache_path):
 
             cache_dir = os.path.dirname(cache_path)
