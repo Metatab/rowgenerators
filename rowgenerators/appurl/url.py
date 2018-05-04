@@ -191,12 +191,15 @@ class Url(object):
                     print("Can't Set: ", k, v)
 
         else:
-            for k in "scheme scheme_extension netloc hostname path params query fragment fragment_query username password port".split():
+            for k in "scheme scheme_extension netloc hostname path params query fragment fragment_query username " \
+                     "password port".split():
 
                 if k == 'fragment_query' and kwargs.get(k) is None:  # Probably trying to set it to Null
                     setattr(self, k, {})
                 else:
-                    setattr(self, k, kwargs.get(k))
+                    setattr(self, k, kwargs.get(k).strip() if kwargs.get(k) and isinstance(kwargs.get(k),
+                                                                                           str) else None)
+
 
         self.fragment_query = kwargs.get('fragment_query', self.fragment_query or {})
 
@@ -405,10 +408,11 @@ class Url(object):
         """
         self._update_parts()
         keys = "scheme scheme_extension netloc hostname path params query _fragment fragment_query username password " \
-               "port proto resource_file resource_format target_file target_format " \
+               "port proto  resource_format  target_format " \
                "encoding target_segment".split()
 
         d = dict((k, getattr(self,k)) for k in keys)
+
 
         return d
 

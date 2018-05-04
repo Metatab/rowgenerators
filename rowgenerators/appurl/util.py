@@ -163,7 +163,7 @@ def unparse_url_dict(d, **kwargs):
 
     # Using netloc preserves case for the host, which the host value does not do,
     # but netloc also will have the username, password and port in it
-    if '@' not in d['netloc'] and ':' not in d['netloc']:
+    if d.get('netloc') and ('@' not in d['netloc'] and ':' not in d['netloc']):
         if 'netloc' in d and d['netloc']:
             host_port = d['netloc']
         else:
