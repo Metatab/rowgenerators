@@ -68,7 +68,7 @@ class ZipUrl(FileUrl):
         from os.path import abspath
 
         cache_dir = self.downloader.cache.getsyspath('/')
-        target_path = abspath(self.path)
+        target_path = abspath(self.fspath)
 
         if target_path.startswith(cache_dir):  # Case when file is already in cache
             return self.path + '_d'
@@ -89,6 +89,7 @@ class ZipUrl(FileUrl):
         from rowgenerators.appurl.util import copy_file_or_flo, ensure_dir
 
         assert self.zip_dir
+
 
         zf = ZipFile(str(self.fspath))
 
