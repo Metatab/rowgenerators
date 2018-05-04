@@ -22,6 +22,8 @@ def parse_file_to_uri(url):
     from urllib.parse import urlparse
     import re
 
+    url = str(url)
+
     p = urlparse(url)
 
     if p.scheme == 'file':
