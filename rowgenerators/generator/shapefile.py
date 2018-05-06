@@ -51,7 +51,7 @@ class ShapefileSource(GeoSourceBase):
 
         self._kwargs = kwargs
 
-        target_projection = env.get('projection', 'epsg:4326').lower()
+        target_projection = (env or {}).get('projection', 'epsg:4326').lower()
 
         try:
             int(target_projection)
