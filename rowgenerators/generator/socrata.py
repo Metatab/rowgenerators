@@ -5,10 +5,14 @@
 
 from rowgenerators.source import Source
 
+##
+## FIXME This is probably broken
+## But it's Socrata, so who really cares?
+
 class SocrataSource(Source):
     """Iterates a CSV soruce from the JSON produced by Socrata  """
 
-    def __init__(self, spec, dflo, cache, working_dir=None):
+    def __init__(self, spec, dflo, cache, working_dir=None, env=None):
 
         super(SocrataSource, self).__init__(spec, cache)
 

@@ -10,7 +10,7 @@ from rowgenerators.source import Source
 
 
 class IteratorSource(Source):
-    def __init__(self, ref, cache=None, working_dir=None, **kwargs):
+    def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
         super().__init__(ref, cache, working_dir)
 
         self.itr = ref

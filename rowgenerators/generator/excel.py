@@ -10,7 +10,7 @@ from rowgenerators.exceptions import RowGeneratorError
 class ExcelSource(Source):
     """Generate rows from an excel file"""
 
-    def __init__(self, ref, cache=None, working_dir=None, **kwargs):
+    def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
         super().__init__(ref, cache, working_dir, **kwargs)
 
         self.url = ref

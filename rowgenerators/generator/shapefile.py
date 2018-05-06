@@ -8,6 +8,7 @@ from functools import partial
 
 from rowgenerators.appurl.file.shapefile import ShapefileUrl, ShapefileShpUrl
 from rowgenerators.source import Source
+from rowgenerators.exceptions import RowGeneratorError
 
 # Looks like PyPy doesn't have ModuleNotFoundError
 
@@ -39,7 +40,7 @@ class GeoSourceBase(Source):
 class ShapefileSource(GeoSourceBase):
     """ Accessor for shapefiles (*.shp) with geo data. """
 
-    def __init__(self, url, cache=None, working_dir=None, **kwargs):
+    def __init__(self, url, cache=None, working_dir=None, env=None, **kwargs):
         super().__init__(url, cache, working_dir)
 
         _import_requirements()
@@ -47,6 +48,23 @@ class ShapefileSource(GeoSourceBase):
         assert isinstance(url,(ShapefileUrl, ShapefileShpUrl))
 
         self.property_schema = self._parameters
+
+        self._kwargs = kwargs
+
+        target_projection = env.get('projection', 'epsg:4326').lower()
+
+        try:
+            int(target_projection)
+            target_projection = 'epsg:{}'.format(target_projection)
+        except ValueError:
+            if not target_projection.startswith('epsg:') and target_projection != '<source>':
+                raise RowGeneratorError("ShapefileSource projection property must start with 'epsg:'  or be an integer")
+
+        self.target_projection = target_projection
+
+
+        # Holds metadata, such as EPSG, that is inferred during processing.
+        self._meta = {}
 
     def _convert_column(self, shapefile_column):
         """ Converts column from a *.shp file to the column expected by ambry_sources."""
@@ -79,6 +97,9 @@ class ShapefileSource(GeoSourceBase):
 
         return [x['name'] for x in self.columns]
 
+    @property
+    def meta(self):
+        return self._meta
 
     def _open_file_params(self):
         from zipfile import ZipFile
@@ -89,15 +110,15 @@ class ShapefileSource(GeoSourceBase):
             # Find the SHP file. I thought Fiona used to do this itself ...
             assert self.ref.target_file
 
-            vfs = 'zip://{}'.format(self.ref.path)
+            vfs = 'zip://{}'.format(self.ref.fspath)
 
             if self.ref.target_file:
                 shp_file = '/' + self.ref.target_file.strip('/')
             else:
                 shp_file = '/' + next(
-                    n for n in ZipFile(self.ref.path).namelist() if (n.endswith('.shp') or n.endswith('geojson')))
+                    n for n in ZipFile(self.ref.fspath).namelist() if (n.endswith('.shp') or n.endswith('geojson')))
         else:
-            shp_file = self.ref.path
+            shp_file = self.ref.fspath
             vfs = None
 
         return vfs, shp_file, layer_index
@@ -138,17 +159,28 @@ class ShapefileSource(GeoSourceBase):
 
         with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
 
-            if source.crs.get('init') != 'epsg:4326':
-                # Project back to WGS84
+            if self.target_projection == '<source>':
+                self.target_projection = source.crs.get('init')
+
+            if source.crs.get('init') != self.target_projection:
+
+                projection_type, self.epsg_propjection_code = self.target_projection.split(':')
+
+                assert projection_type == 'epsg'
+
+                int(self.epsg_propjection_code)
+
 
                 project = partial(pyproj.transform,
                                   pyproj.Proj(source.crs, preserve_units=True),
-                                  pyproj.Proj(from_epsg('4326'))
+                                  pyproj.Proj(from_epsg(str(self.epsg_propjection_code)))
                                   )
 
             else:
                 project = None
 
+
+            self._meta['projection'] = self.target_projection
 
             yield self.headers
 

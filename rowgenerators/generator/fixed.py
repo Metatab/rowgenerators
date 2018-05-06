@@ -8,7 +8,7 @@ from rowgenerators.source import Source
 class FixedSource(Source):
     """Generate rows from a fixed-width source"""
 
-    def __init__(self, ref, table=None, cache=None, working_dir=None, **kwargs):
+    def __init__(self, ref, table=None, cache=None, working_dir=None, env=None, **kwargs):
         super().__init__(ref, cache, working_dir, **kwargs)
 
         self.table = table

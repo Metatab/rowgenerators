@@ -34,7 +34,7 @@ class ShapefileUrl(ZipUrl):
 
         from zipfile import ZipFile
 
-        real_files = ZipUrl.real_files_in_zf(ZipFile(self.path))
+        real_files = ZipUrl.real_files_in_zf(ZipFile(self.fspath))
         return list(self.set_target_file(rf) for rf in real_files)
 
     def get_target(self):
@@ -42,12 +42,11 @@ class ShapefileUrl(ZipUrl):
         file as a ZipUrl normally does. """
 
 
-        if not self.path.endswith('.shp'):
+        if not str(self.fspath).endswith('.shp'):
             #Resolve the target_file, which may be a reg-ex
             self.fragment = [ZipUrl.get_file_from_zip(self), self.fragment[1]]
 
         return self
-
 
     def get_archive_target(self):
         """Returns the inner .shp file, like a Normal ZipUrl would"""
@@ -57,7 +56,6 @@ class ShapefileUrl(ZipUrl):
         t = super().get_target().clear_fragment()
 
         return ShapefileShpUrl(str(t))
-
 
 class ShapefileShpUrl(FileUrl):
 
@@ -87,4 +85,3 @@ class ShapefileShpUrl(FileUrl):
         """Returns the inner .shp file, like a Normal ZipUrl would"""
 
         return self
-

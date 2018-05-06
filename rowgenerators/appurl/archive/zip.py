@@ -51,7 +51,7 @@ class ZipUrl(FileUrl):
         u = self.clone()
 
         try:
-            tf = tf.path
+            tf = str(tf.fspath)
         except:
             pass
 
@@ -71,7 +71,7 @@ class ZipUrl(FileUrl):
         target_path = abspath(self.fspath)
 
         if target_path.startswith(cache_dir):  # Case when file is already in cache
-            return self.path + '_d'
+            return str(self.fspath) + '_d'
         else:  # file is not in cache.
             return self.downloader.cache.getsyspath(target_path.lstrip('/'))
 
@@ -125,7 +125,7 @@ class ZipUrl(FileUrl):
         if self.target_file:
             return list(self.set_target_segment(tl.target_segment) for tl in self.get_target().list())
         else:
-            real_files = ZipUrl.real_files_in_zf(ZipFile(self.path))
+            real_files = ZipUrl.real_files_in_zf(ZipFile(self.fspath))
             return list(self.set_target_file(rf) for rf in real_files)
 
     @staticmethod
@@ -172,7 +172,7 @@ class ZipUrl(FileUrl):
             return nl[0]
         else:
             raise ZipUrlError("Could not find file in Zip {} for target='{}' nor segment='{}'"
-                              .format(url.path, url.target_file, url.target_segment))
+                              .format(url.fspath, url.target_file, url.target_segment))
 
     @staticmethod
     def real_files_in_zf(zf):

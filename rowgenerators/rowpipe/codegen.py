@@ -83,6 +83,7 @@ def exec_context(**kwargs):
     import rowgenerators.valuetype.exceptions
     import rowgenerators.valuetype.test
     import rowgenerators.valuetype
+    import rowgenerators.rowpipe.transforms
 
     def set_from(f, frm):
         try:
@@ -111,6 +112,7 @@ def exec_context(**kwargs):
     test_env.update(rowgenerators.valuetype.exceptions.__dict__)
     test_env.update(rowgenerators.valuetype.test.__dict__)
     test_env.update(rowgenerators.valuetype.__dict__)
+    test_env.update(rowgenerators.rowpipe.transforms.__dict__)
 
     localvars = {}
 
