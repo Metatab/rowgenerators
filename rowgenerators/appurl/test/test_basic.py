@@ -132,7 +132,7 @@ class BasicTests(unittest.TestCase):
     def test_component(self):
 
         with open(data_path('components.csv')) as f:
-            for e in DictReader(f):
+            for i, e in enumerate(DictReader(f),2):
 
                 b = parse_app_url(e['base_url'])
                 c = parse_app_url(e['component_url'])
@@ -140,7 +140,7 @@ class BasicTests(unittest.TestCase):
                 self.assertEqual(e['class'], b.__class__.__name__, e['base_url'])
                 self.assertEqual(e['join_dir'], str(b.join_dir(c)), e['base_url'])
                 self.assertEqual(e['join'], str(b.join(c)), e['base_url'])
-                self.assertEqual(str(e['join_target']), str(b.join_target(c)), e['base_url'])
+                self.assertEqual(str(e['join_target']), str(b.join_target(c)), "{} {}".format(i,e['base_url']))
 
 
     def test_base_url(self):

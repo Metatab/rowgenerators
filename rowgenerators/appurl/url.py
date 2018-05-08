@@ -197,8 +197,11 @@ class Url(object):
                 if k == 'fragment_query' and kwargs.get(k) is None:  # Probably trying to set it to Null
                     setattr(self, k, {})
                 else:
-                    setattr(self, k, kwargs.get(k).strip() if kwargs.get(k) and isinstance(kwargs.get(k),
-                                                                                           str) else None)
+                    v =  kwargs.get(k)
+                    if isinstance(v, str):
+                        v = v.strip()
+
+                    setattr(self, k, v)
 
 
         self.fragment_query = kwargs.get('fragment_query', self.fragment_query or {})

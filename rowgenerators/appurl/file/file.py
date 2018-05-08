@@ -72,7 +72,7 @@ class FileUrl(Url):
         if self.isdir():
             from os import listdir
 
-            return [u for e in listdir(self.path) for u in self.join(e).list()]
+            return [u for e in listdir(self.fspath) for u in self.join(e).list()]
 
         else:
             return [self]
@@ -92,15 +92,15 @@ class FileUrl(Url):
         if self.encoding:
             t.encoding = self.encoding
 
-        if not isabs(t.path) and self.working_dir:
-            t.path = normpath(join(self.working_dir, t.path))
+        if not isabs(t.fspath) and self.working_dir:
+            t.path = normpath(join(self.working_dir, t.fspath))
 
         return t
 
     def read(self, mode='rb'):
         """Return contents of the target file"""
 
-        path = self.get_resource().get_target().path
+        path = self.get_resource().get_target().fspath
 
         with open(path, mode=mode) as f:
             return f.read()
@@ -110,7 +110,7 @@ class FileUrl(Url):
         directory, so this just passes through the :py:meth:`Url.join_dir`"""
 
         try:
-            tf = tf.path
+            tf = str(tf.path)
         except:
             pass
 
@@ -119,14 +119,14 @@ class FileUrl(Url):
     def rename(self, new_path):
         from os import rename
 
-        rename(self.path, new_path)
+        rename(self.fspath, new_path)
 
         self.path = new_path
 
     def base_rename(self, new_name):
         """"Rename only the last path element"""
 
-        new_path = join(dirname(self.path), new_name)
+        new_path = join(dirname(self.fspath), new_name)
 
         return self.rename(new_path)
 

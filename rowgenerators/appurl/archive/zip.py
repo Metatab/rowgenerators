@@ -51,7 +51,7 @@ class ZipUrl(FileUrl):
         u = self.clone()
 
         try:
-            tf = str(tf.fspath)
+            tf = str(tf.path)
         except:
             pass
 
@@ -72,8 +72,8 @@ class ZipUrl(FileUrl):
 
         if target_path.startswith(cache_dir):  # Case when file is already in cache
             return str(self.fspath) + '_d'
-        else:  # file is not in cache.
-            return self.downloader.cache.getsyspath(target_path.lstrip('/'))
+        else:  # file is not in cache; it may exist elsewhere.
+            return self.downloader.cache.getsyspath(target_path.lstrip('/'))+'_d'
 
     def get_target(self):
         """
@@ -97,6 +97,7 @@ class ZipUrl(FileUrl):
 
         target_path = join(self.zip_dir, self.target_file)
         ensure_dir(dirname(target_path))
+
 
         with io.open(target_path, 'wb') as f, zf.open(self.target_file) as flo:
             copy_file_or_flo(flo, f)
