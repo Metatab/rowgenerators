@@ -126,7 +126,7 @@ class ZipUrl(FileUrl):
         if self.target_file:
             return list(self.set_target_segment(tl.target_segment) for tl in self.get_target().list())
         else:
-            real_files = ZipUrl.real_files_in_zf(ZipFile(self.fspath))
+            real_files = ZipUrl.real_files_in_zf(ZipFile(str(self.fspath)))
             return list(self.set_target_file(rf) for rf in real_files)
 
     @staticmethod

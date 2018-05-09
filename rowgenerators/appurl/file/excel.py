@@ -43,7 +43,7 @@ class ExcelFileUrl(FileUrl):
 
         from xlrd import open_workbook
 
-        wb = open_workbook(filename=self.path)
+        wb = open_workbook(filename=str(self.fspath))
 
         def _l():
             return list(self.set_target_segment(sheet) for sheet in wb.sheet_names())
