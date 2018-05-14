@@ -552,8 +552,13 @@ class Url(object):
         if self._target_file:
             return self._target_file
 
-        if self.fragment[0]:
-            return self.fragment[0]
+        try:
+            if self.fragment[0]:
+                return self.fragment[0]
+        except IndexError:
+            pass
+
+
 
         return self.resource_file
 
