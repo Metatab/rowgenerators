@@ -4,7 +4,7 @@
 """ """
 
 from rowgenerators.appurl.web.web import WebUrl
-
+from rowgenerators import parse_app_url
 
 class S3Url(WebUrl):
     """Convert an S3 proto url into the public access form"""
@@ -92,7 +92,34 @@ class S3Url(WebUrl):
         return s3.Object(self.bucket_name, self.key)
 
     def list(self):
-        raise NotImplementedError()
+        """List the top 'directory' of a S3 URL. Does not list recursively.  """
+        import boto3
+        client = boto3.client('s3')
+
+        paginator = client.get_paginator('list_objects')
+
+        for result in paginator.paginate(Bucket=self.bucket_name, Prefix=self.path.lstrip('/'), Delimiter='/'):
+
+            if not result:
+                continue
+
+            # Contents, Name, Prefix, Delimiter, CommonPrefixes
+            for e in result.get('Contents',[]):
+                if e:
+                    yield parse_app_url("s3://"+self.bucket_name+result.get('Prefix')+result.get('Delimiter')+e.get('Key'))
+
+            for e in result.get('CommonPrefixes',[]):
+                if e:
+                    yield parse_app_url("s3://" + self.bucket_name +result.get('Delimiter') + e.get('Prefix'))
+
+    def list_recursive(self):
+
+        for e in self.list():
+
+            if e.path.endswith('/'):
+                yield from e.list_recursive()
+            else:
+                yield e
 
 
     @property
