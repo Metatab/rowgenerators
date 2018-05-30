@@ -94,6 +94,7 @@ class S3Url(WebUrl):
     def list(self):
         """List the top 'directory' of a S3 URL. Does not list recursively.  """
         import boto3
+        import yaml
         client = boto3.client('s3')
 
         paginator = client.get_paginator('list_objects')
@@ -103,10 +104,16 @@ class S3Url(WebUrl):
             if not result:
                 continue
 
+            #print(yaml.safe_dump(result))
+
             # Contents, Name, Prefix, Delimiter, CommonPrefixes
             for e in result.get('Contents',[]):
                 if e:
-                    yield parse_app_url("s3://"+self.bucket_name+result.get('Prefix')+result.get('Delimiter')+e.get('Key'))
+                    if e.get('Key') == result.get('Prefix'):
+                        # The requext was for a single file, not a prefix
+                        yield parse_app_url("s3://" + self.bucket_name +result.get('Delimiter') + e.get('Key'))
+                    else:
+                        yield parse_app_url("s3://"+self.bucket_name+result.get('Prefix')+result.get('Delimiter')+e.get('Key'))
 
             for e in result.get('CommonPrefixes',[]):
                 if e:

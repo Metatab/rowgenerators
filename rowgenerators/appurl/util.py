@@ -342,6 +342,7 @@ def get_cache(cache_name=DEFAULT_CACHE_NAME, clean=False):
             raise CreateFailed("Failed to create '{}': {} ".format(cache_name.lower(), e))
 
 
+
 def clean_cache(cache = None, cache_name=DEFAULT_CACHE_NAME):
     """Delete items in the cache older than 24 hours"""
     import datetime

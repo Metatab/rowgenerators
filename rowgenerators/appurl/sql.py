@@ -4,6 +4,7 @@
 """Appurls or sql databases"""
 
 from rowgenerators.appurl import Url
+from rowgenerators.appurl.file import FileUrl
 
 
 class Sql(Url):
@@ -54,8 +55,15 @@ class Sql(Url):
         """Return the query, which is embedded in the fragment"""
         self._fragment[0] = value
 
+class SqlFile(Sql):
+    """
+    Files that hold a single SQL Select, and end with the file extension .sql
+    """
+    @classmethod
+    def _match(cls, url, **kwargs):
+        return url.target_format == 'sql'
 
-class SqlDsn(Sql):
+class InlineSqlUrl(Sql):
     """
     SQL Urls of the Form:
 
