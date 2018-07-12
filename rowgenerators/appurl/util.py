@@ -250,7 +250,10 @@ def file_ext(v):
     from os.path import splitext
 
     try:
-        v = splitext(v)[1][1:]
+        try:
+            v = splitext(v)[1][1:]
+        except TypeError:
+            v = splitext(v.fspath)[1][1:]
 
         if v == '*':  # Not a file name, probably a fragment regex
             return None

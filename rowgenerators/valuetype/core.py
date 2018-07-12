@@ -537,6 +537,7 @@ def title(v):
     return v.title()
 
 
+
 def robust_int(v):
     """Parse an int robustly, ignoring commas and other cruft. """
 
@@ -554,7 +555,29 @@ def robust_int(v):
     try:
         return int(v)
     except ValueError:
-        return int(float(v))
+        try:
+            return int(float(v))
+        except ValueError:
+            return None
+
+def robust_float(v):
+    """Parse float robustly, ignoring commas and other cruft. """
+
+    if isinstance(v, int):
+        return float(v)
+
+    if isinstance(v, float):
+        return v
+
+    v = str(v).replace(',', '')
+
+    if not v:
+        return None
+
+    try:
+        return float(v)
+    except ValueError:
+        return None
 
 
 def print_value(row_n, header_d, v):
