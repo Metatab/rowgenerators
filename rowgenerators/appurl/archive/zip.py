@@ -20,6 +20,8 @@ class ZipUrl(FileUrl):
         kwargs['resource_format'] = 'zip'
         super().__init__(url, downloader=downloader, **kwargs)
 
+
+
     @property
     def target_file(self):
         """
@@ -157,6 +159,7 @@ class ZipUrl(FileUrl):
                           ])
             if len(names) > 0:
                 return names[0]
+
 
         # The segment, if it exists, can only be an integer, and should probably be
         # '0' to indicate the first file. This clause is probably a bad idea, since

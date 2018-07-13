@@ -208,8 +208,11 @@ class Url(object):
 
         self._fragment = self._decompose_fragment(kwargs.get('fragment', self.fragment))
 
+        assert self._fragment[0] is None or isinstance(self._fragment[0], str), type(self._fragment[0])
+
         if not self._fragment:
             self._fragment = [None, None]
+
 
         self.scheme_extension = kwargs.get('scheme_extension', self.scheme_extension)
 
@@ -687,6 +690,7 @@ class Url(object):
         from urllib.parse import unquote_plus
 
         if isinstance(frag, (list, tuple)):
+            assert frag[0] is None or isinstance(frag[0], str), (frag[0], type(frag[0]))
             return frag
 
         if not frag:
@@ -702,6 +706,8 @@ class Url(object):
         elif len(frag_parts) >= 2:
             file = frag_parts[0]
             segment = frag_parts[1]
+
+        assert file is None or isinstance(file, str), (file, type(file))
 
         return file, segment
 

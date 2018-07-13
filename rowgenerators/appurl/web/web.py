@@ -81,9 +81,15 @@ class WebUrl(Url):
 
     def join_target(self, tf):
 
+            try:
+                tf = str(tf.path)
+            except:
+                pass
+
             if self.target_format:
                 u = self.clone()
                 u.fragment = [tf, self.fragment[1]]
+
             else:
                 # Assuming that if there is no target format, there is no actual target file
                 # and the URL is specifying a directory.

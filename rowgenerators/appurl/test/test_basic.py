@@ -140,7 +140,8 @@ class BasicTests(unittest.TestCase):
                 self.assertEqual(e['class'], b.__class__.__name__, e['base_url'])
                 self.assertEqual(e['join_dir'], str(b.join_dir(c)), e['base_url'])
                 self.assertEqual(e['join'], str(b.join(c)), e['base_url'])
-                self.assertEqual(str(e['join_target']), str(b.join_target(c)), "{} {}".format(i,e['base_url']))
+                self.assertEqual(str(e['join_target']), str(b.join_target(c)), "{} {} {}".format(i,e['base_url'],
+                                                                                                 type(b)))
 
 
     def test_base_url(self):
