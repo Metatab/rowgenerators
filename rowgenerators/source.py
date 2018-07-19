@@ -153,6 +153,8 @@ class SelectiveRowGenerator(object):
 
     def __iter__(self):
 
+        row = []
+
         for i, row in enumerate(self.iter):
 
             if i in self.header_lines:
@@ -171,6 +173,7 @@ class SelectiveRowGenerator(object):
             # There is no header, so fake it
 
             headers = ['col' + str(i) for i, _ in enumerate(row)]
+            yield headers
 
         yield row
 
