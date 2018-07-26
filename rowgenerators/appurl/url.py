@@ -614,6 +614,10 @@ class Url(object):
 
         return target_format
 
+    @target_format.setter
+    def target_format(self, target_format):
+        self._target_format = target_format
+
     #
     # Matching methods
     #

@@ -135,6 +135,14 @@ class TestIssues(unittest.TestCase):
         print(u.dict)
         print(unparse_url_dict(u.dict))
 
+    def test_not_passing_target_format(self):
+
+        url = parse_app_url('http://public.source.civicknowledge.com/example.com/sources/simple-example.foo')
+        url.target_format = 'csv'
+
+        self.assertEqual(url.target_format,'csv')
+        self.assertEqual(url.get_resource().target_format, 'csv')
+        self.assertEqual(url.get_resource().get_target().target_format, 'csv')
 
 
 if __name__ == '__main__':
