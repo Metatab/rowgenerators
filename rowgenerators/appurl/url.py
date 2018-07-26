@@ -230,7 +230,7 @@ class Url(object):
         self.end = kwargs.get('end', self.fragment_query.get('end', self.end))
 
         try:
-            self.target_format = self.target_format.lower()
+            self._target_format = self._target_format.lower()
         except AttributeError:
             pass
 

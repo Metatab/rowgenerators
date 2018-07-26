@@ -68,8 +68,11 @@ class TestUrlParse(unittest.TestCase):
         self.assertEqual('zip', u.target_format)
 
         r = u.get_resource()
+
         self.assertEqual('simple-example.csv.zip', r.resource_file)
         self.assertEqual('simple-example.csv', r.target_file)
+
+
         self.assertEqual('csv', r.target_format)
 
     def test_shapefile_url(self):
