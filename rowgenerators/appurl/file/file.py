@@ -65,6 +65,10 @@ class FileUrl(Url):
         else:
             return pathlib.Path(pathlib.PurePosixPath(p))
 
+    @property
+    def path_is_absolute(self):
+        return self.fspath.is_absolute()
+
     def list(self):
         """List the contents of a directory
         """

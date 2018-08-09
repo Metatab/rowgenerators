@@ -281,6 +281,7 @@ class Url(object):
     def path(self):
         return self._path
 
+
     @path.setter
     def path(self,v):
         self._path = v
@@ -288,7 +289,12 @@ class Url(object):
     @property
     def fspath(self):
         """The path in a form suitable for use in a filesystem"""
-        return self.path
+        from pathlib import PurePath
+        return PurePath(self.path)
+
+    @property
+    def path_is_absolute(self):
+        return self.path.startswith('/')
 
 
     def join(self, s):
