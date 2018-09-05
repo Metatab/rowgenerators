@@ -203,6 +203,7 @@ class Downloader(object):
                         pass  # ? No idea what's supposed to happen here.
                     raise e
                 else:
+                    # Exhausted all of the trial values
                     raise e
 
         try:

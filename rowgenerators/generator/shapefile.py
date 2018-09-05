@@ -5,6 +5,7 @@
 
 
 from functools import partial
+from itertools import islice
 
 from rowgenerators.appurl.file.shapefile import ShapefileUrl, ShapefileShpUrl
 from rowgenerators.source import Source
@@ -41,6 +42,21 @@ class ShapefileSource(GeoSourceBase):
     """ Accessor for shapefiles (*.shp) with geo data. """
 
     def __init__(self, url, cache=None, working_dir=None, env=None, **kwargs):
+        """
+        A row source for shapefiles.
+
+        By default will try to re-project to epsg:4326 during iteration. This can be turned off by setting
+        the 'projection' argument to '<source>'
+
+
+        :param url:
+        :param cache:
+        :param working_dir:
+        :param env:
+        :param projection: Either an EPSG string, defaults to 'epsg:4326', or '<source>' to not project
+        :param kwargs:
+        """
+
         super().__init__(url, cache, working_dir)
 
         _import_requirements()
@@ -61,7 +77,7 @@ class ShapefileSource(GeoSourceBase):
                 raise RowGeneratorError("ShapefileSource projection property must start with 'epsg:'  or be an integer")
 
         self.target_projection = target_projection
-
+        self.source_projection = None
 
         # Holds metadata, such as EPSG, that is inferred during processing.
         self._meta = {}
@@ -162,7 +178,9 @@ class ShapefileSource(GeoSourceBase):
             if self.target_projection == '<source>':
                 self.target_projection = source.crs.get('init')
 
-            if source.crs.get('init') != self.target_projection:
+            self.source_projection = source.crs.get('init')
+
+            if self.source_projection  != self.target_projection:
 
                 projection_type, self.epsg_propjection_code = self.target_projection.split(':')
 
@@ -170,19 +188,22 @@ class ShapefileSource(GeoSourceBase):
 
                 int(self.epsg_propjection_code)
 
-
                 project = partial(pyproj.transform,
                                   pyproj.Proj(source.crs, preserve_units=True),
                                   pyproj.Proj(from_epsg(str(self.epsg_propjection_code)))
                                   )
 
+                self.projection = self.target_projection
             else:
                 project = None
+                self.projection = self.source_projection
 
-
-            self._meta['projection'] = self.target_projection
+            self._meta['source_projection'] = self.source_projection
+            self._meta['target_projection'] = self.target_projection
+            self._meta['projection'] = self.projection
 
             yield self.headers
+
 
             for i,s in enumerate(source):
 
@@ -203,6 +224,65 @@ class ShapefileSource(GeoSourceBase):
 
         self.finish()
 
+
+    def dataframe(self, limit=None):
+        """Return a pandas datafrome from the resource"""
+
+        from metapack.jupyter.pandas import MetatabDataFrame
+
+        headers = next(islice(self, 0, 1))
+        data = islice(self, 1, None)
+
+        df = MetatabDataFrame(list(data), columns=headers, metatab_resource=self)
+
+        return df
+
+    def geoframe(self):
+        """Return a geopandas dataframe. The geoframe does not reproject, ( which is a lot faster )
+        but does set the crs with the actual projection, so you can re-project with to_crs()
+
+        Creating a geoframe will re-set the generators target projection property to '<source>'
+
+        """
+        import geopandas as gpd
+        from shapely.geometry.polygon import BaseGeometry
+        from shapely.wkt import loads
+
+        self.target_projection = '<source>'
+
+        headers = next(islice(self, 0, 1))
+        data = list(islice(self, 1, None))
+
+        gdf = gpd.GeoDataFrame(data, columns=headers)
+
+        geometry_col = headers.index('geometry')
+
+        first = data[1][geometry_col]
+
+        if isinstance(first, str):
+            # We have a GeoDataframe, but the geometry column is still strings, so
+            # it must be converted
+            shapes = [ loads(row['geometry']) for i, row in gdf.iterrows()]
+
+        elif not isinstance(first, BaseGeometry):
+            # If we are reading a metatab package, the geometry column's type should be
+            # 'geometry' which will give the geometry values class type of
+            # rowpipe.valuetype.geo.ShapeValue. However, there are other
+            # types of objects that have a 'shape' property.
+
+            shapes = [row['geometry'].shape for i, row in gdf.iterrows()]
+
+        else:
+            shapes = gdf['geometry']
+
+        gdf['geometry'] = gpd.GeoSeries(shapes)
+        gdf.set_geometry('geometry')
+
+        gdf.crs = {'init' : self.projection}
+
+        return gdf
+
+
 class GeoJsonSource(Source):
     """Generate rows, of Shapeley objects, from a GeoJson file reference"""
 
@@ -220,8 +300,6 @@ class GeoJsonSource(Source):
         t = self.url.get_resource().get_target()
 
         gj = json.loads(t.read())
-
-
 
 
         s = shape(gj['geometry'])

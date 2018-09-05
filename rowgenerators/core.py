@@ -67,7 +67,7 @@ def get_generator(source, **kwargs):
 
 
     else:
-        raise RowGeneratorError("Unknown arg type for source: '{}'".format(type(source)))
+        raise RowGeneratorError("Unknown arg type for source {}, type='{}'".format(source, type(source)))
 
     classes = sorted([ep.load() for ep in iter_entry_points(group='rowgenerators') if ep.name in names],
                      key=lambda cls: cls.priority)

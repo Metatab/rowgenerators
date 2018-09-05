@@ -49,3 +49,12 @@ class TestGeo(unittest.TestCase):
 
         self.assertEquals(42, len(list(g)))
 
+    def test_geoframe(self):
+
+        us = 'shape+http://s3.amazonaws.com/public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
+        u = parse_app_url(us)
+
+        #df = u.generator.dataframe()
+        #print(df.head())
+         
+        print(u.generator.geoframe().geometry.total_bounds)
