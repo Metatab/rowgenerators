@@ -46,7 +46,8 @@ setup(
         'requests',
         'tabulate',
         'xlrd',
-        'aniso8601'
+        'aniso8601',
+        'geopandas'
     ],
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
