@@ -35,10 +35,11 @@ value_types.update(error_value_types)
 value_types.update(measure_value_types)
 value_types.update(other_value_types)
 
+
+
 @memoize
 def resolve_value_type(vt_code):
     import sys
-
 
     vt_code = vt_code.strip('?')
 

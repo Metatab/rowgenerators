@@ -7,6 +7,7 @@
 """
 
 from .file import FileUrl
+from rowgenerators.appurl.web import WebUrl
 
 from rowgenerators.appurl.archive.zip import ZipUrl
 
@@ -38,7 +39,7 @@ class ShapefileUrl(ZipUrl):
         return list(self.set_target_file(rf) for rf in real_files)
 
     def get_target(self):
-        """Returns the ZIP file, with the correct fragmentment, not the inner
+        """Returns the ZIP file, with the correct fragment, not the inner
         file as a ZipUrl normally does. """
 
 
@@ -57,6 +58,12 @@ class ShapefileUrl(ZipUrl):
 
         return ShapefileShpUrl(str(t))
 
+    def geoframe(self, *args, **kwargs):
+
+        import geopandas
+
+        return self.get_resource().get_target().generator.geoframe( *args, **kwargs)
+
 class ShapefileShpUrl(FileUrl):
 
     match_priority = 1000 # Don't match this one.
@@ -71,6 +78,7 @@ class ShapefileShpUrl(FileUrl):
     @classmethod
     def _match(cls, url, **kwargs):
         return False
+
 
     def get_resource(self):
         return self

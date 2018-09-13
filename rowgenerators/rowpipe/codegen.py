@@ -287,7 +287,6 @@ def calling_code(f, f_name=None, raise_for_missing=True):
 
     if inspect.isclass(f):
         try:
-
             args = inspect.signature(f.__init__).parameters.keys()
         except TypeError as e:
             raise TypeError("Failed to inspect {}: {}".format(f, e))
@@ -296,7 +295,7 @@ def calling_code(f, f_name=None, raise_for_missing=True):
         args = inspect.signature(f).parameters.keys()
 
     if len(args) > 1 and list(args)[0] == 'self':
-        args = args[1:]
+        args = list(args)[1:]
 
 
     if 'self' in args: # Python3 gets self, but not Python2
@@ -310,7 +309,7 @@ def calling_code(f, f_name=None, raise_for_missing=True):
                 # raises the TypeError.
                 if a == 'obj':
                     raise TypeError()
-
+                raise TypeError()
                 raise ConfigurationError('Caster code {} has unknown argument '
                                          'name: \'{}\'. Must be one of: {} '.format(f, a, ','.join(all_args)))
 

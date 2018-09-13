@@ -137,3 +137,26 @@ class BasicTests(unittest.TestCase):
         for r in t.generator:
             print(r)
 
+
+    def test_RowGenerator(self):
+        import warnings
+        warnings.simplefilter("ignore")
+
+        from rowgenerators import RowGenerator
+
+
+        rg = RowGenerator('http://public.source.civicknowledge.com/example.com/sources/simple-example-altnames.csv')
+
+        self.assertEqual(10001, len(list(rg)))
+
+        df = rg.dataframe()
+
+        self.assertEqual(10000, len(df))
+
+        url = 'http://public.source.civicknowledge.com/example.com/sources/simple-example.foo#&target_format=csv'
+
+        self.assertEqual(10001, len(list(RowGenerator(url))))
+
+        url = 'http://public.source.civicknowledge.com/example.com/sources/simple-example.foo'
+
+        self.assertEqual(10001, len(list(RowGenerator(url, target_format='csv' ))))

@@ -107,7 +107,7 @@ class TractGeoid(GeoAcsVT):
 
 class CensusTractGeoid(Geoid):
     """A Census Geoid for Counties """
-    desc = 'Census Tract  geoid'
+    desc = 'Census Tract geoid'
     geoid_cls = geoid.census.Tract
 
     @property

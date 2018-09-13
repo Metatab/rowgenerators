@@ -110,6 +110,7 @@ class Column(RGColumn):
 
         if valuetype is not None and datatype is None:
             self.valuetype = resolve_value_type(valuetype)
+
         elif datatype is not None:
             self.valuetype = resolve_value_type(datatype)
         else:

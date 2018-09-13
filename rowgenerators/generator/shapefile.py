@@ -48,7 +48,6 @@ class ShapefileSource(GeoSourceBase):
         By default will try to re-project to epsg:4326 during iteration. This can be turned off by setting
         the 'projection' argument to '<source>'
 
-
         :param url:
         :param cache:
         :param working_dir:
@@ -226,61 +225,22 @@ class ShapefileSource(GeoSourceBase):
 
 
     def dataframe(self, limit=None):
-        """Return a pandas datafrome from the resource"""
+        """An alias for geoframe()"""
 
-        from metapack.jupyter.pandas import MetatabDataFrame
+        return self.geoframe()
 
-        headers = next(islice(self, 0, 1))
-        data = islice(self, 1, None)
 
-        df = MetatabDataFrame(list(data), columns=headers, metatab_resource=self)
-
-        return df
 
     def geoframe(self):
         """Return a geopandas dataframe. The geoframe does not reproject, ( which is a lot faster )
         but does set the crs with the actual projection, so you can re-project with to_crs()
 
-        Creating a geoframe will re-set the generators target projection property to '<source>'
-
         """
         import geopandas as gpd
-        from shapely.geometry.polygon import BaseGeometry
-        from shapely.wkt import loads
 
-        self.target_projection = '<source>'
+        vfs, shp_file, layer_index = self._open_file_params()
 
-        headers = next(islice(self, 0, 1))
-        data = list(islice(self, 1, None))
-
-        gdf = gpd.GeoDataFrame(data, columns=headers)
-
-        geometry_col = headers.index('geometry')
-
-        first = data[1][geometry_col]
-
-        if isinstance(first, str):
-            # We have a GeoDataframe, but the geometry column is still strings, so
-            # it must be converted
-            shapes = [ loads(row['geometry']) for i, row in gdf.iterrows()]
-
-        elif not isinstance(first, BaseGeometry):
-            # If we are reading a metatab package, the geometry column's type should be
-            # 'geometry' which will give the geometry values class type of
-            # rowpipe.valuetype.geo.ShapeValue. However, there are other
-            # types of objects that have a 'shape' property.
-
-            shapes = [row['geometry'].shape for i, row in gdf.iterrows()]
-
-        else:
-            shapes = gdf['geometry']
-
-        gdf['geometry'] = gpd.GeoSeries(shapes)
-        gdf.set_geometry('geometry')
-
-        gdf.crs = {'init' : self.projection}
-
-        return gdf
+        return  gpd.read_file(shp_file, vfs=vfs, layer=layer_index)
 
 
 class GeoJsonSource(Source):

@@ -19,6 +19,10 @@ from rowgenerators import get_generator, parse_app_url
 
 class TestGeo(unittest.TestCase):
 
+    def setUp(self):
+        import warnings
+        warnings.simplefilter('ignore')
+
     @unittest.skipIf(not test_geo,"These tests require modules: fiona, pyproj, shapely")
     def test_geo(self):
         from rowgenerators.generator.shapefile import ShapefileSource
@@ -47,7 +51,7 @@ class TestGeo(unittest.TestCase):
                               'name': 'geometry', 'type': 'geometry_type'}], g.columns)
         self.assertEqual(['id', 'SRA', 'NAME', 'geometry'], g.headers)
 
-        self.assertEquals(42, len(list(g)))
+        self.assertEqual(42, len(list(g)))
 
     def test_geoframe(self):
 

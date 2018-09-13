@@ -5,9 +5,112 @@
 
 from itertools import islice
 
+from .appurl.web.download import Downloader
+default_downloader = Downloader()
+
+class RowGenerator(object):
+    """Main class for accessing row generators"""
+
+    def __init__(self, url, *args, downloader = None, **kwargs):
+        from .appurl.url import parse_app_url, Url
+        from .appurl.web.download import Downloader
+
+        self._url_text = url
+        self._downloader = downloader or default_downloader
+
+        self.url = parse_app_url(self._url_text, *args, downloader=self._downloader, **kwargs)
+
+    def registered_urls(self):
+        """Return an array of registered Urls. The first row is the header"""
+        from pkg_resources import iter_entry_points
+
+        entries = ['Priority', 'EP Name', 'Module', 'Class']
+        for ep in iter_entry_points('appurl.urls'):
+            c = ep.load()
+            entries.append([c.match_priority, ep.name, ep.module_name, c.__name__, ])
+
+        return entries
+
+
+    def __iter__(self):
+        """Yields first the header, then each of the data rows. """
+        yield from self.url.generator
+
+    @property
+    def iter_dict(self):
+        """Iterate over dicts"""
+        yield from self.url.generator.iter_dict
+
+    @property
+    def iter_row(self):
+        """Iterate, yielding row proxy objects. DOes not first yield a header"""
+        yield from self.url.generator.iter_rp
+
+    @property
+    def generator(self):
+        """Return the data generating object"""
+        return self.url
+
+    @property
+    def headers(self):
+        """Return the columns headers"""
+        return self.generator.headers
+
+    def dataframe(self, *args, **kwargs):
+        """Return a pandas dataframe"""
+
+        try:
+            return self.url.generator.dataframe(*args, **kwargs)
+        except AttributeError:
+            pass
+
+
+        try:
+            return self.url.dataframe(*args, **kwargs)
+        except AttributeError:
+            pass
+
+        raise NotImplementedError("Url '{}' of type '{}' can't generate a dataframe ".format(self.url, type(self.url)))
+
+    def geoframe(self, *args, **kwargs):
+        """Return a Geopandas dataframe"""
+
+        try:
+            return self.url.geoframe(*args, **kwargs)
+        except AttributeError:
+            pass
+
+        try:
+            return self.url.geo_generator.geoframe(*args, **kwargs)
+        except AttributeError:
+            pass
+
+        try:
+            return self.url.generator.geoframe(*args, **kwargs)
+        except AttributeError:
+            pass
+
+
+
+        raise NotImplementedError("Url '{}' of type '{}' can't generate a dataframe ".format(self.url, type(self.url)))
+
+
+    def intuit(self):
+        """Return information about the columns, based on guessing data types"""
+        raise NotImplemented()
+
+    def statistics(self):
+        """Return summary statistics for the columns"""
+        raise NotImplemented()
+
+
+    def set_row_processor(self):
+        """Register a row processor, which will transform rows as they are iterated"""
+        raise NotImplemented()
 
 class Source(object):
-    """Base class for accessors that generate rows from any source
+    """Base class for accessors that generate rows from any source. This is the class returned from
+     parse_app_url().generator
 
     Subclasses of Source must override at least _get_row_gen method.
     """
@@ -76,6 +179,17 @@ class Source(object):
 
         for row in itr:
             yield dict(zip(headers, row))
+
+    def dataframe(self, *args, **kwargs):
+        """Return a pandas dataframe from the resource"""
+
+        from pandas import DataFrame
+
+        # Just normal data, so use the iterator in this object.
+        headers = next(islice(self, 0, 1))
+        data = islice(self, 1, None)
+
+        return DataFrame(list(data), columns=headers)
 
 
     def start(self):

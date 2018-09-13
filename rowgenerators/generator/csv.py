@@ -55,3 +55,12 @@ class CsvSource(Source):
             raise
 
         self.finish()
+
+    def dataframe(self, limit=None, *args, **kwargs):
+        import pandas
+
+        if self.url.encoding and not 'encoding' in kwargs:
+            kwargs['encoding'] = self.url.encoding
+
+        return pandas.read_csv(self.url.fspath, *args, **kwargs)
+
