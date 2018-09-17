@@ -53,6 +53,7 @@ class WebUrl(Url):
 
         self._resource = self._downloader.download(self.inner)
 
+
         ru = parse_app_url(self._resource.sys_path,
                            fragment=self.fragment,
                            fragment_query=self.fragment_query,

@@ -112,13 +112,18 @@ class ZipUrl(FileUrl):
         if 'resource_file' in fq:
             del fq['resource_file']
 
-        return parse_app_url(target_path,
+        tu =  parse_app_url(target_path,
                              fragment_query=fq,
                              fragment=[self.target_segment, None],
                              scheme_extension=self.scheme_extension,
                              # Clear out the resource info so we don't get a ZipUrl
                              downloader=self.downloader
                              )
+
+        if self.target_format !=  tu.target_format:
+            tu.target_format = self.target_format
+
+        return tu
 
     def list(self):
         """List the files in the referenced Zip file"""
