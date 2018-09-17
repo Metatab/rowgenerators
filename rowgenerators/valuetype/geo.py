@@ -101,6 +101,7 @@ class CountyGeoid(GeoAcsVT):
 
 class TractGeoid(GeoAcsVT):
     """An ACS Geoid for Counties """
+    vt_code = 'geo/acs/tract'
     desc = 'Tract ACS geoid'
     geoid_cls = geoid.acs.Tract
 
@@ -124,8 +125,14 @@ def county(state, county):
 class GeoTigerVT(Geoid):
     role = ROLE.DIMENSION
     vt_code = 'geo/tiger'
-    desc = 'Tigerline Geoid'
+    desc = 'Tigerline format Geoid'
     geoid_cls = geoid.tiger.TigerGeoid
+
+class GeoTigerTractVT(Geoid):
+    role = ROLE.DIMENSION
+    vt_code = 'geo/tiger/tract'
+    desc = 'Tigerline format TractGeoid'
+    geoid_cls = geoid.tiger.Tract
 
 
 class GeoCensusVT(Geoid):
@@ -278,8 +285,10 @@ geo_value_types = {
     "geoid/tiger": GeoAcsVT,  # acs_geoid
     "geoid/census": GeoAcsVT,  # acs_geoid
     "geoid/county": CountyGeoid,  # acs_geoid
+    GeoTigerTractVT.vt_code: GeoTigerTractVT,
     "geoid/census/tract": CensusTractGeoid,
     "geoid/tract": TractGeoid,
+    TractGeoid.vt_code: TractGeoid,
     "gvid": GeoGvidVT,
     "fips": Fips,
     "fips/state": FipsState,  # fips_state
