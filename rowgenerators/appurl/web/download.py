@@ -125,8 +125,10 @@ class Downloader(object):
                 # primarily S3 urls, with Boto or AWS credential
                 try:
                     r.cache_path, r.download_time = self._download_with_lock(url.auth_resource_url)
-                except AttributeError:
+                except AttributeError as e:
                     raise e
+                except DownloadError as e:
+                    raise DownloadError("Access error for url '{}'; also tried accessing as S3 url '{}'".format(url, url.auth_resource_url ))
 
             r.sys_path = self.cache.getsyspath(r.cache_path)
 
@@ -269,11 +271,12 @@ class Downloader(object):
         if self.callback:
             self.callback('download', url, 0)
 
+
         if url.startswith('s3:'):
 
-            from rowgenerators.appurl.url import Url
+            from rowgenerators import parse_app_url
 
-            s3url = Url(url)
+            s3url = parse_app_url(url)
 
             try:
                 with self.cache.open(cache_path, 'wb') as f:
@@ -303,23 +306,6 @@ class Downloader(object):
                 ftp.retrbinary('RETR ' + u['path'], _read)
                 ftp.quit()
 
-            if False:
-                from contextlib import closing
-                with closing(urlopen(url)) as fin:
-
-                    with self.cache.open(cache_path, 'wb') as fout:
-
-                        read_len = 16 * 1024
-                        total_len = 0
-                        while 1:
-                            buf = fin.read(read_len)
-                            if not buf:
-                                break
-                            fout.write(buf)
-                            total_len += len(buf)
-
-                            if self.callback:
-                                copy_callback(len(buf), total_len)
         else:
 
             logger.debug("Request " + str(url))
