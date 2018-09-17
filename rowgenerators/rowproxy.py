@@ -133,4 +133,3 @@ class GeoRowProxy(RowProxy):
 
         return gi
 
-

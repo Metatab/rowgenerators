@@ -262,6 +262,7 @@ def cast_float(v, header_d, errors):
 
 
 def cast_str(v, header_d, errors):
+
     if isinstance(v, FailedValue):
         errors[header_d].add(u"Uncleared errors on value '{}' in '{}': {}".format(v, header_d, str(v.exc)))
         count_errors(errors)
@@ -581,4 +582,11 @@ def robust_float(v):
 
 
 def print_value(row_n, header_d, v):
+
     print("print_value {}: {} = {}".format(row_n, header_d, v))
+    return v
+
+def print_type(row_n, header_d, v):
+
+    print("print_type {}: {} = {}".format(row_n, header_d,type(v)))
+    return v

@@ -56,7 +56,8 @@ setup(
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',
-            'appurl=rowgenerators.appurl.cli:appurl'
+            'rowgen-urls=rowgenerators.appurl.cli:appurl',
+            'rowgen-valuestypes=rowgenerators.valuetype.cli:valuetypes'
         ],
 
         'rowgenerators': [

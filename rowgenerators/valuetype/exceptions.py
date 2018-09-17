@@ -6,7 +6,7 @@ Functions for handling exceptions
 
 
 def clear_error(v):
-    from ambry.valuetype import FailedValue
+    from rowgenerators.valuetype import FailedValue
 
     if isinstance(v, FailedValue):
         return None

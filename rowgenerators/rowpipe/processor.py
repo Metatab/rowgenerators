@@ -117,13 +117,11 @@ class RowProcessor(object):
                     # After the first round, the row has the destination headers.
                     rp = rp2
 
-
                 yield row
             except Exception as e:
                 raise
 
         self.finish()
-
 
     def start(self):
         pass
