@@ -4,7 +4,7 @@
 """ """
 
 import logging
-
+from functools import lru_cache
 logger = logging.getLogger('rowgenerators.appurl.web.download')
 
 
@@ -40,12 +40,25 @@ class Resource(object):
         return str(self.__dict__)
 
 
+def default_downloader_callback(msg_type, downloader, message, read_len, total_len):
+
+    raise Exception()
+    pass
+
+@lru_cache(100)
+def get_instance(cache=None, account_accessor=None, logger=None,
+                 working_dir='', callback=None):
+        """Return a memoized singleton"""
+        return Downloader(cache, account_accessor, logger, working_dir, callback)
+
 class Downloader(object):
     """Downloader objects handle downloading resrouces from the web, including authorization,
     and storing the downloaded object in a cache. Since they are the primary interface to the file cache,
     all Urls object have a link to a Downloader """
 
     context = {}  # A variable substitution context, for substituting hostnames, pathnames, etc
+
+    default_callback = default_downloader_callback
 
     def __init__(self, cache=None, account_accessor=None, logger=None,
                  working_dir='', callback=None):
@@ -65,8 +78,28 @@ class Downloader(object):
         self.account_acessor = account_accessor
         self.logger = logger
         self.working_dir = working_dir
-        self.callback = callback
+        self._callback = callback or self.default_callback
         self.clean = False
+
+        # For debugging singletonness
+        #from metapack.util import dump_stack
+        #print('======')
+        #print(dump_stack(5))
+
+    @staticmethod
+    def get_instance(cache=None, account_accessor=None, logger=None,
+                     working_dir='', callback=None):
+        """Return a memoized singleton"""
+        return get_instance(cache, account_accessor, logger, working_dir, callback)
+
+    def callback(self, msg_type, message, read_len=-1, total_len=-1 ):
+        if True or self._callback:
+            self._callback( msg_type, message, read_len, total_len)
+
+    def set_callback(self, cb):
+        # The Downloader is supposed to be a singleton, but it gets created all over the place
+        Downloader.default_callback = cb
+        self._callback = cb
 
     @property
     def cache(self):
@@ -264,13 +297,7 @@ class Downloader(object):
         from rowgenerators.exceptions import DownloadError
         from ftplib import FTP
 
-        def copy_callback(read, total):
-            if self.callback:
-                self.callback('copy_file', read, total)
-
-        if self.callback:
-            self.callback('download', url, 0)
-
+        self.callback('download', url)
 
         if url.startswith('s3:'):
 
@@ -299,8 +326,7 @@ class Downloader(object):
 
                     total_len[0] = total_len[0] + len(d)
 
-                    if self.callback:
-                        copy_callback(len(d), total_len[0])
+                    self.callback('ftp read', url, len(d), total_len[0])
 
                 ftp.login()
                 ftp.retrbinary('RETR ' + u['path'], _read)
@@ -322,7 +348,12 @@ class Downloader(object):
             if r.headers.get('content-encoding') == 'gzip':
                 r.raw.read = functools.partial(r.raw.read, decode_content=True)
 
+            def copy_cb(message, read_len, total_len):
+                # Message is just the read len
+                self.callback('copy', url, read_len, total_len)
+
             with self.cache.open(cache_path, 'wb') as f:
-                copy_file_or_flo(r.raw, f, cb=copy_callback)
+                copy_file_or_flo(r.raw, f, cb=copy_cb)
 
             assert self.cache.exists(cache_path)
+

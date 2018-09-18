@@ -84,7 +84,7 @@ class BasicTests(unittest.TestCase):
     def test_download(self):
         """Test all three stages of a collection of downloadable URLS"""
 
-        dldr = Downloader()
+        dldr = Downloader.get_instance()
 
         with open(data_path('sources.csv')) as f:
             for e in DictReader(f):

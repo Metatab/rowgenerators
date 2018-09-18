@@ -55,7 +55,7 @@ def parse_app_url(u_str, downloader='default', **kwargs):
     if downloader == 'default':
         global default_downloader
         if default_downloader is None:
-            default_downloader = Downloader()
+            default_downloader = Downloader.get_instance()
 
         downloader = default_downloader
 

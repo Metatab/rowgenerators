@@ -304,7 +304,7 @@ def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
                 fdst.write(buf)
                 if cb:
                     cumulative += len(buf)
-                    cb(len(buf), cumulative)
+                    cb(len(buf), len(buf), cumulative)
 
         copyfileobj(input_, output)
 

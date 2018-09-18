@@ -6,7 +6,7 @@
 from itertools import islice
 
 from .appurl.web.download import Downloader
-default_downloader = Downloader()
+default_downloader = Downloader.get_instance()
 
 class RowGenerator(object):
     """Main class for accessing row generators"""

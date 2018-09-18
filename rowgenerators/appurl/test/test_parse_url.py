@@ -61,7 +61,7 @@ class TestUrlParse(unittest.TestCase):
     def test_two_extensions(self):
         u_s = 'http://public.source.civicknowledge.com/example.com/sources/simple-example.csv.zip'
 
-        u = parse_app_url(u_s, Downloader())
+        u = parse_app_url(u_s, Downloader.get_instance())
 
         self.assertEqual('simple-example.csv.zip', u.resource_file)
         self.assertEqual('simple-example.csv.zip', u.target_file)
