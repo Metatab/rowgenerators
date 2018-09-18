@@ -41,8 +41,6 @@ class Resource(object):
 
 
 def default_downloader_callback(msg_type, downloader, message, read_len, total_len):
-
-    raise Exception()
     pass
 
 @lru_cache(100)
