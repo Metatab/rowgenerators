@@ -316,9 +316,23 @@ def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
             output.close()
 
 
-DEFAULT_CACHE_NAME = 'appurl'
+DEFAULT_CACHE_NAME = 'rowgen-cache'
 
-def get_cache(cache_name=DEFAULT_CACHE_NAME, clean=False):
+def get_cache_name(cache_name=None):
+    cn = cache_name or DEFAULT_CACHE_NAME
+
+    if not cn:
+        from rowgenerators.exceptions import ConfigurationError
+
+        raise ConfigurationError("Must either set the default cache name or call cache functions with a name")
+
+    return cn
+
+def set_default_cache_name(cache_name):
+    global DEFAULT_CACHE_NAME
+    DEFAULT_CACHE_NAME = cache_name
+
+def get_cache(cache_name=None, clean=False):
     """Return the path to a file cache"""
 
     from fs.osfs import OSFS
@@ -326,11 +340,12 @@ def get_cache(cache_name=DEFAULT_CACHE_NAME, clean=False):
     from fs.errors import CreateFailed
     import os
 
+    cache_name = get_cache_name(cache_name)
+
     # If the environmental variable for the cache is set, change the cache directory.
     env_var = (cache_name+'_cache').upper()
 
     cache_dir = os.getenv(env_var, None)
-
 
     if cache_dir:
         try:
@@ -346,11 +361,11 @@ def get_cache(cache_name=DEFAULT_CACHE_NAME, clean=False):
 
 
 
-def clean_cache(cache = None, cache_name=DEFAULT_CACHE_NAME):
+def clean_cache(cache = None, cache_name=None):
     """Delete items in the cache older than 24 hours"""
     import datetime
 
-    cache = cache if cache else get_cache(cache_name)
+    cache = cache if cache else get_cache( get_cache_name(cache_name))
 
     ignores = ['index.json', 'index.json.bak']
 
@@ -363,10 +378,10 @@ def clean_cache(cache = None, cache_name=DEFAULT_CACHE_NAME):
             if step[0] not in ignores:
                 cache.remove(step[0])
 
-def nuke_cache(cache = None, cache_name=DEFAULT_CACHE_NAME):
+def nuke_cache(cache = None, cache_name=None):
     """Delete Everythong in the cache"""
 
-    cache = cache if cache else get_cache(cache_name)
+    cache = cache if cache else get_cache(get_cache_name(cache_name))
 
     for step in cache.walk.info():
         if not step[1].is_dir:
