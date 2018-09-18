@@ -92,7 +92,6 @@ class ZipUrl(FileUrl):
 
         assert self.zip_dir
 
-
         zf = ZipFile(str(self.fspath))
 
         self._target_file = ZipUrl.get_file_from_zip(self)
@@ -120,8 +119,12 @@ class ZipUrl(FileUrl):
                              downloader=self.downloader
                              )
 
-        if self.target_format !=  tu.target_format:
-            tu.target_format = self.target_format
+        if self.target_format != tu.target_format:
+
+            try:
+                tu.target_format = self.target_format
+            except AttributeError:
+                pass # Some URLS don't allow resetting target type.
 
         return tu
 
