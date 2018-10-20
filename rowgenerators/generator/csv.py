@@ -51,6 +51,7 @@ class CsvSource(Source):
 
             with open(self.url.fspath, encoding=encoding) as f:
                 yield from csv.reader(f, delimiter=self.delimiter)
+
         except UnicodeError as e:
             raise
 

@@ -24,8 +24,8 @@ class FailedGeoid(FailedValue):
 
 class Geoid(StrDimension, GeoMixin):
     """General Geoid """
-    desc = 'Census Geoid'
-    geoid_cls = None
+    desc = 'General Geoid'
+    geoid_cls = None # Set in derived classes
     geoid = None
 
     def __new__(cls, *args, **kwargs):
@@ -36,25 +36,24 @@ class Geoid(StrDimension, GeoMixin):
         if v is None or (isinstance(v, str) and v.strip() == ''):
             return NoneValue
 
-        if isinstance(v, geoid.core.Geoid):
-            o = StrDimension.__new__(cls, str(v))
-            o.geoid = v
-            return o
-
         try:
-
-            if len(args) < 2:  # Parse a string
+            if isinstance(v, geoid.core.Geoid):
+                _geoid = v
+                _geoid_str = str(v)
+            elif len(args) < 2:  # Parse a string
                 _geoid = cls.geoid_cls.parse(v)
+                _geoid_str = v
             else:  # construct from individual state, county, etc, values
                 _geoid = cls.geoid_cls(*args, **kwargs)
-
-            o = StrDimension.__new__(cls, str(_geoid))
-            o.geoid = _geoid
-
-            return o
-
+                _geoid_str = v
         except ValueError as e:
             return FailedValue(args[0], e)
+
+        o = super(Geoid, cls).__new__(cls, _geoid_str)
+        o.geoid = _geoid
+
+        return o
+
 
     def __getattr__(self, item):
         """Allow getting attributes from the internal geoid"""
@@ -86,29 +85,30 @@ class GeoLabel(LabelValue, GeoMixin):
     desc = 'Geographic Identifier Label'
 
 
-class GeoAcsVT(Geoid):
+class GeoAcs(Geoid):
     role = ROLE.DIMENSION
     vt_code = 'geoid'
     desc = 'ACS Geoid'
     geoid_cls = geoid.acs.AcsGeoid
 
 
-class CountyGeoid(GeoAcsVT):
+class GeoidAcsCounty(GeoAcs):
     """An ACS Geoid for Counties """
     desc = 'County ACS geoid'
     geoid_cls = geoid.acs.County
 
 
-class TractGeoid(GeoAcsVT):
+class GeoidAcsTract(GeoAcs):
     """An ACS Geoid for Counties """
     vt_code = 'geo/acs/tract'
     desc = 'Tract ACS geoid'
     geoid_cls = geoid.acs.Tract
 
 
-class CensusTractGeoid(Geoid):
+class GeoidCensusTract(Geoid):
     """A Census Geoid for Counties """
     desc = 'Census Tract geoid'
+    vt_code =  "geoid/census/tract"
     geoid_cls = geoid.census.Tract
 
     @property
@@ -119,25 +119,25 @@ class CensusTractGeoid(Geoid):
 
 
 def county(state, county):
-    return CountyGeoid(state, county)
+    return GeoidAcsCounty(state, county)
 
 
-class GeoTigerVT(Geoid):
+class GeoidTiger(Geoid):
     role = ROLE.DIMENSION
     vt_code = 'geo/tiger'
     desc = 'Tigerline format Geoid'
     geoid_cls = geoid.tiger.TigerGeoid
 
-class GeoTigerTractVT(Geoid):
+class GeoidTigerTract(Geoid):
     role = ROLE.DIMENSION
     vt_code = 'geo/tiger/tract'
-    desc = 'Tigerline format TractGeoid'
+    desc = 'Tigerline format GeoidAcsTract'
     geoid_cls = geoid.tiger.Tract
 
 
-class GeoCensusVT(Geoid):
+class GeoidCensus(Geoid):
     role = ROLE.DIMENSION
-    vt_code = 'geoid/census'
+    vt_code = 'geoid/census/census'
     desc = 'Census Geoid'
     geoid_cls = geoid.census.CensusGeoid
 
@@ -156,7 +156,7 @@ class GeoCensusVT(Geoid):
         return cls
 
 
-class GeoGvidVT(Geoid):
+class GeoidGvid(Geoid):
     role = ROLE.DIMENSION
     vt_code = 'geo/gvid'
     desc = 'CK Geoid'
@@ -176,7 +176,7 @@ class ZipCodePlusFour(StrDimension, GeoMixin):
     desc = 'ZIP Code with 4 digit extension'
     vt_code = 'zipp4'
 
-class GeoStusabVT(StrDimension, GeoMixin):
+class Stusab(StrDimension, GeoMixin):
     """A 2 character state abbreviation"""
     desc = 'USPS State Code'
     vt_code = 'geo/usps/state'
@@ -279,17 +279,18 @@ class DecimalDegreesValue(FloatDimension, GeoMixin):
     desc = 'Geographic coordinate in decimal degrees'
 
 
+
 geo_value_types = {
     "label/geo": GeoLabel,
-    "geoid": GeoAcsVT,  # acs_geoid
-    "geoid/tiger": GeoAcsVT,  # acs_geoid
-    "geoid/census": GeoAcsVT,  # acs_geoid
-    "geoid/county": CountyGeoid,  # acs_geoid
-    GeoTigerTractVT.vt_code: GeoTigerTractVT,
-    "geoid/census/tract": CensusTractGeoid,
-    "geoid/tract": TractGeoid,
-    TractGeoid.vt_code: TractGeoid,
-    "gvid": GeoGvidVT,
+    "geoid": GeoAcs,  # acs_geoid
+    "geoid/census": GeoAcs,  # acs_geoid
+    GeoidTigerTract.vt_code: GeoidTigerTract,
+    GeoidCensusTract.vt_code: GeoidCensusTract,
+    "geoid/tract": GeoidAcsTract,
+    GeoidAcsTract.vt_code: GeoidAcsTract,
+    "geoid/county": GeoidAcsCounty,  # acs_geoid
+    GeoidAcsCounty.vt_code: GeoidAcsCounty,  # acs_geoid
+    "gvid": GeoidGvid,
     "fips": Fips,
     "fips/state": FipsState,  # fips_state
     "fips/county": Fips,  # fips_
@@ -299,7 +300,7 @@ geo_value_types = {
     "zip": ZipCode,  # zip
     "zipp4": ZipCodePlusFour,  # zip
     "zcta": ZipCode,  # zip
-    "stusab": GeoStusabVT,  # stusab
+    "stusab": Stusab,  # stusab
     "lat": DecimalDegreesValue,  # Decimal degrees
     "lon": DecimalDegreesValue,  # Decimal degrees
     "wkt": WellKnownTextValue  # WKT Geometry String

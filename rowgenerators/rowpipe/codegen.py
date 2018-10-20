@@ -5,6 +5,7 @@
 
 """
 
+import ast
 
 
 def file_loc():
@@ -67,6 +68,8 @@ def row_{table}_{stage}(row, row_n, errors, scratch, accumulator, pipe, manager,
 """
 
 
+
+
 class CodeGenError(Exception):
     pass
 
@@ -85,7 +88,7 @@ def exec_context(**kwargs):
     import rowgenerators.valuetype
     import rowgenerators.rowpipe.transforms
 
-    def set_from(f, frm):
+    def set_from(f, frm): # This maybe isn't used anymore, or maybe it is for debugging?
         try:
             try:
                 f.ambry_from = frm
@@ -124,6 +127,8 @@ def exec_context(**kwargs):
     # replacing it with a lambda prevents the param assignment
     localvars['randint'] = lambda a, b: random.randint(a, b)
 
+    localvars['round'] = lambda a, b: round(a, b)
+
     return localvars
 
 
@@ -139,7 +144,6 @@ def make_row_processors(source_headers, dest_table, env=None):
     """
 
     import re
-    from itertools import zip_longest
 
     if env is None:
         env = exec_context()
@@ -156,7 +160,7 @@ def make_row_processors(source_headers, dest_table, env=None):
 
     transforms = dest_table.stage_transforms
 
-    for i, segments in enumerate(transforms): # Iterate over each stage
+    for i, segments in enumerate(transforms):  # Iterate over each stage
 
         column_names = []
         column_types = []
@@ -165,11 +169,11 @@ def make_row_processors(source_headers, dest_table, env=None):
         # Iterate over each column, linking it to the segments for this stage
         for col_num, (segment, column) in enumerate(zip(segments, dest_table), 0):
 
-
             assert column
             assert column.name, (dest_table.name, i)
             assert column.name == segment['column'].name
 
+ 
             col_name = column.name
             preamble_parts, try_lines, exception, passthrough = make_stack(env, i, segment)
 
@@ -190,10 +194,10 @@ def make_row_processors(source_headers, dest_table, env=None):
             assert column_name, (dest_table.name, i, col_name)
             assert table_name
 
-            f_name = "{}_{}_{}".format(table_name,column_name,i)
+            f_name = "{}_{}_{}".format(table_name, column_name, i)
 
             exception = (exception if exception
-                         else 'raise CasterExceptionError("'+f_name+'",header_d, v, exc, sys.exc_info())')
+                         else 'raise CasterExceptionError("' + f_name + '",header_d, v, exc, sys.exc_info())')
 
             try:
                 # The input values for the first stage is the input dataset,
@@ -208,7 +212,7 @@ def make_row_processors(source_headers, dest_table, env=None):
 
                 v = 'row[{}]'.format(i_s)
 
-            except ValueError as e: # The col name is not in the source dataset
+            except ValueError as e:  # The col name is not in the source dataset
                 # This is the typical case when the output dataset has different columns from the
                 # input, whcih should only occur on the first stage.
                 i_s = 'None'
@@ -240,15 +244,12 @@ def make_row_processors(source_headers, dest_table, env=None):
                 v=v,
                 exception=indent + exception,
                 stack='\n'.join(indent + l for l in try_lines),
-                col_args='', # col_args not implemented yet
+                col_args='',  # col_args not implemented yet
                 loc=file_loc()))
-
-
 
         # This stack assembles all of the function calls that will generate the next row
         stack = '\n'.join("{}{}, # column {}".format(indent, l, cn)
                           for l, cn, dt in zip(seg_funcs, column_names, column_types))
-
 
         out.append(row_template.format(
             table=re.sub(r'[^\w]+', '_', dest_table.name),
@@ -264,12 +265,11 @@ def make_row_processors(source_headers, dest_table, env=None):
     stack = '\n'.join("{}cast_{}(row[{}], '{}', errors),".format(indent, c.datatype.__name__, i, c.name)
                       for i, c in enumerate(dest_table))
 
-
     out.append(row_template.format(
         table=re.sub(r'[^\w]+', '_', dest_table.name),
         stage=len(transforms),
         stack=stack,
-            loc=file_loc()
+        loc=file_loc()
     ))
 
     row_processors.append('row_{table}_{stage}'.format(stage=len(transforms),
@@ -277,7 +277,7 @@ def make_row_processors(source_headers, dest_table, env=None):
 
     out.append('row_processors = [{}]'.format(','.join(row_processors)))
 
-    return  '\n'.join([file_header]+ list(set(preamble)) + out)
+    return '\n'.join([file_header] + list(set(preamble)) + out)
 
 
 def calling_code(f, f_name=None, raise_for_missing=True):
@@ -297,8 +297,7 @@ def calling_code(f, f_name=None, raise_for_missing=True):
     if len(args) > 1 and list(args)[0] == 'self':
         args = list(args)[1:]
 
-
-    if 'self' in args: # Python3 gets self, but not Python2
+    if 'self' in args:  # Python3 gets self, but not Python2
         args.remove('self')
 
     for a in args:
@@ -309,6 +308,7 @@ def calling_code(f, f_name=None, raise_for_missing=True):
                 # raises the TypeError.
                 if a == 'obj':
                     raise TypeError()
+
                 raise TypeError()
                 raise ConfigurationError('Caster code {} has unknown argument '
                                          'name: \'{}\'. Must be one of: {} '.format(f, a, ','.join(all_args)))
@@ -319,7 +319,6 @@ def calling_code(f, f_name=None, raise_for_missing=True):
 
     return "{}({})".format(f_name if f_name else f.__name__, ','.join(args))
 
-
 def make_stack(env, stage, segment):
     """For each transform segment, create the code in the try/except block with the
     assignements for pipes in the segment """
@@ -328,7 +327,7 @@ def make_stack(env, stage, segment):
     import random
     from rowgenerators.valuetype import ValueType
 
-    passthrough = False # If true, signal that the stack will just return its input value
+    passthrough = False  # If true, signal that the stack will just return its input value
 
     column = segment['column']
 
@@ -337,20 +336,25 @@ def make_stack(env, stage, segment):
 
         line_t = "v = {} # {}"
 
-        if isinstance(t, type) and issubclass(t, ValueType):  # A valuetype class, from the datatype column.
+        env_t = env.get(t,t)
+
+        if isinstance(env_t, type) and issubclass(env_t, ValueType):  # A valuetype class, from the datatype column.
 
             try:
-                cc, fl = calling_code(t, t.__name__), file_loc()
+                cc, fl = calling_code(env_t, env_t.__name__), file_loc()
             except TypeError as e:
-                cc, fl = "{}(v)".format(t.__name__), file_loc()
+                cc, fl = "{}(v)".format(env_t.__name__), file_loc()
 
-            preamble.append("{} = resolve_value_type('{}') # {}".format(t.__name__, t.vt_code, file_loc()))
+            preamble.append("{} = resolve_value_type('{}') # {}".format(env_t.__name__, env_t.vt_code, file_loc()))
 
         elif isinstance(t, type):  # A python type, from the datatype columns.
             cc, fl = "parse_{}(v, header_d)".format(t.__name__), file_loc()
 
         elif callable(env.get(t)):  # Transform function
-            cc, fl = calling_code(env.get(t), t), file_loc()
+            try:
+                cc, fl = calling_code(env.get(t), t), file_loc()
+            except TypeError as e:
+                raise
 
         else:  # A transform generator, or python code.
 
@@ -366,7 +370,7 @@ def make_stack(env, stage, segment):
             cc = str(a)
 
             if b:
-                preamble.append("{} = {} # {}".format(name, b,  file_loc()))
+                preamble.append("{} = {} # {}".format(name, b, file_loc()))
 
         line = line_t.format(cc, fl)
 
@@ -375,6 +379,7 @@ def make_stack(env, stage, segment):
     preamble = []
 
     try_lines = []
+
 
     for t in list(segment):
 
@@ -413,7 +418,6 @@ def mk_kwd_args(fn, fn_name=None):
 
     return "{}({})".format(fn_name, ','.join(a + '=' + v for a, v in kwargs.items()))
 
-import ast
 
 class ReplaceTG(ast.NodeTransformer):
     """Replace a transform generator with the transform function"""
@@ -431,13 +435,16 @@ class ReplaceTG(ast.NodeTransformer):
 
     def visit_Call(self, node):  # pragma: no cover
 
-
         import inspect
         from rowgenerators.valuetype import is_transform_generator
         import types
 
         if not isinstance(node.func, ast.Name):
             self.generic_visit(node)
+            # Python 3.5 removed starargs, which the meta module, which dumps the AST to code,
+            # still expects. Not sure about the need for kwargs, but meta expects that too
+            node.starargs = None
+            node.kwargs = None
             return node
 
         fn_name = node.func.id
@@ -499,6 +506,7 @@ class ReplaceTG(ast.NodeTransformer):
             ), node)
 
         if is_transform_generator(fn):
+            raise Exception("Deprecated?")
             self.loc = file_loc()  # The function is a transform generator.
             self.trans_gen = tg_ast
             replace_node = ast.copy_location(
@@ -511,7 +519,9 @@ class ReplaceTG(ast.NodeTransformer):
                 ), node)
 
         else:
+
             replace_node = tg_ast
+
 
         return replace_node
 
@@ -531,6 +541,7 @@ def rewrite_tg(env, tg_name, code):
     """
 
     import meta  # Byte-code and ast programming tools
+    import codegen
 
     visitor = ReplaceTG(env, tg_name)
     assert visitor.tg_name
@@ -538,7 +549,7 @@ def rewrite_tg(env, tg_name, code):
     try:
         tree = visitor.visit(ast.parse(code.strip()))
     except SyntaxError as e:
-        raise SyntaxError(str(e)+"\nIn code: \n"+code)
+        raise SyntaxError(str(e) + "\nIn code: \n" + code)
 
     if visitor.loc:
         loc = ' #' + visitor.loc
@@ -549,5 +560,6 @@ def rewrite_tg(env, tg_name, code):
         tg = meta.dump_python_source(visitor.trans_gen).strip()
     else:
         tg = None
+
 
     return meta.dump_python_source(tree).strip(), tg, loc

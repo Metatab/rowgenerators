@@ -9,6 +9,12 @@ warnings.simplefilter("ignore")
 class TestBasic(unittest.TestCase):
 
 
+    def setUp(self):
+        import warnings
+        super().setUp()
+
+        warnings.simplefilter('ignore')
+
     def test_table(self):
 
         from rowgenerators.rowpipe import Table
@@ -178,6 +184,22 @@ class TestBasic(unittest.TestCase):
         self.assertEqual(2199890000, row_sum)
 
         print('Rate=', float(N) / t.elapsed)
+
+
+    def test_init_transform(self):
+
+        from rowgenerators.rowpipe import Table
+
+
+        def expand_transform(code, datatype='int', valuetype=None):
+            
+            t = Table('foobar')
+            c = t.add_column('c', datatype=datatype, valuetype=valuetype, transform=code)
+            return c.expanded_transform
+
+        print(expand_transform('^GeoidCensusTract|v.as_acs()'))
+        print(expand_transform('v.as_acs()'))
+
 
 
     def test_many_transform(self):

@@ -28,7 +28,7 @@ class FloatMeasure(FloatValue, MeasureMixin):
 class ZScoreVT(FloatMeasure):
     """A Z score"""
     desc = 'Z Score'
-    vt_code = 'z'
+    vt_code = 'zscore'
 
 class ArealDensityVT(FloatMeasure):
     """A general areal density"""
@@ -49,12 +49,12 @@ class RatioVT(FloatMeasure):
 
 class ProportionVT(FloatMeasure):
     """A general ratio of two other values, from 0 to 1"""
-    vt_code = 'pro'
+    vt_code = 'proportion'
     desc = 'Proportion'
 
     def __new__(cls, v):
 
-        o = RatioVT.__new__(cls, v)
+        o = FloatMeasure.__new__(cls, v)
 
         if bool(o) and float(o) > 1:
             return FailedValue(v, ValueError("Proportion values must be less than 1"))
@@ -81,7 +81,7 @@ class PercentageVT(FloatMeasure):
 
     def __new__(cls, v):
 
-        if isinstance(v, text_type) and '%' in v:
+        if isinstance(v, str) and '%' in v:
             v = v.strip('%')
 
         return FloatValue.__new__(cls, v)

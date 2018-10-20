@@ -41,9 +41,6 @@ LOM.ORDINAL = 'o'
 LOM.INTERVAL = 'i'
 LOM.RATIO = 'r'
 
-
-
-
 @decorator
 def valuetype(func, *args, **kw):
     return func(*args, **kw)
@@ -411,6 +408,9 @@ class DateValue(date, ValueType):
             if str(v) == 'NaT':  # THe Pandas "Not A Time" value
                 return NoneValue
             raise
+        except ValueError as e:
+            return FailedValue(v, e)
+
 
     def __init__(self, v):
         pass

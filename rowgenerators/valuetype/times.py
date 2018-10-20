@@ -12,8 +12,11 @@ from datetime import date, time, datetime
 from  dateutil.parser import parse
 
 def cast_date(v, header_d, errors):
+
     if v is None or v is NoneValue or v == '':
         return None
+    elif isinstance(v, FailedValue):
+        pass
     elif isinstance(v, date):
         return v
     elif isinstance(v, ValueType):
@@ -78,11 +81,15 @@ class DateVT(DateValue, TimeMixin):
         super(DateVT, self).__init__(v)
 
 
+
+
+
 class DateTimeVT(DateTimeValue, TimeMixin):
     role = ROLE.DIMENSION
     vt_code = 'dt/datetime'
     desc = 'Date and time'
     lom = LOM.ORDINAL
+
 
 
 class YearValue(IntValue, TimeMixin):

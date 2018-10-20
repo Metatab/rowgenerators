@@ -22,7 +22,11 @@ def ct(t):
         seg_str = []
 
         if seg.init:
-            seg_str.append('^' + seg.init)
+            try:
+                seg_str.append('^' + seg.init)
+
+            except TypeError:
+                pass
 
         if seg.transforms:
             seg_str += seg.transforms
@@ -146,7 +150,7 @@ class Test(unittest.TestCase):
 
     def test_geo(self):
 
-        from rowgenerators.valuetype import GeoAcsVT, GeoGvidVT, resolve_value_type, cast_unicode
+        from rowgenerators.valuetype import GeoAcs, GeoidGvid, resolve_value_type, cast_unicode
         from geoid import acs
 
         # Check the ACS Geoid directly
@@ -155,11 +159,11 @@ class Test(unittest.TestCase):
         self.assertEqual('place in California', acs.Place(6,2980).geo_name)
 
         # THen check via parsing through the GeoAcsVT
-        self.assertEqual('California', GeoAcsVT(str(acs.State(6))).geo_name)
-        self.assertEqual('San Diego County, California', GeoAcsVT(str(acs.County(6, 73))).geo_name)
-        self.assertEqual('place in California', GeoAcsVT(str(acs.Place(6, 2980))).geo_name)
+        self.assertEqual('California', GeoAcs(str(acs.State(6))).geo_name)
+        self.assertEqual('San Diego County, California', GeoAcs(str(acs.County(6, 73))).geo_name)
+        self.assertEqual('place in California', GeoAcs(str(acs.Place(6, 2980))).geo_name)
 
-        self.assertEqual('California', GeoGvidVT('0O0601').state_name)
+        self.assertEqual('California', GeoidGvid('0O0601').state_name)
         self.assertEqual('Alameda County, California',  resolve_value_type('gvid')('0O0601').acs.geo_name)
 
         # Check that adding a parameter to the vt code will select a new parser.

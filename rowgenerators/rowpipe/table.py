@@ -17,7 +17,9 @@ from itertools import zip_longest
 class Table(RGTable):
 
     def add_column(self, name, datatype=None, valuetype=None, transform=None, width=None):
-        self.columns.append(Column(name, datatype, width, valuetype, transform))
+        c = Column(name, datatype, width, valuetype, transform)
+        self.columns.append(c)
+        return c
 
     @property
     def stage_transforms(self):
@@ -133,7 +135,6 @@ class Column(RGColumn):
                 .format(name=self.name, datatype=self.datatype.__name__, valuetype=self.valuetype.__name__,
                         transform=self.transform)
 
-
     @property
     def dict(self):
         return dict(
@@ -141,7 +142,6 @@ class Column(RGColumn):
             datatype=self.datatype,
             valuetype=self.valuetype,
             transform=self.transform
-
         )
 
     @property
@@ -150,10 +150,8 @@ class Column(RGColumn):
 
         transform = self.transform.rstrip('|') if  self.transform else ''
 
-        # First segment is a transformation to the datatype
-        segments = [TransformSegment(column=self, datatype = self.valuetype or self.datatype)]
+        segments = [TransformSegment(column=self)]
 
-        exception = None
 
         for i, seg_str in enumerate(transform.split(';')):  # ';' seperates pipe stages
 
@@ -172,6 +170,7 @@ class Column(RGColumn):
                     if i != 0:
                         raise ConfigurationError('Can only have an initializer in the first pipeline segment')
                     segments[0].init = pipe[1:] # initializers only go on the first segment
+
                 elif pipe[0] == '!':  # Exception Handler
                     d.exception = pipe[1:]
                 else:  # Assume before the datatype
@@ -181,5 +180,8 @@ class Column(RGColumn):
                 segments.append(d)
 
 
+        if not segments[0].init:
+            segments[0].init = self.valuetype or self.datatype
 
-        return  segments
+
+        return segments
