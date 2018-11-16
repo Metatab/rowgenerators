@@ -114,6 +114,8 @@ def rowgen():
     else:
         from rowgenerators import parse_app_url
 
+        print('!!!!', args.format)
+
         t =  parse_app_url(args.url, target_format=args.format, encoding=args.encoding,
                            resource_format=args.urlfiletype)\
                          .get_resource().get_target()
@@ -129,5 +131,3 @@ def rowgen():
             w = csv.writer(sys.stdout)
 
             w.writerows(rg)
-
-

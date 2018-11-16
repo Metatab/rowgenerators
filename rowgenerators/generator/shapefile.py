@@ -164,7 +164,7 @@ class ShapefileSource(GeoSourceBase):
 
         import fiona
         from fiona.crs import from_epsg
-        from shapely.geometry import asShape
+        from shapely.geometry import shape
         from shapely.ops import transform
         import pyproj
 
@@ -207,7 +207,7 @@ class ShapefileSource(GeoSourceBase):
             for i,s in enumerate(source):
 
                 row_data = s['properties']
-                shp = asShape(s['geometry'])
+                shp = shape(s['geometry'])
 
                 row = [int(s['id'])]
                 for col_name, elem in row_data.items():

@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.8.19",
+    version="0.8.21",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -47,7 +47,8 @@ setup(
         'tabulate',
         'xlrd',
         'aniso8601',
-        'geopandas'
+        'geopandas',
+        'pyyaml'
     ],
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
@@ -101,9 +102,7 @@ setup(
             "oracle: = rowgenerators.appurl.sql:OracleSql",
             "sql: = rowgenerators.appurl.sql:InlineSqlUrl",
         ]
-
     },
-
 
     author="Eric Busboom",
     author_email='eric@civicknowledge.com',

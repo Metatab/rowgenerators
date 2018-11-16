@@ -220,14 +220,36 @@ class Url(object):
 
         self._proto = kwargs.get('proto', self.proto)
         self._resource_file = kwargs.get('resource_file')
-        self._resource_format = kwargs.get('resource_format', self.fragment_query.get('resource_format'))
-        self._target_format = kwargs.get('target_format', self.fragment_query.get('target_format'))
         self._target_segment = kwargs.get('target_segment')
 
-        self.encoding = kwargs.get('encoding', self.fragment_query.get('encoding', self.encoding))
-        self.headers = kwargs.get('headers', self.fragment_query.get('headers', self.headers))
-        self.start = kwargs.get('start', self.fragment_query.get('start', self.start))
-        self.end = kwargs.get('end', self.fragment_query.get('end', self.end))
+        def find_value(val_name, use_self=True):
+            """Find values for parameters, in a variety of places"""
+            kw_v = kwargs.get(val_name)
+            frag_v = self.fragment_query.get(val_name)
+            self_v = getattr(self,val_name)
+
+            if kw_v is False:
+                return None # clearing the value
+
+            if frag_v:
+                return frag_v # This one has precident
+
+            if kw_v:
+                return kw_v
+
+            if self_v and use_self:
+                return self_v
+
+            return None
+
+        # use_self is false b/c the properties should override the _ attributes
+        self._resource_format =find_value('resource_format', False)
+        self._target_format = find_value('target_format', False)
+
+        self.encoding = find_value('encoding')
+        self.headers = find_value('headers')
+        self.start = find_value('start')
+        self.end = find_value('end')
 
         try:
             self._target_format = self._target_format.lower()

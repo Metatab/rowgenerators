@@ -144,6 +144,22 @@ class TestIssues(unittest.TestCase):
         self.assertEqual(url.get_resource().target_format, 'csv')
         self.assertEqual(url.get_resource().get_target().target_format, 'csv')
 
+    def test_broken_shape(self):
+
+        from itertools import islice
+
+        url = parse_app_url('shape+file:///Users/eric/proj/virt-proj/data-project/gis-projects/sandiegodata.org'
+                            '-stormdrains/data/Drain_Structure.zip')
+
+        print(type(url), url)
+
+        t = url.get_resource().get_target()
+
+        print(type(t), t)
+
+        for row in t.generator:
+            print(row[-1])
+
 
 if __name__ == '__main__':
     unittest.main()
