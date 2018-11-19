@@ -203,17 +203,20 @@ class ShapefileSource(GeoSourceBase):
 
             yield self.headers
 
-
             for i,s in enumerate(source):
 
                 row_data = s['properties']
-                shp = shape(s['geometry'])
+
+                try:
+                    shp = shape(s['geometry'])
+                except AttributeError as e:
+                    shp = None
 
                 row = [int(s['id'])]
                 for col_name, elem in row_data.items():
                     row.append(elem)
 
-                if project:
+                if project and shp:
                     row.append(transform(project, shp))
 
                 else:
@@ -237,11 +240,14 @@ class ShapefileSource(GeoSourceBase):
 
         """
         import geopandas as gpd
+        import fiona
 
         vfs, shp_file, layer_index = self._open_file_params()
 
-        return  gpd.read_file(shp_file, vfs=vfs, layer=layer_index)
 
+        o = gpd.read_file(shp_file, vfs=vfs, layer=layer_index)
+
+        return o
 
 class GeoJsonSource(Source):
     """Generate rows, of Shapeley objects, from a GeoJson file reference"""
