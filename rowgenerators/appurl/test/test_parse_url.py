@@ -5,6 +5,7 @@ import unittest
 
 
 from rowgenerators.appurl.url import parse_app_url
+from rowgenerators.appurl.util import parse_url_to_dict, parse_file_to_uri
 
 from rowgenerators.appurl.web.download import Downloader
 
@@ -44,6 +45,23 @@ class TestUrlParse(unittest.TestCase):
         self.assertEqual('latin1', url.encoding)
         self.assertEqual('latin1', url.get_resource().encoding)
         self.assertEqual('latin1', url.get_resource().get_target().encoding)
+
+    def test_parse_file_fragment(self):
+
+        fn = '/example.com/foo.csv#&a=b'
+
+        u = parse_app_url(fn)
+
+        print(u.fragment_query)
+
+        d = parse_url_to_dict('file://'+fn)
+        print(d['path'])
+        print(d['fragment_query'])
+
+        print('----')
+        print(parse_file_to_uri(fn))
+
+
 
     def test_fragment_2(self):
         url = parse_app_url(

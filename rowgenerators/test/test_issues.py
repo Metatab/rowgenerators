@@ -5,7 +5,7 @@ from rowgenerators import parse_app_url, get_cache
 class TestIssues(unittest.TestCase):
 
 
-    def test_pass_target_format(self):
+    def x_test_pass_target_format(self):
 
         us = 'file:///Users/eric/Downloads/7908485365090507159.zip#VictimRecords.txt&target_format=csv'
 

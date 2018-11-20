@@ -273,7 +273,7 @@ class Url(object):
         """Get the contents of the target, and save it to the cache, returning a file-like object
         """
         raise NotImplementedError(("get_target not implemented in {} for '{}'"
-                                   "You may need to install a python mpdule for this type of url"
+                                   "You may need to install a python module for this type of url"
                                    )
                                   .format(self.__class__.__name__, str(self)))
 
@@ -418,6 +418,7 @@ class Url(object):
         c.start = None
         c.end = None
         c.headers = None
+
         return c
 
     def as_type(self, cls):
@@ -430,7 +431,6 @@ class Url(object):
         """
 
         return cls(downloader=self.downloader, **self.dict)
-
 
 
     @property

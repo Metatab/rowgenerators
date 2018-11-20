@@ -147,6 +147,7 @@ class ZipUrl(FileUrl):
         from zipfile import ZipFile
         import re
 
+        names = []
         zf = ZipFile(str(url.fspath))
 
         nl = list(ZipUrl.real_files_in_zf(zf))  # Old way, but maybe gets links? : list(zf.namelist())
@@ -183,6 +184,7 @@ class ZipUrl(FileUrl):
         if not tf and not ts:
             return nl[0]
         else:
+
             raise ZipUrlError("Could not find file in Zip {} for target='{}' nor segment='{}'"
                               .format(url.fspath, url.target_file, url.target_segment))
 

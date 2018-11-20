@@ -3,6 +3,7 @@ from __future__ import print_function
 import unittest
 
 from rowgenerators.appurl.url import parse_app_url
+from rowgenerators.appurl.util import parse_file_to_uri, parse_url_to_dict
 
 from rowgenerators.appurl.archive.zip import ZipUrl
 from rowgenerators.appurl.file.csv import CsvFileUrl
@@ -159,6 +160,29 @@ class TestIssues(unittest.TestCase):
 
         for row in t.generator:
             print(row[-1])
+
+    def test_zip_fragment_query(self):
+
+        fn = '../data/adult_2017_stata.zip#ADULT.dta&values=codes'
+
+        fn='/Users/eric/proj/virt-proj/data-project/chis/data/adult_2017_stata.zip#ADULT.dta&values=codes'
+
+        u = parse_app_url(fn)
+
+        self.assertTrue('ADULT.dta',u.target_file)
+
+        t = u.get_target()
+
+        self.assertTrue('codes', t.fragment_query['values'])
+
+    def test_zip_fragment(self):
+
+
+        self.assertEqual('file:///foo/bar/archive.zip#excel.xls',
+                           parse_file_to_uri('/foo/bar/archive.zip#excel.xls'))
+
+        self.assertEqual('file:///foo/bar/archive.zip#excel.xls',
+                          parse_file_to_uri('file:///foo/bar/archive.zip#excel.xls'))
 
 
 if __name__ == '__main__':

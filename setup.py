@@ -61,20 +61,7 @@ setup(
             'rowgen-valuestypes=rowgenerators.valuetype.cli:valuetypes'
         ],
 
-        'rowgenerators': [
-            "<iterator> = rowgenerators.generator.iterator:IteratorSource",
-            "<generator> = rowgenerators.generator.generator:GeneratorSource",
-            ".csv = rowgenerators.generator.csv:CsvSource",
-            ".tsv = rowgenerators.generator.tsv:TsvSource",
-            ".xlsx = rowgenerators.generator.excel:ExcelSource",
-            ".xls =  rowgenerators.generator.excel:ExcelSource",
-            "program+ = rowgenerators.generator.program:ProgramSource",
-            "shape+ = rowgenerators.generator.shapefile:ShapefileSource",
-            ".shp = rowgenerators.generator.shapefile:ShapefileSource",
-            "python: = rowgenerators.generator.python:PythonSource",
-            "fixed+ = rowgenerators.generator.fixed:FixedSource",
-            "<Sql> = rowgenerators.generator.sql:SqlSource",
-        ],
+
         'appurl.urls': [
             "* = rowgenerators.appurl.url:Url",
             # Web Urls
@@ -91,6 +78,7 @@ setup(
             ".csv = rowgenerators.appurl.file.csv:CsvFileUrl",
             ".xlsx = rowgenerators.appurl.file.excel:ExcelFileUrl",
             ".xls = rowgenerators.appurl.file.excel:ExcelFileUrl",
+            ".dta = rowgenerators.appurl.file.stata:StataUrl",
             "file: = rowgenerators.appurl.file.file:FileUrl",
             "program+ = rowgenerators.appurl.file.program:ProgramUrl",
             "python: = rowgenerators.appurl.file.python:PythonUrl",
@@ -101,7 +89,23 @@ setup(
             #Sql Alchemy
             "oracle: = rowgenerators.appurl.sql:OracleSql",
             "sql: = rowgenerators.appurl.sql:InlineSqlUrl",
-        ]
+        ],
+
+        'rowgenerators': [
+            "<iterator> = rowgenerators.generator.iterator:IteratorSource",
+            "<generator> = rowgenerators.generator.generator:GeneratorSource",
+            ".csv = rowgenerators.generator.csv:CsvSource",
+            ".tsv = rowgenerators.generator.tsv:TsvSource",
+            ".xlsx = rowgenerators.generator.excel:ExcelSource",
+            ".xls =  rowgenerators.generator.excel:ExcelSource",
+            ".dta =  rowgenerators.generator.stata:StataSource",
+            "program+ = rowgenerators.generator.program:ProgramSource",
+            "shape+ = rowgenerators.generator.shapefile:ShapefileSource",
+            ".shp = rowgenerators.generator.shapefile:ShapefileSource",
+            "python: = rowgenerators.generator.python:PythonSource",
+            "fixed+ = rowgenerators.generator.fixed:FixedSource",
+            "<Sql> = rowgenerators.generator.sql:SqlSource",
+        ],
     },
 
     author="Eric Busboom",

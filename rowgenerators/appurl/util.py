@@ -19,7 +19,7 @@ def path2url(path):
 def parse_file_to_uri(url):
     """If this is a file path, return a Path object, otherwise, return None"""
     import pathlib
-    from urllib.parse import urlparse
+    from urllib.parse import urlparse,urlunparse
     import re
 
     url = str(url)
@@ -29,20 +29,33 @@ def parse_file_to_uri(url):
     if p.scheme == 'file':
         return url
 
-    elif re.match(r'^[a-zA-Z]:', url): # Has a drive letter
-        return pathlib.PureWindowsPath(url.replace('\\','/')).as_uri()
+    if p.fragment:
+       url = re.sub('\#[^#]*', '', url)
 
-    elif url.startswith('//') or url.startswith('\\\\'): # Windows share
-        return pathlib.PureWindowsPath(url.replace('\\', '/')).as_uri()
+    try:
+        if re.match(r'^[a-zA-Z]:', url): # Has a drive letter
+            uri = pathlib.PureWindowsPath(url.replace('\\','/')).as_uri()
 
-    elif not p.scheme: # No scheme, but can't use .as_uri if relative
-        try:
-            return pathlib.PurePath(url.replace('\\', '/')).as_uri()
-        except ValueError:
-            return 'file:'+url
+        elif url.startswith('//') or url.startswith('\\\\'): # Windows share
+            uri = pathlib.PureWindowsPath(url.replace('\\', '/')).as_uri()
+
+        elif not p.scheme: # No scheme, but can't use .as_uri if relative
+            uri = pathlib.PurePath(url.replace('\\', '/')).as_uri()
+        else:
+            uri = None
+
+    except ValueError as e: #ValueError: relative path can't be expressed as a file URI
+        uri = 'file:'+p.path
+
+    if uri:
+        if p.fragment:
+            uri = str(uri) + ('#'+p.fragment)
+
+        return uri
 
     else:
         return None
+
 
 def parse_url_to_dict(url, assume_localhost=False):
     """Parse a url and return a dict with keys for all of the parts.
@@ -69,7 +82,11 @@ def parse_url_to_dict(url, assume_localhost=False):
         scheme_extension = None
 
     if scheme is '':
+        # If we continue from here, just setting the scheme,
+        # fragments won't parse correctly, but they do if the scheme is properly set
         scheme = 'file'
+        #return parse_url_to_dict('file://'+)
+
 
     frag_whole = unquote_plus(p.fragment) if p.fragment else ''
 

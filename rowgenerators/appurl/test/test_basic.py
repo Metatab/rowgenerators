@@ -14,6 +14,10 @@ from rowgenerators.appurl.test.support import data_path
 
 class BasicTests(unittest.TestCase):
 
+    def setUp(self):
+        import warnings
+        warnings.simplefilter('ignore')
+
     def compare_dict(self, name, a, b):
         from rowgenerators.util import flatten
         fa = set('{}={}'.format(k, v) for k, v in flatten(a));
@@ -306,7 +310,6 @@ class BasicTests(unittest.TestCase):
 
         u = parse_app_url(dirname(rowgenerators.appurl.__file__))
 
-
         self.assertTrue(len(list(u.list())) > 10)
 
         return
@@ -318,6 +321,25 @@ class BasicTests(unittest.TestCase):
         for su in u.list():
             for ssu in su.list():
                 print(ssu)
+
+
+    def test_stata(self):
+
+        from itertools import islice, chain
+
+        p = data_path('stata.dta')
+
+        u = parse_app_url(p+'#categories=codes')
+
+        print(type(u), u)
+
+        print(u.get_target())
+
+        print(type(u.generator))
+
+        rows = list (chain(*islice(u.generator, 10)))
+
+        self.assertEqual(140, len(rows))
 
 
 
