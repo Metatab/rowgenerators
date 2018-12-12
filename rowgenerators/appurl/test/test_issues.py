@@ -145,7 +145,7 @@ class TestIssues(unittest.TestCase):
         self.assertEqual(url.get_resource().target_format, 'csv')
         self.assertEqual(url.get_resource().get_target().target_format, 'csv')
 
-    def test_broken_shape(self):
+    def x_test_broken_shape(self):
 
         from itertools import islice
 
