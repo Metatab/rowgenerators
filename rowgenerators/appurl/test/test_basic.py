@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import unittest
 from csv import DictReader
+import os
 from os.path import exists, dirname
 
 from rowgenerators.appurl.archive.zip import ZipUrl

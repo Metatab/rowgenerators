@@ -267,5 +267,4 @@ class GeoJsonSource(Source):
 
         gj = json.loads(t.read())
 
-
         s = shape(gj['geometry'])

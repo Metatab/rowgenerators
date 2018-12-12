@@ -1,7 +1,4 @@
 from rowgenerators.appurl.file import FileUrl
-from rowgenerators.exceptions import AppUrlError
-from publicdata.census.util import sub_geoids, sub_summarylevel
-from warnings import warn
 
 
 class StataUrl(FileUrl):
