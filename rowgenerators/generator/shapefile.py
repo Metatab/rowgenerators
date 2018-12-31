@@ -38,17 +38,14 @@ class GeoSourceBase(Source):
     pass
 
 
-class ShapefileSource(GeoSourceBase):
-    """ Accessor for shapefiles (*.shp) with geo data. """
-
-    def __init__(self, url, cache=None, working_dir=None, env=None, **kwargs):
+    def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
         """
         A row source for shapefiles.
 
         By default will try to re-project to epsg:4326 during iteration. This can be turned off by setting
         the 'projection' argument to '<source>'
 
-        :param url:
+        :param ref:
         :param cache:
         :param working_dir:
         :param env:
@@ -56,11 +53,9 @@ class ShapefileSource(GeoSourceBase):
         :param kwargs:
         """
 
-        super().__init__(url, cache, working_dir)
+        super().__init__(ref, cache, working_dir)
 
         _import_requirements()
-
-        assert isinstance(url,(ShapefileUrl, ShapefileShpUrl))
 
         self.property_schema = self._parameters
 
@@ -80,6 +75,19 @@ class ShapefileSource(GeoSourceBase):
 
         # Holds metadata, such as EPSG, that is inferred during processing.
         self._meta = {}
+
+
+class ShapefileSource(GeoSourceBase):
+    """ Accessor for shapefiles (*.shp) with geo data. """
+
+    def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
+
+        assert isinstance(ref, (ShapefileUrl, ShapefileShpUrl))
+
+        super().__init__(ref, cache, working_dir, env, **kwargs)
+
+
+
 
     def _convert_column(self, shapefile_column):
         """ Converts column from a *.shp file to the column expected by ambry_sources."""
@@ -226,12 +234,10 @@ class ShapefileSource(GeoSourceBase):
 
         self.finish()
 
-
     def dataframe(self, limit=None):
         """An alias for geoframe()"""
 
         return self.geoframe()
-
 
 
     def geoframe(self):
@@ -244,27 +250,21 @@ class ShapefileSource(GeoSourceBase):
 
         vfs, shp_file, layer_index = self._open_file_params()
 
-
         o = gpd.read_file(shp_file, vfs=vfs, layer=layer_index)
 
         return o
 
-class GeoJsonSource(Source):
-    """Generate rows, of Shapeley objects, from a GeoJson file reference"""
+class GeoJsonSource(GeoSourceBase):
+    """Generate rows, of Shapley objects, from a GeoJson file reference"""
 
     delimiter = ','
 
-    def __init__(self, ref, cache=None, working_dir=None, **kwargs):
-        super().__init__(ref, cache, working_dir, **kwargs)
-
-        self.url = ref
-
-    def __iter__(self):
-        """Iterate over all of the lines in the file"""
-        import json
+    @property
+    def _parameters(self):
+        import fiona
 
         t = self.url.get_resource().get_target()
 
-        gj = json.loads(t.read())
+        with fiona.open(t.fspath) as source:
 
-        s = shape(gj['geometry'])
+            return source.schema['properties']

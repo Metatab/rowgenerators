@@ -9,10 +9,10 @@ import sys
 
 from rowgenerators import get_generator, parse_app_url
 from rowgenerators.generator.csv import CsvSource
-from rowgenerators.test.support import get_file, data_path, script_path
+from rowgenerators.test.support import get_file, data_path, script_path, RowGeneratorTest
 
 
-class BasicTests(unittest.TestCase):
+class BasicTests(RowGeneratorTest):
 
     def test_csv(self):
 
@@ -144,7 +144,6 @@ class BasicTests(unittest.TestCase):
 
         from rowgenerators import RowGenerator
 
-
         rg = RowGenerator('http://public.source.civicknowledge.com/example.com/sources/simple-example-altnames.csv')
 
         self.assertEqual(10001, len(list(rg)))
@@ -160,3 +159,14 @@ class BasicTests(unittest.TestCase):
         url = 'http://public.source.civicknowledge.com/example.com/sources/simple-example.foo'
 
         self.assertEqual(10001, len(list(RowGenerator(url, target_format='csv' ))))
+
+    def test_api(self):
+
+        import  rowgenerators as rg
+
+        df = rg.dataframe('http://public.source.civicknowledge.com/example.com/sources/simple-example-altnames.csv',
+                          na_filter=True)
+        self.assertEqual(496703.2204, df.baz.astype(float).sum().round(4))
+
+        gdf = rg.geoframe('http://library.metatab.org/census.gov-tracts-2017-sandiego-1/data/tracts.csv')
+        self.assertEqual(41.6682, gdf.area.sum().round(4))

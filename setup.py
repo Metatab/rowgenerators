@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.8.23",
+    version="0.8.24",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -101,6 +101,7 @@ setup(
             ".dta =  rowgenerators.generator.stata:StataSource",
             "program+ = rowgenerators.generator.program:ProgramSource",
             "shape+ = rowgenerators.generator.shapefile:ShapefileSource",
+            ".geojson = rowgenerators.generator.shapefile:GeoJsonSource",
             ".shp = rowgenerators.generator.shapefile:ShapefileSource",
             "python: = rowgenerators.generator.python:PythonSource",
             "fixed+ = rowgenerators.generator.fixed:FixedSource",

@@ -12,6 +12,8 @@ import sys
 class RowPipeError(Exception):
     pass
 
+class RowProcessorError(Exception):
+    pass
 
 
 class CasterExceptionError(RowPipeError):

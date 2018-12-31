@@ -1,6 +1,140 @@
 
 
 
+def geoframe(url):
+    """Parse an App url and return a Geopandas geoframe"""
+    pass
+
+
+
+def dataframe(url,  downloader='default', *args, **kwargs):
+    """Parse an App url and return a Pandas dataframe"""
+    from rowgenerators import parse_app_url
+    import pandas as pd
+    from itertools import islice
+
+    u = parse_app_url(url, downloader=downloader, **kwargs)
+    r = u.get_resource()
+    t = r.get_target()
+    g = t.generator
+
+    # Try the generator's dataframe method, if it has one
+    try:
+        return g.dataframe( *args, **kwargs)
+    except AttributeError:
+        pass
+
+    # Just normal data, so use the iterator in this object.
+    headers = next(islice(g, 0, 1))
+    data = islice(g, 1, None)
+
+    df = pd.DataFrame(list(data), columns=headers,  *args, **kwargs)
+
+    df.metatab_errors = g.errors if hasattr(g, 'errors') and g.errors else {}
+
+    return df
+
+def geoframe(url, downloader='default', *args, **kwargs):
+    """Return a Geo dataframe"""
+
+    from rowgenerators import parse_app_url
+    from .exceptions import SourceError
+    from geopandas import GeoDataFrame
+    import geopandas as gpd
+    from shapely.geometry.polygon import BaseGeometry
+    from shapely.wkt import loads
+
+    u = parse_app_url(url, downloader=downloader, **kwargs)
+
+    # Some base URLs have the geoframe.
+    try:
+        return u.geoframe(*args, **kwargs)
+    except AttributeError:
+        pass
+
+
+    r = u.get_resource()
+    t = r.get_target()
+
+
+
+    g = t.generator
+
+    # Try the generator
+    try:
+        return g.geoframe(*args, **kwargs)
+    except AttributeError:
+        pass
+
+    # Maybe the target has a geoframe
+    try:
+        return t.geoframe(*args, **kwargs)
+    except AttributeError:
+        pass
+
+
+
+    try:
+
+        gdf = GeoDataFrame(dataframe(url, *args, **kwargs))
+
+        first = next(gdf.iterrows())[1]['geometry']
+
+        if isinstance(first, str):
+            # We have a GeoDataframe, but the geometry column is still strings, so
+            # it must be converted
+            shapes = [loads(row['geometry']) for i, row in gdf.iterrows()]
+
+        elif not isinstance(first, BaseGeometry):
+            # If we are reading a metatab package, the geometry column's type should be
+            # 'geometry' which will give the geometry values class type of
+            # rowpipe.valuetype.geo.ShapeValue. However, there are other
+            # types of objects that have a 'shape' property.
+
+            shapes = [row['geometry'].shape for i, row in gdf.iterrows()]
+
+        else:
+            shapes = gdf['geometry']
+
+        gdf['geometry'] = gpd.GeoSeries(shapes)
+        gdf.set_geometry('geometry')
+
+        # Wild guess. This case should be most often for Metatab processed geo files,
+        # which are all 4269
+        if gdf.crs is None:
+            gdf.crs = {'init': 'epsg:4269'}
+
+    except KeyError as e:
+        raise SourceError("Failed to create GeoDataFrame for resource '{}': No geometry column".format(t))
+    except (KeyError,TypeError) as e:
+        raise SourceError("Failed to create GeoDataFrame for resource '{}': {}".format(t, str(e)))
+
+    return gdf
+
+
+def generator(url, downloader='default', *args, **kwargs):
+    """Parse an App and return a generator"""
+    from rowgenerators import parse_app_url
+
+    u = parse_app_url(url, downloader=downloader, **kwargs)
+    r = u.get_resource()
+    t = r.get_target()
+    return  t.generator
+
+
+def iterator(url, downloader='default', *args, **kwargs):
+    """Parse an App and return a row iterator"""
+
+    from rowgenerators import parse_app_url
+
+    u = parse_app_url(url, downloader=downloader, **kwargs)
+    r = u.get_resource()
+    t = r.get_target()
+    g = t.generator
+
+    return iter(g)
+
+
 
 def get_generator(source, **kwargs):
 

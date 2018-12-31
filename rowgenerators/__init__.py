@@ -2,7 +2,7 @@
 
 from .appurl.url import parse_app_url, Url
 from .appurl.util import get_cache, set_default_cache_name
-from .core import get_generator
+from .core import get_generator, dataframe, geoframe, iterator
 from .source import  Source, RowGenerator
 from .appurl.web.download import Downloader
 from .exceptions import SourceError

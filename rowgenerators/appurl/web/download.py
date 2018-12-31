@@ -322,20 +322,23 @@ class Downloader(object):
 
             u = parse_url_to_dict(url)
 
-            with FTP(u['netloc']) as ftp, self.cache.open(cache_path, 'wb') as fout:
+            try:
+                with FTP(u['netloc']) as ftp, self.cache.open(cache_path, 'wb') as fout:
 
-                total_len = [0]
+                    total_len = [0]
 
-                def _read(d):
-                    fout.write(d)
+                    def _read(d):
+                        fout.write(d)
 
-                    total_len[0] = total_len[0] + len(d)
+                        total_len[0] = total_len[0] + len(d)
 
-                    self.callback('ftp read', url, len(d), total_len[0])
+                        self.callback('ftp read', url, len(d), total_len[0])
 
-                ftp.login()
-                ftp.retrbinary('RETR ' + u['path'], _read)
-                ftp.quit()
+                    ftp.login()
+                    ftp.retrbinary('RETR ' + u['path'], _read)
+                    ftp.quit()
+            except ConnectionError as e:
+                raise DownloadError("Failed to get FTP url '{}': {} ".format(u, e))
 
         else:
 

@@ -1,3 +1,6 @@
+
+import unittest
+
 def get_file(url_str):
 
     from rowgenerators import  parse_app_url
@@ -27,3 +30,10 @@ def sources():
     with open(data_path('sources.csv')) as f:
         r = csv.DictReader(f)
         return list(r)
+
+class RowGeneratorTest(unittest.TestCase):
+    """Test Metapack AppUrls and Row Generators"""
+
+    def setUp(self):
+        import warnings
+        warnings.simplefilter('ignore')

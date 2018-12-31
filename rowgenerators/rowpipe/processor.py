@@ -9,6 +9,7 @@ Row generating row processor
 
 from collections import defaultdict
 from rowgenerators.rowpipe.codegen import make_row_processors, exec_context
+from .exceptions import RowProcessorError
 
 
 class RowProcessor(object):
@@ -119,7 +120,8 @@ class RowProcessor(object):
 
                 yield row
             except Exception as e:
-                raise
+                raise RowProcessorError("Exception at source row {}: {}".format(i, str(e)))
+
 
         self.finish()
 
