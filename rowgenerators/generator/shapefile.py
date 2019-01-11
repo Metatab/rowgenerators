@@ -11,6 +11,8 @@ from rowgenerators.appurl.file.shapefile import ShapefileUrl, ShapefileShpUrl
 from rowgenerators.source import Source
 from rowgenerators.exceptions import RowGeneratorError
 
+default_crs = {'init': 'epsg:4326'}
+
 # Looks like PyPy doesn't have ModuleNotFoundError
 
 try:
@@ -38,6 +40,8 @@ class GeoSourceBase(Source):
     pass
 
 
+
+
     def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
         """
         A row source for shapefiles.
@@ -61,7 +65,7 @@ class GeoSourceBase(Source):
 
         self._kwargs = kwargs
 
-        target_projection = (env or {}).get('projection', 'epsg:4326').lower()
+        target_projection = (env or {}).get('projection', default_crs['init']).lower()
 
         try:
             int(target_projection)
@@ -85,7 +89,6 @@ class ShapefileSource(GeoSourceBase):
         assert isinstance(ref, (ShapefileUrl, ShapefileShpUrl))
 
         super().__init__(ref, cache, working_dir, env, **kwargs)
-
 
 
 

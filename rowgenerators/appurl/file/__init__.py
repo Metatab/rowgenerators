@@ -15,4 +15,5 @@ from .program import ProgramUrl
 from .python import PythonUrl
 from .csv import CsvFileUrl
 from .excel import ExcelFileUrl
+from .hdf5 import Hdf5Url
 #from .shapefile import ShapefileShpUrl, ShapefileUrl

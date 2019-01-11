@@ -537,6 +537,11 @@ def title(v):
 
     return v.title()
 
+def strip(v):
+    if isinstance(v, (FailedValue, _NoneValue)):
+        return v
+
+    return v.strip()
 
 
 def robust_int(v):

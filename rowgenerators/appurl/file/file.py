@@ -134,6 +134,9 @@ class FileUrl(Url):
 
         return self.rename(new_path)
 
+    def dataframe(self, *args, **kwargs):
+        return self.generator.dataframe(*args, **kwargs)
+
     def __str__(self):
         return super().__str__()
 

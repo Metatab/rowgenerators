@@ -170,3 +170,33 @@ class BasicTests(RowGeneratorTest):
 
         gdf = rg.geoframe('http://library.metatab.org/census.gov-tracts-2017-sandiego-1/data/tracts.csv')
         self.assertEqual(41.6682, gdf.area.sum().round(4))
+
+    def test_h5(self):
+
+        import h5py
+        import pandas as pd
+        from rowgenerators.appurl.file.hdf5 import Hdf5Url
+        from rowgenerators.generator.hdf5 import Hdf5Source
+
+        #fn = data_path('small_demo.h5')+'#nlsy97_all_1997-2013'
+        fn_base = '/Users/eric/proj/virt-proj/data-project/sdrdl-data-projects/nlsinfo.org/nlsy97_all_1997-2013/nlsy97_all_1997-2013.h5'+\
+             '#nlsy97_all_1997-2013;'
+        fn_slice = '1,2,3,4'
+        fn = fn_base+fn_slice
+
+        u = parse_app_url(fn)
+
+        self.assertIsInstance(u,Hdf5Url)
+        self.assertIsInstance(u.generator, Hdf5Source)
+
+        df = u.dataframe()
+        self.assertEqual(27,df.head().sum().sum())
+        self.assertEqual(['B0000300', 'B0000400', 'B0000500', 'B0000600'],list(df.columns))
+
+        fn = fn_base + ','.join(df.columns)
+
+        u = parse_app_url(fn)
+
+        df = u.dataframe()
+        self.assertEqual(27, df.head().sum().sum())
+        self.assertEqual(['B0000300', 'B0000400', 'B0000500', 'B0000600'], list(df.columns))

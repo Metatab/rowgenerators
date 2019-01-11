@@ -89,6 +89,8 @@ setup(
             #Sql Alchemy
             "oracle: = rowgenerators.appurl.sql:OracleSql",
             "sql: = rowgenerators.appurl.sql:InlineSqlUrl",
+            ".h5 = rowgenerators.appurl.file.hdf5:Hdf5Url",
+            ".hdf5 = rowgenerators.appurl.file.hdf5:Hdf5Url",
         ],
 
         'rowgenerators': [
@@ -106,6 +108,8 @@ setup(
             "python: = rowgenerators.generator.python:PythonSource",
             "fixed+ = rowgenerators.generator.fixed:FixedSource",
             "<Sql> = rowgenerators.generator.sql:SqlSource",
+            ".h5 = rowgenerators.generator.hdf5:Hdf5Source",
+            ".hdf5 = rowgenerators.generator.hdf5:Hdf5Source",
         ],
     },
 

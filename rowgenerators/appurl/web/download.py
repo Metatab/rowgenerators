@@ -338,7 +338,7 @@ class Downloader(object):
                     ftp.retrbinary('RETR ' + u['path'], _read)
                     ftp.quit()
             except ConnectionError as e:
-                raise DownloadError("Failed to get FTP url '{}': {} ".format(u, e))
+                raise DownloadError("Failed to get FTP url '{}': {} ".format(url, e))
 
         else:
 
