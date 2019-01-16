@@ -48,7 +48,8 @@ setup(
         'xlrd',
         'aniso8601',
         'geopandas',
-        'pyyaml'
+        'pyyaml',
+        'h5py'
     ],
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']

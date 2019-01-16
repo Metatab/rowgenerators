@@ -11,5 +11,6 @@ petl
 requests
 tabulate
 xlrd
+h5py
 # For testing
 contexttimer
