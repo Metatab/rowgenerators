@@ -171,6 +171,7 @@ class BasicTests(RowGeneratorTest):
         gdf = rg.geoframe('http://library.metatab.org/census.gov-tracts-2017-sandiego-1/data/tracts.csv')
         self.assertEqual(41.6682, gdf.area.sum().round(4))
 
+    @unittest.skip('Has local path')
     def test_h5(self):
 
         import h5py
@@ -178,9 +179,9 @@ class BasicTests(RowGeneratorTest):
         from rowgenerators.appurl.file.hdf5 import Hdf5Url
         from rowgenerators.generator.hdf5 import Hdf5Source
 
-        #fn = data_path('small_demo.h5')+'#nlsy97_all_1997-2013'
-        fn_base = '/Users/eric/proj/virt-proj/data-project/sdrdl-data-projects/nlsinfo.org/nlsy97_all_1997-2013/nlsy97_all_1997-2013.h5'+\
-             '#nlsy97_all_1997-2013;'
+        #fn_base = data_path('small_demo.h5')+'#nlsy97_all_1997-2013;'
+        fn_base = '/Users/eric/proj/virt-proj/data-project/sdrdl-data-projects/nlsinfo.org/' \
+                  'lsy97_all_1997-2013/nlsy97_all_1997-2013.h5'+'#nlsy97_all_1997-2013;'
         fn_slice = '1,2,3,4'
         fn = fn_base+fn_slice
 
