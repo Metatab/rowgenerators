@@ -43,8 +43,9 @@ def bisect_df(df, v, col='variable_name_nd'):
 @lru_cache()
 def get_var_labels(ds_name, f):
     ds = f[ds_name+'_variable_labels']
-    cols = ['var_no', 'col_no', 'labels_id', 'variable_name', 'variable_name_nd',
-            'question_name', 'survey_year', 'question']
+    dhs = f[ds_name + '_variable_labels_headers']
+
+    cols = dhs[:]
     return pd.DataFrame(ds[:], columns=cols)
 
 class Hdf5Source(Source):
@@ -57,6 +58,7 @@ class Hdf5Source(Source):
 
     def dataframe(self, limit=None, *args, **kwargs):
         import h5py
+        import sys
 
         ds_name = self.ref.fragment[0]
 
