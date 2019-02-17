@@ -9,7 +9,7 @@ import sys
 
 from rowgenerators import get_generator, parse_app_url
 from rowgenerators.generator.csv import CsvSource
-from rowgenerators.test.support import get_file, data_path, script_path, RowGeneratorTest
+from rowgenerators.test import get_file, data_path, script_path, RowGeneratorTest
 
 
 class BasicTests(RowGeneratorTest):

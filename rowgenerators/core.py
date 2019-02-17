@@ -100,9 +100,9 @@ def geoframe(url, downloader='default', *args, **kwargs):
         gdf.set_geometry('geometry')
 
         # Wild guess. This case should be most often for Metatab processed geo files,
-        # which are all 4269
+        # which are all 4326
         if gdf.crs is None:
-            gdf.crs = {'init': 'epsg:4269'}
+            gdf.crs = {'init': 'epsg:4326'}
 
     except KeyError as e:
         raise SourceError("Failed to create GeoDataFrame for resource '{}': No geometry column".format(t))

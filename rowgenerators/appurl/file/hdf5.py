@@ -16,7 +16,7 @@ class Hdf5Url(FileUrl):
 
     @classmethod
     def _match(cls, url, **kwargs):
-        return url.proto == 'file' and url.resource_format in ('h5', 'hdf5')
+        return url.resource_format in ('h5', 'hdf5')
 
     @property
     def target_format(self):
