@@ -136,8 +136,10 @@ def iterator(url, downloader='default', *args, **kwargs):
 
 
 
-def get_generator(source, **kwargs):
+def get_generator(source,  **kwargs):
+    """ Locate a generator from the entrypoints.
 
+    """
     import inspect
     import collections
     from pkg_resources import iter_entry_points
@@ -171,6 +173,9 @@ def get_generator(source, **kwargs):
         ref = source
 
     elif isinstance(source, Url):
+
+        # Create all of the possible names that this URL could match with
+
         ref = source
         try:
             names.append('.{}'.format(ref.target_format))
@@ -198,6 +203,10 @@ def get_generator(source, **kwargs):
         except AttributeError:
             pass
 
+        try:
+            names.append('{}+.{}'.format(ref.proto, ref.target_format))
+        except AttributeError:
+            pass
 
 
     else:

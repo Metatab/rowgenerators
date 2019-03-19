@@ -4,33 +4,34 @@
 from __future__ import print_function
 
 import sys
-
-from tabulate import tabulate
-
-from rowgenerators.source import Source
-from rowgenerators.exceptions import SourceError, TextEncodingError
-from rowgenerators.appurl.url import Url
-from rowgenerators.appurl.enumerate import enumerate_contents
-from tableintuit import RowIntuiter
 from itertools import islice
 
-#Change the row cache name
-from rowgenerators.util import  get_cache
+from pkg_resources import iter_entry_points
+from rowgenerators.appurl.enumerate import enumerate_contents
+from rowgenerators.appurl.url import Url
+from rowgenerators.exceptions import SourceError, TextEncodingError
+from rowgenerators.source import Source
+# Change the row cache name
+from rowgenerators.util import get_cache
+from tableintuit import RowIntuiter
+from tabulate import tabulate
 
 
 def prt(*args):
     print(*args)
 
-def warn( *args):
-    print('WARN:',*args)
+
+def warn(*args):
+    print('WARN:', *args)
+
 
 def err(*args):
     import sys
     print("ERROR:", *args)
     sys.exit(1)
 
-def run_row_intuit(path, cache):
 
+def run_row_intuit(path, cache):
     for encoding in ('ascii', 'utf8', 'latin1'):
         try:
             rows = list(islice(Source(url=path, encoding=encoding, cache=cache), 5000))
@@ -39,6 +40,7 @@ def run_row_intuit(path, cache):
             pass
 
     raise Exception('Failed to convert with any encoding')
+
 
 def rowgen():
     import argparse
@@ -85,7 +87,6 @@ def rowgen():
 
     ss = Url(url=args.url, target_format=args.format, encoding=args.encoding, resource_format=args.urlfiletype)
 
-
     if args.info:
         prt(tabulate(ss.dict.items()))
         sys.exit(0)
@@ -101,27 +102,27 @@ def rowgen():
         for s in contents:
 
             try:
-                encoding, ri = run_row_intuit(s.rebuild_url(),cache=cache)
+                encoding, ri = run_row_intuit(s.rebuild_url(), cache=cache)
 
                 prt("{} headers={} start={} encoding={}".format(
-                        s.rebuild_url(),
-                        ','.join(str(e) for e in ri.header_lines),
-                        ri.start_line,
-                        encoding))
+                    s.rebuild_url(),
+                    ','.join(str(e) for e in ri.header_lines),
+                    ri.start_line,
+                    encoding))
             except SourceError as e:
                 warn("{}: {}".format(s.rebuild_url(), e))
 
     else:
         from rowgenerators import parse_app_url
 
-        t =  parse_app_url(args.url, target_format=args.format, encoding=args.encoding,
-                           resource_format=args.urlfiletype)\
-                         .get_resource().get_target()
+        t = parse_app_url(args.url, target_format=args.format, encoding=args.encoding,
+                          resource_format=args.urlfiletype) \
+            .get_resource().get_target()
 
         rg = t.generator
 
         if args.table:
-            print(tabulate(islice(rg,20)))
+            print(tabulate(islice(rg, 20)))
         else:
 
             import csv
@@ -129,3 +130,20 @@ def rowgen():
             w = csv.writer(sys.stdout)
 
             w.writerows(rg)
+
+def listrowgen():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog='rowgen-generators',
+        description='List registered generators')
+
+    args = parser.parse_args(sys.argv[1:])
+
+    entries = []
+    for ep in iter_entry_points('rowgenerators'):
+        c = ep.load()
+        entries.append([ep.name, ep.module_name, c.__name__, ])
+
+
+    print(tabulate(sorted(entries), ['EP Name', 'Module', 'Class']))

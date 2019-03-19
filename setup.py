@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.8.27",
+    version="0.8.28",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -58,6 +58,7 @@ setup(
     entry_points={
         'console_scripts': [
             'rowgen=rowgenerators.cli:rowgen',
+            'rowgen-generators=rowgenerators.cli:listrowgen',
             'rowgen-urls=rowgenerators.appurl.cli:appurl',
             'rowgen-valuestypes=rowgenerators.valuetype.cli:valuetypes'
         ],
