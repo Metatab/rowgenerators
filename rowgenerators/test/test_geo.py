@@ -28,7 +28,7 @@ class TestGeo(unittest.TestCase):
         from rowgenerators.generator.shapefile import ShapefileSource
         from rowgenerators.appurl.file.shapefile import ShapefileUrl
 
-        us = 'shape+http://s3.amazonaws.com/public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
+        us = 'shape+http://public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
         u = parse_app_url(us)
 
         r = u.get_resource()
@@ -40,7 +40,7 @@ class TestGeo(unittest.TestCase):
         self.assertIsInstance(t, ShapefileUrl)
 
         self.assertTrue(
-            str(t).endswith('public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip#SRA2010tiger.shp'))
+            str(t).endswith('public.source.civicknowledge.com/sangis.org /Subregional_Areas_2010.zip#SRA2010tiger.shp'))
 
         g = get_generator(t)
 
@@ -55,10 +55,12 @@ class TestGeo(unittest.TestCase):
 
     def test_geoframe(self):
 
-        us = 'shape+http://s3.amazonaws.com/public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
+        us = 'shape+http://public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
         u = parse_app_url(us)
 
         #df = u.generator.dataframe()
         #print(df.head())
-         
+
+        print("!!!!", u.get_resource())
+
         print(u.generator.geoframe().geometry.total_bounds)
