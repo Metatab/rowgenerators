@@ -58,9 +58,4 @@ class TestGeo(unittest.TestCase):
         us = 'shape+http://public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip'
         u = parse_app_url(us)
 
-        #df = u.generator.dataframe()
-        #print(df.head())
-
-        print("!!!!", u.get_resource())
-
         print(u.generator.geoframe().geometry.total_bounds)

@@ -3,6 +3,7 @@
 
 """ """
 
+from urllib.parse import unquote
 
 def match_url_classes(u_str, **kwargs):
     """
@@ -312,7 +313,7 @@ class Url(object):
     def fspath(self):
         """The path in a form suitable for use in a filesystem"""
         from pathlib import PurePath
-        return PurePath(self.path)
+        return PurePath(unquote(self.path))
 
     @property
     def path_is_absolute(self):

@@ -9,7 +9,62 @@ from os.path import exists, isdir, dirname, basename, join
 import pathlib
 from urllib.parse import unquote
 
-class FileUrl(Url):
+class AbstractFile(object):
+
+    def exists(self):
+        raise NotImplementedError()
+
+    def isdir(self):
+        raise NotImplementedError()
+
+    def dirname(self):
+        raise NotImplementedError()
+
+    def basename(self):
+        raise NotImplementedError()
+
+    def ensure_dir(self):
+        raise NotImplementedError()
+
+    def join(self, s):
+        raise NotImplementedError()
+
+    @property
+    def fspath(self):
+        raise NotImplementedError()
+
+    @property
+    def path_is_absolute(self):
+        raise NotImplementedError()
+
+class InnerFile(AbstractFile):
+    def exists(self):
+        return self.inner.exists()
+
+    def isdir(self):
+        return self.inner.isdir()
+
+    def dirname(self):
+        return self.inner.dirname()
+
+    def basename(self):
+        return self.inner.basename()
+
+    def ensure_dir(self):
+        return self.inner.ensure_dir()
+
+    def join(self, s):
+        return self.inner.join(s)
+
+    @property
+    def fspath(self):
+        return self.inner.fspath
+
+    @property
+    def path_is_absolute(self):
+        return self.inner.path_is_absolute
+
+class FileUrl(AbstractFile,Url):
     """FileUrl is the baseclass for URLs that reference a general file, assumed to be
     local to the file system.
 
@@ -47,14 +102,15 @@ class FileUrl(Url):
         ensure_dir(self.fspath)
 
     def join(self, s):
-        return super().join(s)
+
+        return Url.join(self, s)
 
     @property
     def fspath(self):
         import pathlib
         import re
 
-        p  = unquote(self._path)
+        p = unquote(self._path)
 
         if self.netloc: # Windows UNC name
             return pathlib.PureWindowsPath("//{}{}".format(self.netloc,p))
@@ -68,6 +124,9 @@ class FileUrl(Url):
     @property
     def path_is_absolute(self):
         return self.fspath.is_absolute()
+
+    def absolute(self):
+        return self.clone(path=str(self.fspath.resolve()))
 
     def list(self):
         """List the contents of a directory
