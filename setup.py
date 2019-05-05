@@ -28,12 +28,12 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.8.30",
+    version="0.8.31",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
     install_requires=[
-        'python-dateutil<2.7.0', # Requirement of botocore
+        'python-dateutil',
         'boto',
         'codegen',
         'decorator',
