@@ -142,7 +142,10 @@ def listrowgen():
 
     entries = []
     for ep in iter_entry_points('rowgenerators'):
-        c = ep.load()
+        try:
+            c = ep.load()
+        except Exception as e:
+            warn('Error:', ep.name, e)
         entries.append([ep.name, ep.module_name, c.__name__, ])
 
 

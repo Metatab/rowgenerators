@@ -77,7 +77,10 @@ class Downloader(object):
         self.logger = logger
         self.working_dir = working_dir
         self._callback = callback or self.default_callback
+
         self.clean = False
+
+        self.use_cache = True # Set to false to ignore cache
 
         # For debugging singletonness
         #from metapack.util import dump_stack
@@ -257,7 +260,7 @@ class Downloader(object):
             lock = _NoOpFileLock()
 
         with lock:
-            if self.cache.exists(cache_path):
+            if self.cache.exists(cache_path) and self.use_cache == True:
                 if self.clean:
                     try:
                         self.cache.remove(cache_path)

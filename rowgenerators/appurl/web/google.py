@@ -21,47 +21,6 @@ class GoogleProtoCsvUrl(WebUrl):
     def match(cls, url, **kwargs):
         return url.proto == 'gs'
 
-    def _process_resource_url(self):
-
-        raise NotImplementedError
-
-        self._process_fragment()
-
-        # noinspection PyUnresolvedReferences
-        self.resource_url = self.csv_url_template.format(
-            key=self.parts.netloc)  # netloc is case-sensitive, hostname is forced lower.
-
-        self.resource_file = self.parts.netloc
-
-        if self.target_segment:
-            self.resource_url += "&gid={}".format(self.target_segment)
-            self.resource_file += '-' + self.target_segment
-
-        self.resource_file += '.csv'
-
-        if self.resource_format is None:
-            self.resource_format = file_ext(self.resource_file)
-
-        self.target_file = self.resource_file  # _process_target() file will use this self.target_file
-
-    def component_url(self, s):
-
-        raise NotImplementedError
-
-
-        sp = parse_url_to_dict(s)
-
-        if sp['netloc']:
-            return s
-
-        return reparse_url(self.url, fragment=s)
-
-        url = reparse_url(self.resource_url, query="format=csv&gid=" + s)
-        assert url
-        return url
-
-
-
 class GoogleSpreadsheetUrl(WebUrl):
 
     match_priority = WebUrl.match_priority - 1
