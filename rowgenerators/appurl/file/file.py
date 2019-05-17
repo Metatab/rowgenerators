@@ -150,10 +150,10 @@ class FileUrl(AbstractFile,Url):
         """
         from os.path import isabs, join, normpath
 
-        t = self.clear_fragment()
+        t = self.clone()
 
-        if self.encoding:
-            t.encoding = self.encoding
+        #if self.encoding:
+        #    t.encoding = self.encoding
 
         if not isabs(t.fspath) and self.working_dir:
             t.path = normpath(join(self.working_dir, t.fspath))

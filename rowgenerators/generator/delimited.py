@@ -11,3 +11,9 @@ class TsvSource(CsvSource):
     delimiter = '\t'
 
 
+class PipeSource(CsvSource):
+    """Generate rows from a file delimited by a pipe character"""
+
+    delimiter = '|'
+
+

@@ -136,6 +136,17 @@ class TestIssues(unittest.TestCase):
         print(u.dict)
         print(unparse_url_dict(u.dict))
 
+    def test_second_frag_args(self):
+
+        url = parse_app_url('http://example.com/file.txt#encoding=latin1&target_format=tsv&start=10')
+
+        print(url.fragment)
+        print(url.fragment_query)
+
+        self.assertEqual('latin1',url.encoding)
+        self.assertEqual('tsv',url.target_format)
+        self.assertEqual('10', url.start)
+
     def test_not_passing_target_format(self):
 
         url = parse_app_url('http://public.source.civicknowledge.com/example.com/sources/simple-example.foo')
@@ -144,6 +155,49 @@ class TestIssues(unittest.TestCase):
         self.assertEqual(url.target_format,'csv')
         self.assertEqual(url.get_resource().target_format, 'csv')
         self.assertEqual(url.get_resource().get_target().target_format, 'csv')
+
+        url = parse_app_url('http://www3.cde.ca.gov/researchfiles/cadashboard/eladownload2017s.txt#target_format=tsv')
+
+        self.assertEqual(url.target_format,'tsv')
+        self.assertEqual(url.get_resource().target_format, 'tsv')
+        self.assertEqual(url.get_resource().get_target().target_format, 'tsv')
+
+        url = parse_app_url('http://www3.cde.ca.gov/researchfiles/cadashboard/eladownload2017s.txt#encoding=foo&target_format=tsv')
+
+        self.assertEqual(url.target_format,'tsv')
+        self.assertEqual(url.get_resource().target_format, 'tsv')
+        self.assertEqual(url.get_resource().get_target().target_format, 'tsv')
+
+
+
+    def test_set_query_args(self):
+
+        url = parse_app_url('http://public.source.civicknowledge.com/example.com/sources/unicode-utf8.csv'
+                            '#encoding=foo&target_format=tsv&start=10')
+
+        url.encoding='bar'
+        url.target_format = 'bar'
+
+        ru = url.get_resource()
+        tu = ru.get_target()
+
+        self.assertEqual('bar', url._encoding)
+        self.assertEqual('bar', url.encoding)
+        self.assertEqual('bar', ru.encoding)
+        self.assertEqual('bar', tu.encoding)
+
+        self.assertEqual('bar', url._target_format)
+        self.assertEqual('bar', url.target_format)
+        self.assertEqual('bar', ru.target_format)
+        self.assertEqual('bar', tu.target_format)
+
+        from rowgenerators.appurl.web import WebUrl
+
+        url = WebUrl('http://www3.cde.ca.gov/researchfiles/cadashboard/eladownload2017s.txt')
+        print(url.target_format)
+        url.target_format = 'foo'
+        print(url._target_format)
+        print(url.target_format)
 
     def x_test_broken_shape(self):
 

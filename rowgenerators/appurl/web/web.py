@@ -58,7 +58,7 @@ class WebUrl(Url):
                            fragment=self.fragment,
                            fragment_query=self.fragment_query,
                            scheme_extension=self.scheme_extension,
-                           target_format=self._target_format,
+                           target_format=self.target_format,
                            downloader = self.downloader
                            )
 

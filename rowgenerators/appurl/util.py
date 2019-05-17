@@ -87,21 +87,15 @@ def parse_url_to_dict(url, assume_localhost=False):
         scheme = 'file'
         #return parse_url_to_dict('file://'+)
 
-
-    frag_whole = unquote_plus(p.fragment) if p.fragment else ''
-
-    frag_parts = frag_whole.split('&', 1)
+    frag_parts = (unquote_plus(p.fragment) if p.fragment else '').split('&')
 
     if frag_parts and '=' not in frag_parts[0]:
+        # Maybe the first part are the segments, one or two names seperated by ';'
         frag = frag_parts.pop(0)
     else:
         frag = None
 
-    frag_rem = frag_parts.pop(0) if frag_parts else None
-
-    # parse_qs returns lists for values, since queries can have multiple keys with different values,
-    # but we expect unique values
-    frag_query = { k:v[0] for k, v in  (parse_qs(frag_rem) if p.fragment else {}).items()  }
+    frag_query = dict(tuple(e.split('=')) for e in frag_parts )
 
     if frag:
         frag_sub_parts = frag.split(';')

@@ -139,11 +139,10 @@ class Url(object):
     _target_file = None
     _target_format = None
     _target_segment = None
-
-    encoding = None  # target encoding
-    headers = None  # line number of headers
-    start = None  # start line for data
-    end = None  # end line for data
+    _encoding = None  # target encoding
+    _headers = None  # line number of headers
+    _start = None  # start line for data
+    _end = None  # end line for data
 
     match_priority = 100
     match_proto = None
@@ -223,34 +222,10 @@ class Url(object):
         self._resource_file = kwargs.get('resource_file')
         self._target_segment = kwargs.get('target_segment')
 
-        def find_value(val_name, use_self=True):
-            """Find values for parameters, in a variety of places"""
-            kw_v = kwargs.get(val_name)
-            frag_v = self.fragment_query.get(val_name)
-            self_v = getattr(self,val_name)
-
-            if kw_v is False:
-                return None # clearing the value
-
-            if frag_v:
-                return frag_v # This one has precident
-
-            if kw_v:
-                return kw_v
-
-            if self_v and use_self:
-                return self_v
-
-            return None
 
         # use_self is false b/c the properties should override the _ attributes
-        self._resource_format =find_value('resource_format', False)
-        self._target_format = find_value('target_format', False)
-
-        self.encoding = find_value('encoding')
-        self.headers = find_value('headers')
-        self.start = find_value('start')
-        self.end = find_value('end')
+        self._resource_format = self.find_value('resource_format', False)
+        self._target_format = self.find_value('target_format', False)
 
         try:
             self._target_format = self._target_format.lower()
@@ -258,6 +233,26 @@ class Url(object):
             pass
 
         self._downloader = downloader
+
+    def find_value(self, val_name, use_self=True):
+        """Find values for parameters, in a variety of places"""
+        kw_v = self._kwargs.get(val_name)
+        frag_v = self.fragment_query.get(val_name)
+        self_v = getattr(self, '_'+val_name, None)
+
+        if self_v and use_self:
+            return self_v
+
+        if kw_v is False:
+            return None  # clearing the value
+
+        if frag_v:
+            return frag_v  # This one has precident
+
+        if kw_v:
+            return kw_v
+
+        return None
 
     def resolve(self):
         """Resolve a URL to another format, such as by looking up a URL that specified a
@@ -415,10 +410,6 @@ class Url(object):
         c = self.clone()
         c.fragment = [None, None]
         c.fragment_query = {}
-        c.encoding = None
-        c.start = None
-        c.end = None
-        c.headers = None
 
         return c
 
@@ -625,10 +616,7 @@ class Url(object):
     def target_format(self):
         from .util import file_ext
 
-        target_format = None
-
-        if self._target_format:
-            target_format = self._target_format
+        target_format = self.find_value('target_format')
 
         if not target_format and self.target_file:
             target_format = file_ext(self.target_file)
@@ -646,6 +634,38 @@ class Url(object):
     @target_format.setter
     def target_format(self, target_format):
         self._target_format = target_format
+
+    @property
+    def encoding(self):
+        return self.find_value('encoding')
+
+    @encoding.setter
+    def encoding(self,v):
+        self._encoding = v
+
+    @property
+    def headers(self):
+        return self.find_value('headers')
+
+    @headers.setter
+    def headers(self,v):
+        self._headers = v
+
+    @property
+    def start(self):
+        return self.find_value('start')
+
+    @start.setter
+    def start(self, v):
+        self._start = v
+
+    @property
+    def end(self):
+        return self.find_value('end')
+
+    @end.setter
+    def end(self,v):
+        self._end = v
 
     #
     # Matching methods
