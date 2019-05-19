@@ -83,7 +83,7 @@ class TestIssues(unittest.TestCase):
 
         url = parse_app_url('http://example.com/renter_cost_excel07.xlsx#2')
 
-        self.assertEqual(['2', None], url.dict['_fragment'])
+        self.assertEqual('2', url.target_file)
 
     def test_xsx_zip_fragment(self):
 
@@ -152,6 +152,16 @@ class TestIssues(unittest.TestCase):
         url = parse_app_url('http://public.source.civicknowledge.com/example.com/sources/simple-example.foo')
         url.target_format = 'csv'
 
+        ru = url.get_resource()
+        tu = ru.get_target()
+
+        print(tu)
+        print(tu.target_format)
+
+        return
+
+        print(url.get_resource().get_target().target_format)
+
         self.assertEqual(url.target_format,'csv')
         self.assertEqual(url.get_resource().target_format, 'csv')
         self.assertEqual(url.get_resource().get_target().target_format, 'csv')
@@ -173,13 +183,20 @@ class TestIssues(unittest.TestCase):
     def test_set_query_args(self):
 
         url = parse_app_url('http://public.source.civicknowledge.com/example.com/sources/unicode-utf8.csv'
-                            '#encoding=foo&target_format=tsv&start=10')
+                            '#encoding=foo&target_format=foo&start=10')
 
         url.encoding='bar'
         url.target_format = 'bar'
 
+        print(url)
+
         ru = url.get_resource()
         tu = ru.get_target()
+
+        import pprint
+        pprint.pprint(ru.__dict__)
+
+        return
 
         self.assertEqual('bar', url._encoding)
         self.assertEqual('bar', url.encoding)
@@ -237,6 +254,20 @@ class TestIssues(unittest.TestCase):
 
         self.assertEqual('file:///foo/bar/archive.zip#excel.xls',
                           parse_file_to_uri('file:///foo/bar/archive.zip#excel.xls'))
+
+    def test_join_target(self):
+        from pprint import pprint
+        from rowgenerators.appurl.url import UrlParts, Url
+
+        us = 'http://public.source.civicknowledge.com/example.com/sources/test_data.foo#simple-example.csv&resource_format=zip'
+
+        u = parse_app_url(us)
+
+        ru = u.get_resource()
+        print(ru)
+
+        pprint(ru.resource_format)
+        pprint(ru._parts)
 
 
 if __name__ == '__main__':

@@ -122,17 +122,19 @@ class BasicTests(unittest.TestCase):
         from rowgenerators.appurl import match_url_classes
 
         with open(data_path('url_classes.csv')) as f:
-            for e in DictReader(f):
+            for i, e in enumerate(DictReader(f),2):
+
+                row = 'Row #{}: Url {}'.format(i, e['in_url'])
 
                 if not e['class']:
                     continue
 
                 u = parse_app_url(e['in_url'])
 
-                self.assertEqual(e['url'], str(u), e['in_url'])
-                self.assertEqual(e['resource_url'], str(u.resource_url), e['in_url'])
-                self.assertEqual(e['resource_file'], u.resource_file, e['in_url'])
-                self.assertEqual(e['target_file'], u.target_file or '', e['in_url'])
+                self.assertEqual(e['url'], str(u), row )
+                self.assertEqual(e['resource_url'], str(u.resource_url), row)
+                self.assertEqual(e['resource_file'], u.resource_file, row)
+                self.assertEqual(e['target_file'], u.target_file or '', row)
 
     def test_component(self):
 
@@ -342,6 +344,103 @@ class BasicTests(unittest.TestCase):
 
         self.assertEqual(140, len(rows))
 
+
+    def test_x(self):
+        from rowgenerators.appurl.url import UrlParts, Url
+        from pprint import pprint
+
+        us = 'https://user:pass@example2.com:8080/file.txt#segment&encoding=encoding&start=10'
+        u = UrlParts(us)
+
+        u2 = UrlParts(None, **u.dict)
+
+        self.assertEqual(us, str(u2))
+
+    def test_url_parts(self):
+        from rowgenerators.appurl.url import UrlParts, Url
+        from pprint import pprint
+
+        records = [
+            {
+                'url_in':'https://user:pass@example1.com:8080/file.txt#segment&encoding=encoding&start=10',
+                'attr': {
+                    'proto': 'A',
+                    'scheme': 'B',
+                    'hostname': 'C',
+                    'username': 'D',
+                    'path': 'E.txt'
+                },
+                'url_out': 'A+B://D:pass@C:8080/E.txt#segment&encoding=encoding&start=10'
+            },
+            {
+                'url_in': 'https://user:pass@example2.com:8080/file.txt#segment&encoding=encoding&start=10',
+                'attr': {
+                    'target_file': 'A',
+                    'target_segment': 'B',
+                    'encoding': 'C',
+                    'start': 'D',
+                    'end': 'E'
+                },
+                'url_out': 'https://user:pass@example2.com:8080/file.txt#A;B&encoding=C&end=E&start=D'
+            },
+            {
+                'url_in': 'https://user:pass@example3.com:8080/file.txt#segment&encoding=encoding&start=10',
+                'attr': {
+                    'target_file': None,
+                    'target_segment': None,
+                    'encoding': None,
+                    'start': None,
+                    'end': None
+                },
+                'url_out': 'https://user:pass@example3.com:8080/file.txt'
+            },
+            {
+                'url_in': 'https://example4.com/file.txt',
+                'attr': {
+                    'target_format': 'foobar',
+                    'target_file': 'other_file.csv'
+
+                },
+                'url_out': 'https://example4.com/file.txt#other_file.csv&target_format=foobar'
+            },
+            {
+                'url_in': 'https://example4.com/file.txt#tf;2',
+                'url_out': 'https://example4.com/file.txt#tf;2'
+            }
+        ]
+
+        # Test basic str and re-parse
+        for d in records:
+            for cls in (UrlParts, Url):
+                u = cls(d['url_in'])
+                self.assertEqual(d['url_in'], str(u))
+
+        # Test changing URL through kwargs and attributes
+
+        def u_attr(cls, d):
+            u = cls(d['url_in'])
+            for k, v in d.get('attr',{}).items():
+                setattr(u, k, v)
+            return u
+
+        def u_kw(cls, d):
+            return cls(d['url_in'], **d.get('attr',{}))
+
+        for d in records:
+            for j, u in enumerate((u_attr(UrlParts, d), u_attr(Url, d), u_kw(UrlParts, d), u_kw(Url, d))):
+
+                if d.get('url_out'):
+                    try:
+                        self.assertEqual(d['url_out'], str(u))
+                    except Exception:
+                        print('=========', j)
+                        print(type(u))
+                        print(d['url_in'])
+                        pprint(u._parts)
+                        print('=========')
+                        raise
+                else:
+                    print(str(u))
 
 
 #if __name__ == '__main__':

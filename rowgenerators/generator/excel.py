@@ -42,7 +42,7 @@ class ExcelSource(Source):
 
         wb = open_workbook(filename=str(self.url.fspath))
 
-        ts = self.url.target_segment
+        ts = self.url.target_segment or 0
 
         # Without this check, failure to provide a target_segment will cause the return
         # of the first worksheet.
@@ -52,7 +52,9 @@ class ExcelSource(Source):
 
         try:
             try:
-                s = wb.sheets()[int(ts) if self.url.target_segment else 0]
+                sheets = wb.sheets()
+                sheet_no = int(ts)
+                s = sheets[sheet_no]
             except ValueError:  # Segment is the workbook name, not the number
                 s = wb.sheet_by_name(ts)
         except XLRDError as e:

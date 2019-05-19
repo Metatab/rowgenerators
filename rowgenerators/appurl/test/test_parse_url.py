@@ -44,7 +44,9 @@ class TestUrlParse(unittest.TestCase):
 
         self.assertEqual('latin1', url.encoding)
         self.assertEqual('latin1', url.get_resource().encoding)
-        self.assertEqual('latin1', url.get_resource().get_target().encoding)
+        ru =  url.get_resource()
+        tu = ru.get_target()
+        self.assertEqual('latin1',tu.encoding)
 
     def test_parse_file_fragment(self):
 
@@ -86,10 +88,9 @@ class TestUrlParse(unittest.TestCase):
         self.assertEqual('zip', u.target_format)
 
         r = u.get_resource()
-
+        print(type(r), r)
         self.assertEqual('simple-example.csv.zip', r.resource_file)
         self.assertEqual('simple-example.csv', r.target_file)
-
 
         self.assertEqual('csv', r.target_format)
 
@@ -141,7 +142,7 @@ class TestUrlParse(unittest.TestCase):
 
         self.assertEqual(45, sum(list(g)))
 
-    def test_sql_url(self):
+    def x_test_sql_url(self):
 
         url = """oracle://coredev:{CREATIONS_PW}@creations.bc.edu:1521/SISCNV#"FINAID"."COMMENTS_TEXT_LINE_RECORD" """
 

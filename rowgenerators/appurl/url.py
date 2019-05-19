@@ -3,7 +3,10 @@
 
 """ """
 
+from os.path import basename
 from urllib.parse import unquote
+
+from .util import file_ext, parse_url_to_dict, unparse_url_dict
 
 def match_url_classes(u_str, **kwargs):
     """
@@ -69,7 +72,237 @@ def parse_app_url(u_str, downloader='default', **kwargs):
             return cls(str(u_str) if u_str else None, downloader=downloader, **kwargs)
 
 
-class Url(object):
+class UrlParts(object):
+    """Container class for handling property accessors"""
+
+    _url_parts = ['proto', 'scheme_extension', 'scheme',
+                 'netloc', 'hostname',
+                 'username', 'password', 'port',
+                 'path', 'fragment', 'fragment_query']
+
+    _app_parts = ['resource_file', 'resource_format',
+                 'target_file', 'target_format', 'target_segment']
+
+    _fragment_query_parts = ['start','end','headers','encoding',
+                             'resource_file','resource_format','target_format']
+
+    _fragment_segments_parts = ['target_file','target_segment']
+
+    _all_parts = set(_url_parts+_app_parts + _fragment_query_parts + _fragment_segments_parts )
+
+    # Add extra fragment parts here.
+    _extra_fragement_props = []
+
+    def __init__(self, url, **kwargs):
+
+        self._url = url
+        self._kwargs = kwargs
+
+        if self._url:
+            self._parts = parse_url_to_dict(self._url)
+        else:
+            self._parts = {}
+
+        self._convert_fragment()
+        self._convert_fragment_query()
+
+        self._parts.update(kwargs)
+
+        self.__initialized = True
+
+    def _convert_fragment(self):
+
+        if 'fragment' in self._parts and isinstance(self._parts['fragment'], (list, tuple)):
+            if len(self._parts['fragment']) == 1:
+                self._parts['target_file'] = self._parts['fragment'][0]
+            elif len(self._parts['fragment']) == 2:
+                self._parts['target_file'], self._parts['target_segment'] = self._parts['fragment']
+
+            del self._parts['fragment']
+
+    def _convert_fragment_query(self):
+
+        if isinstance(self._parts.get('fragment_query'), dict):
+
+            for k, v in list(self._parts['fragment_query'].items()):
+                if k in self._fragment_query_parts:
+                    self._parts[k] = self._parts['fragment_query'][k]
+                    del self._parts['fragment_query'][k]
+
+
+    def __getattr__(self, item):
+        """ """
+        try:
+            return self._parts[item]
+        except KeyError:
+
+            if item in self._all_parts:
+                return None
+
+            return object.__getattribute__(self, item)
+
+    def __setattr__(self, item, value):
+        """ """
+        if '_UrlParts__initialized' not in self.__dict__:
+            object.__setattr__(self, item, value)
+
+        else:
+            if item in self._all_parts:
+                self._parts[item] = value
+            elif item in  self._extra_fragement_props:
+                self._parts['fragment_query'][item] = value
+            else:
+                object.__setattr__(self, item, value)
+    @property
+    def proto(self):
+        return self._parts.get('proto') or \
+               self._parts['scheme_extension'] or \
+               {'https': 'http', '': 'file'}.get(self._parts['scheme']) or \
+               self._parts['scheme']
+
+    @property
+    def target_format(self):
+        from .util import file_ext
+
+        target_format = self._parts.get('target_format')
+
+        if not target_format and self.target_file:
+            target_format = file_ext(self.target_file)
+
+        if not target_format:
+            target_format = self.resource_format
+
+        # handle URLS that end with package names, like:
+        # 'example.com-example_data_package-2017-us-1'
+        if target_format and len(target_format) > 8:
+            target_format = None
+
+        return target_format
+
+    @property
+    def fragment(self):
+        return [self._parts.get('target_file'), self._parts.get('target_segment')]
+
+
+    def clear_fragment(self):
+        """
+        Return a copy of the URL with no fragment components
+
+        :return: A cloned URl object, with the fragment and fragment queries cleared.
+        """
+
+        c = self.clone()
+        c.fragment = [None, None]
+        c.fragment_query = {}
+
+        return c
+
+    #
+    # Property accessors
+    #
+
+    def set_fragment(self, f):
+        """Return a clone with the fragment set"""
+        u = self.clone()
+        u.fragment = f
+        return u
+
+    @property
+    def resource_file(self):
+        if self.path:
+            return basename(self.path)
+        else:
+            return None
+
+    @property
+    def resource_format(self):
+        return self._parts.get('resource_format') or file_ext(self.resource_file)
+
+    @resource_format.setter
+    def resource_format(self, v):
+        self._parts['resource_format'] = v
+
+    @property
+    def target_file(self):
+
+        try:
+            if self.fragment[0]:
+                return self.fragment[0]
+        except IndexError:
+            pass
+
+        return self.resource_file
+
+    @target_file.setter
+    def target_file(self, v):
+        self.fragment[0] = v
+
+    def set_target_file(self, v):
+        """Return a clone with a target_file set"""
+        u = self.clone()
+        u.fragment[0] = v
+        return u
+
+    @property
+    def target_segment(self):
+        if self.fragment:
+            return self.fragment[1]
+        else:
+            return None
+
+    @target_segment.setter
+    def target_segment(self, v):
+        self.fragment[1] = v
+
+    def set_target_segment(self, v):
+        """Return a clone with a target_file set"""
+        u = self.clone()
+        u.fragment[1] = v
+        return u
+
+    @property
+    def dict(self):
+        """
+        Returns a dictionary of the object components.
+
+        :return: a dict.
+        """
+
+        d = dict(self._parts.items())
+
+        d['scheme_extension'] = self._parts.get('proto') or d['scheme_extension']
+
+        for k, v in list(d.items()):
+            if k in (self._fragment_query_parts + self._fragment_segments_parts):
+                if not v:
+                    del d[k]
+
+        d['fragment'] = [
+            self._parts.get('target_file'),
+            self._parts.get('target_segment')
+        ]
+
+        for k in self._fragment_query_parts:
+            if k in d:
+                d['fragment_query'][k] = d[k]
+                del d[k]
+
+        return d
+
+    @property
+    def frag_dict(self):
+        d = {}
+        for k in self._fragment_segments_parts + self._fragment_query_parts:
+            d[k] = self._parts.get(k)
+
+        return d
+
+    def __str__(self):
+
+        return unparse_url_dict(self.dict)
+
+
+class Url(UrlParts):
     """Base class for Application URLs .
 
     After construction, a Url object has a set of properties and attributes for access
@@ -118,32 +351,6 @@ class Url(object):
 
     """
 
-    # Basic URL components
-    scheme = None
-    scheme_extension = None
-    netloc = None
-    hostname = None
-    _path = None
-    params = None
-    query = None
-    fragment = [None, None]
-    fragment_query = {}
-    username = None
-    password = None
-    port = None
-
-    # Application components
-    _proto = None
-    _resource_file = None
-    _resource_format = None
-    _target_file = None
-    _target_format = None
-    _target_segment = None
-    _encoding = None  # target encoding
-    _headers = None  # line number of headers
-    _start = None  # start line for data
-    _end = None  # end line for data
-
     match_priority = 100
     match_proto = None
     generator_class = None  # If set, generators match with name = <{generator_class}>
@@ -155,104 +362,16 @@ class Url(object):
         :param kwargs: Additional arguments override URL properties.
         :return: An Application Url object
 
-
-        Keyword arguments will override properties set by parsing the URL string. Valid keywords
-        that will set object properties are listed below. Other keyswords are accepted and ignored
-
-        - scheme
-        - scheme_extension
-        - netloc
-        - hostname
-        - path
-        - params
-        - fragment
-        - fragment_query
-        - username
-        - password
-        - port
+        Keyword arguments will override properties set by parsing the URL string.
 
         """
 
-        from .util import parse_url_to_dict
-
-        assert 'is_archive' not in kwargs
-
         self._kwargs = kwargs
-
-        if url is not None:
-
-            parts = parse_url_to_dict(url)
-
-            for k, v in parts.items():
-                try:
-                    # print(" {}: '{}' ".format(k,v))
-                    setattr(self, k, v)
-                except AttributeError:
-                    print("Can't Set: ", k, v)
-
-        else:
-            for k in "scheme scheme_extension netloc hostname path params query fragment fragment_query username " \
-                     "password port".split():
-
-                if k == 'fragment_query' and kwargs.get(k) is None:  # Probably trying to set it to Null
-                    setattr(self, k, {})
-                else:
-                    v =  kwargs.get(k)
-                    if isinstance(v, str):
-                        v = v.strip()
-
-                    setattr(self, k, v)
-
-
-        self.fragment_query = kwargs.get('fragment_query', self.fragment_query or {})
-
-        self._fragment = self._decompose_fragment(kwargs.get('fragment', self.fragment))
-
-        assert self._fragment[0] is None or isinstance(self._fragment[0], str), type(self._fragment[0])
-
-        if not self._fragment:
-            self._fragment = [None, None]
-
-
-        self.scheme_extension = kwargs.get('scheme_extension', self.scheme_extension)
-
-        self.scheme = kwargs.get('scheme', self.scheme)
-
-        self._proto = kwargs.get('proto', self.proto)
-        self._resource_file = kwargs.get('resource_file')
-        self._target_segment = kwargs.get('target_segment')
-
-
-        # use_self is false b/c the properties should override the _ attributes
-        self._resource_format = self.find_value('resource_format', False)
-        self._target_format = self.find_value('target_format', False)
-
-        try:
-            self._target_format = self._target_format.lower()
-        except AttributeError:
-            pass
-
         self._downloader = downloader
 
-    def find_value(self, val_name, use_self=True):
-        """Find values for parameters, in a variety of places"""
-        kw_v = self._kwargs.get(val_name)
-        frag_v = self.fragment_query.get(val_name)
-        self_v = getattr(self, '_'+val_name, None)
+        super().__init__(url, **kwargs)
 
-        if self_v and use_self:
-            return self_v
-
-        if kw_v is False:
-            return None  # clearing the value
-
-        if frag_v:
-            return frag_v  # This one has precident
-
-        if kw_v:
-            return kw_v
-
-        return None
+        assert 'is_archive' not in self._kwargs #?
 
     def resolve(self):
         """Resolve a URL to another format, such as by looking up a URL that specified a
@@ -294,16 +413,6 @@ class Url(object):
         """Return the name of the archive file, if there is one."""
         return self.target_file if self.is_archive and self.resource_file != self.target_file else None
 
-
-    @property
-    def path(self):
-        return self._path
-
-
-    @path.setter
-    def path(self,v):
-        self._path = v
-
     @property
     def fspath(self):
         """The path in a form suitable for use in a filesystem"""
@@ -313,7 +422,6 @@ class Url(object):
     @property
     def path_is_absolute(self):
         return self.path.startswith('/')
-
 
     def join(self, s):
         """ Join a component to the end of the path, using :func:`os.path.join`. The argument
@@ -355,7 +463,7 @@ class Url(object):
         :return: a copy of this url.
         """
 
-        from os.path import join, dirname
+        from os.path import dirname
         from copy import copy
         import pathlib
 
@@ -392,6 +500,16 @@ class Url(object):
 
         return parse_app_url(str(self.clone(scheme_extension=None)), downloader=self.downloader)
 
+
+    @property
+    def resource_url(self):
+
+        return unparse_url_dict(self.dict,
+                                scheme=self.scheme if self.scheme else 'file',
+                                scheme_extension=False,
+                                fragment_query=False,
+                                fragment=False)
+
     def dirname(self):
         """Return the dirname of the path"""
         from os.path import dirname
@@ -400,18 +518,7 @@ class Url(object):
         u.path = dirname(self.path)
         return u
 
-    def clear_fragment(self):
-        """
-        Return a copy of the URL with no fragment components
 
-        :return: A cloned URl object, with the fragment and fragment queries cleared.
-        """
-
-        c = self.clone()
-        c.fragment = [None, None]
-        c.fragment_query = {}
-
-        return c
 
     def as_type(self, cls):
         """
@@ -423,24 +530,6 @@ class Url(object):
         """
 
         return cls(downloader=self.downloader, **self.dict)
-
-
-    @property
-    def dict(self):
-        """
-        Returns a dictionary of the object components.
-
-        :return: a dict.
-        """
-        self._update_parts()
-        keys = "scheme scheme_extension netloc hostname path params query _fragment fragment_query username password " \
-               "port proto  resource_format  target_format " \
-               "encoding target_segment".split()
-
-        d = dict((k, getattr(self,k)) for k in keys)
-
-
-        return d
 
     def interpolate(self, context=None):
         """
@@ -467,18 +556,14 @@ class Url(object):
 
     def clone(self, **kwargs):
         """
-        Return a clone of this Url, popssibly with some arguments replaced.
+        Return a clone of this Url, possibly with some arguments replaced.
 
         :param kwargs: Keyword arguments are arguments to set in the copy, using :py:func:`setattr`
         :return: A cloned Url object.
         """
+        from copy import deepcopy
 
-        d = self.dict.copy()
-        c = type(self)(None, downloader=self._downloader, **d)
-        c._kwargs = self._kwargs
-        c.fragment = self.fragment
-
-        c._update_parts()
+        c = deepcopy(self)
 
         for k, v in kwargs.items():
             try:
@@ -503,169 +588,6 @@ class Url(object):
 
         return get_generator(t.get_target(), source_url=self)
 
-    #
-    # Property accessors
-    #
-
-    @property
-    def fragment(self):
-        return self._fragment
-
-    @fragment.setter
-    def fragment(self, v):
-        """Set the fragment in place"""
-        assert isinstance(v, (list, tuple, type(None), str)), v
-
-        if isinstance(v, str):
-            # One string is the target_file
-            self._fragment = [v, None]
-        elif isinstance(v, (list, tuple)):
-            self._fragment = list(v)
-        else:
-            self._fragment = [None, None]
-
-    def set_fragment(self, f):
-        """Return a clone with the fragment set"""
-        u = self.clone()
-        u.fragment = f
-        return u
-
-    @property
-    def proto(self):
-        return self._proto or \
-               self.scheme_extension or \
-               {'https': 'http', '': 'file'}.get(self.scheme) or \
-               self.scheme
-
-    @property
-    def resource_url(self):
-        from .util import unparse_url_dict
-
-        return unparse_url_dict(self.dict,
-                                scheme=self.scheme if self.scheme else 'file',
-                                scheme_extension=False,
-                                fragment_query=False,
-                                fragment=False)
-
-    @property
-    def resource_file(self):
-
-        from os.path import basename
-
-        if self.path:
-            return basename(self.path)
-        else:
-            return None
-
-    @property
-    def resource_format(self):
-
-        from .util import file_ext
-
-        if self._resource_format:
-            return self._resource_format
-        elif not self.resource_file:
-            return None
-        else:
-            return file_ext(self.resource_file)
-
-    @property
-    def target_file(self):
-
-        if self._target_file:
-            return self._target_file
-
-        try:
-            if self.fragment[0]:
-                return self.fragment[0]
-        except IndexError:
-            pass
-
-
-
-        return self.resource_file
-
-    @target_file.setter
-    def target_file(self, v):
-        self.fragment[0] = v
-
-    def set_target_file(self, v):
-        """Return a clone with a target_file set"""
-        u = self.clone()
-        u.fragment[0] = v
-        return u
-
-    @property
-    def target_segment(self):
-        if self.fragment:
-            return self.fragment[1]
-        else:
-            return None
-
-    @target_segment.setter
-    def target_segment(self, v):
-        self.fragment[1] = v
-
-    def set_target_segment(self, v):
-        """Return a clone with a target_file set"""
-        u = self.clone()
-        u.fragment[1] = v
-        return u
-
-    @property
-    def target_format(self):
-        from .util import file_ext
-
-        target_format = self.find_value('target_format')
-
-        if not target_format and self.target_file:
-            target_format = file_ext(self.target_file)
-
-        if not target_format:
-            target_format = self.resource_format
-
-        # handle URLS that end with package names, like:
-        # 'example.com-example_data_package-2017-us-1'
-        if target_format and len(target_format) > 8:
-            target_format = None
-
-        return target_format
-
-    @target_format.setter
-    def target_format(self, target_format):
-        self._target_format = target_format
-
-    @property
-    def encoding(self):
-        return self.find_value('encoding')
-
-    @encoding.setter
-    def encoding(self,v):
-        self._encoding = v
-
-    @property
-    def headers(self):
-        return self.find_value('headers')
-
-    @headers.setter
-    def headers(self,v):
-        self._headers = v
-
-    @property
-    def start(self):
-        return self.find_value('start')
-
-    @start.setter
-    def start(self, v):
-        self._start = v
-
-    @property
-    def end(self):
-        return self.find_value('end')
-
-    @end.setter
-    def end(self,v):
-        self._end = v
 
     #
     # Matching methods
@@ -715,18 +637,6 @@ class Url(object):
     # Other support methods
     #
 
-    def _update_parts(self):
-        """Update the fragement_query. Set the attribute for the query value to False to delete it from
-        the fragment query"""
-
-        for k in "encoding headers start end".split():
-            if getattr(self, k):
-                self.fragment_query[k] = getattr(self, k)
-            elif getattr(self, k) == False and k in self.fragment_query:
-                del self.fragment_query[k]
-
-                # if self.fragment:
-                #    self.rebuild_fragment()
 
     def __deepcopy__(self, memo):
         d = self.dict.copy()
@@ -767,9 +677,4 @@ class Url(object):
     def __repr__(self):
         return "<{} {}>".format(self.__class__.__name__, str(self))
 
-    def __str__(self):
 
-        from .util import unparse_url_dict
-
-        self._update_parts()
-        return unparse_url_dict(self.dict)

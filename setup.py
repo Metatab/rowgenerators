@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.8.31",
+    version="0.9.0",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),

@@ -138,7 +138,7 @@ def parse_url_to_dict(url, assume_localhost=False):
         'port': p.port
     }
 
-def unparse_fragment(d, **kwargs):
+def unparse_fragment(d):
 
     from urllib.parse import quote_plus, urlencode, unquote
 
@@ -234,7 +234,7 @@ def unparse_url_dict(d, **kwargs):
     if 'query' in d and d['query']:
         url += '?' + d['query']
 
-    url = url + unparse_fragment(d,**kwargs)
+    url = url + unparse_fragment(d)
 
     return url
 
@@ -259,6 +259,9 @@ def file_ext(v):
     :param v: """
 
     from os.path import splitext
+
+    if not v:
+        return None
 
     try:
         try:

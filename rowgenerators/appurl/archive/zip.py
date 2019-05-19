@@ -17,9 +17,11 @@ class ZipUrl(FileUrl):
     match_priority = FileUrl.match_priority - 10
 
     def __init__(self, url=None, downloader=None, **kwargs):
-        kwargs['resource_format'] = 'zip'
+
         super().__init__(url, downloader=downloader, **kwargs)
 
+        if self.resource_format != 'zip':
+            self.resource_format = 'zip'
 
 
     @property
@@ -30,11 +32,9 @@ class ZipUrl(FileUrl):
 
         :return:
         """
-        if self._target_file:
-            return self._target_file
 
-        if self.fragment[0]:
-            return self.fragment[0]
+        if self._parts['target_file']:
+            return self._parts['target_file']
 
         for ext in ('csv', 'xls', 'xlsx'):
             if self.resource_file.endswith('.' + ext + '.zip'):
@@ -53,11 +53,10 @@ class ZipUrl(FileUrl):
         u = self.clone()
 
         try:
-            tf = str(tf.path)
-        except:
-            pass
+            u.target_file = str(tf.path)
+        except AttributeError:
+            u.target_file = tf
 
-        u.fragment = [tf, u.fragment[1]]  # In case its a tuple, don't edit in place
         return u
 
     def get_resource(self):
@@ -94,16 +93,15 @@ class ZipUrl(FileUrl):
 
         zf = ZipFile(str(self.fspath))
 
-        self._target_file = ZipUrl.get_file_from_zip(self)
+        self.target_file = ZipUrl.get_file_from_zip(self)
 
         target_path = join(self.zip_dir, self.target_file)
         ensure_dir(dirname(target_path))
 
-
         with io.open(target_path, 'wb') as f, zf.open(self.target_file) as flo:
             copy_file_or_flo(flo, f)
 
-        fq = self.fragment_query
+        fq = self.frag_dict
 
         if 'resource_format' in fq:
             del fq['resource_format']
@@ -112,11 +110,9 @@ class ZipUrl(FileUrl):
             del fq['resource_file']
 
         tu =  parse_app_url(target_path,
-                             fragment_query=fq,
-                             fragment=[self.target_segment, None],
                              scheme_extension=self.scheme_extension,
-                             # Clear out the resource info so we don't get a ZipUrl
-                             downloader=self.downloader
+                             downloader=self.downloader,
+                             **fq
                              )
 
         if self.target_format != tu.target_format:

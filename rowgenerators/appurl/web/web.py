@@ -19,9 +19,11 @@ class WebUrl(Url):
 
     def __init__(self, url=None, downloader=None, **kwargs):
 
+        self._resource = None  # return value from the downloader
+
         super().__init__(url,downloader=downloader, **kwargs)
 
-        self._resource = None # return value from the downloader
+
 
     @classmethod
     def _match(cls, url, **kwargs):
@@ -55,12 +57,10 @@ class WebUrl(Url):
 
 
         ru = parse_app_url(self._resource.sys_path,
-                           fragment=self.fragment,
-                           fragment_query=self.fragment_query,
+                           downloader=self.downloader,
                            scheme_extension=self.scheme_extension,
-                           target_format=self.target_format,
-                           downloader = self.downloader
-                           )
+                           **self.frag_dict)
+
 
         return ru
 
@@ -90,7 +90,7 @@ class WebUrl(Url):
 
             if self.target_format:
                 u = self.clone()
-                u.fragment = [tf, self.fragment[1]]
+                u.target_file = tf
 
             else:
                 # Assuming that if there is no target format, there is no actual target file

@@ -14,7 +14,6 @@ class S3Url(WebUrl):
         self._orig_url = url
         self._orig_kwargs = dict(kwargs.items())
 
-        kwargs['proto'] = 's3'
         super().__init__(url,downloader=downloader, **kwargs)
 
     @classmethod

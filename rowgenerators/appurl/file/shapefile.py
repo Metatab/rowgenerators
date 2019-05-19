@@ -21,7 +21,7 @@ class ShapefileUrl(ZipUrl):
         self.scheme_extension = 'shape'
 
         if not self.target_file:
-            self.fragment = ['.*\.shp$',self.fragment[1]]
+            self.target_file = '.*\.shp$'
 
     @classmethod
     def _match(cls, url, **kwargs):
@@ -42,10 +42,9 @@ class ShapefileUrl(ZipUrl):
         """Returns the ZIP file, with the correct fragment, not the inner
         file as a ZipUrl normally does. """
 
-
         if not str(self.fspath).endswith('.shp'):
             #Resolve the target_file, which may be a reg-ex
-            self.fragment = [ZipUrl.get_file_from_zip(self), self.fragment[1]]
+            self.target_file = ZipUrl.get_file_from_zip(self)
 
         return self
 

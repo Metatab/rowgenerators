@@ -73,15 +73,15 @@ class FileUrl(AbstractFile,Url):
 
     """
 
+
     def __init__(self, url=None, downloader=None,**kwargs):
         """
         """
 
-        super().__init__(url, downloader=downloader, **kwargs)
-
         # For resolving relative paths
-        self.working_dir = self._kwargs.get('working_dir')
+        self.working_dir = kwargs.get('working_dir')
 
+        super().__init__(url, downloader=downloader, **kwargs)
 
 
     match_priority = 90
@@ -110,7 +110,7 @@ class FileUrl(AbstractFile,Url):
         import pathlib
         import re
 
-        p = unquote(self._path)
+        p = unquote(self.path)
 
         if self.netloc: # Windows UNC name
             return pathlib.PureWindowsPath("//{}{}".format(self.netloc,p))
@@ -151,9 +151,6 @@ class FileUrl(AbstractFile,Url):
         from os.path import isabs, join, normpath
 
         t = self.clone()
-
-        #if self.encoding:
-        #    t.encoding = self.encoding
 
         if not isabs(t.fspath) and self.working_dir:
             t.path = normpath(join(self.working_dir, t.fspath))

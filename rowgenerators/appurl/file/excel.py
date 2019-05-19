@@ -5,7 +5,7 @@
 """ """
 
 from .file import FileUrl
-
+from rowgenerators.exceptions import AppUrlError
 class ExcelFileUrl(FileUrl):
     """URL that references an Excl file, either .xls or .xlsx"""
 
@@ -29,11 +29,11 @@ class ExcelFileUrl(FileUrl):
     @property
     def target_file(self):
         # This one should probably thow an exception, to force user to use target_segment.
-        return self.fragment[0]
+        return None
 
     @property
     def target_segment(self):
-        return self.fragment[1] if self.fragment[1] else self.fragment[0]
+        return self._parts['target_segment']
 
     @property
     def target_format(self):
@@ -60,13 +60,13 @@ class ExcelFileUrl(FileUrl):
 
     def join_target(self, tf):
 
-        try:
-            tf = tf.path
-        except:
-            pass
-
         u = self.clone()
-        u.fragment = [tf,None] # In case its a tuple, don't edit in place
+
+        try:
+            u.target_file = tf.path
+        except AttributeError:
+            u.target_file = tf
+
         return u
 
     def get_target(self):

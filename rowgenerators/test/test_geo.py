@@ -39,6 +39,8 @@ class TestGeo(unittest.TestCase):
 
         self.assertIsInstance(t, ShapefileUrl)
 
+        print(str(t))
+
         self.assertTrue(
             str(t).endswith('public.source.civicknowledge.com/sangis.org/Subregional_Areas_2010.zip#SRA2010tiger.shp'))
 
