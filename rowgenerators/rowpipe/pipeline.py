@@ -172,7 +172,7 @@ class Pipe(object):
 
                     yield row
         except StopIteration:
-            raise
+            return
         except Exception as e:
             if self.bundle:
                 pass

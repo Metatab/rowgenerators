@@ -266,25 +266,7 @@ class BasicTests(unittest.TestCase):
         self.assertEqual('https://data.lacounty.gov/api/views/8rdv-6nb6/rows.csv?accessType=DOWNLOAD', str(u.resource_url))
 
 
-    def test_fragment(self):
 
-        u = Url('http://example.com/file.csv')
-        self.assertEqual((None,None), tuple(u.fragment))
-        self.assertEqual('file.csv', u.target_file)
-        self.assertEqual(None, u.target_segment)
-        self.assertEqual('http://example.com/file.csv', str(u))
-
-
-        u = Url('http://example.com/file.csv#a')
-        self.assertEqual(('a', None), tuple(u.fragment))
-        self.assertEqual('a', u.target_file)
-        self.assertEqual(None, u.target_segment)
-        self.assertEqual('http://example.com/file.csv#a', str(u))
-
-        u = Url('http://example.com/file.csv#a;b')
-        self.assertEqual('a', u.target_file)
-        self.assertEqual('b', u.target_segment)
-        self.assertEqual('http://example.com/file.csv#a;b', str(u))
 
     def test_targets(self):
 

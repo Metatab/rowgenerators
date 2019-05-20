@@ -204,10 +204,6 @@ class UrlParts(object):
     def target_format(self, v):
         self._parts['target_format'] = v
 
-    @property
-    def fragment(self):
-        return [self._parts.get('target_file'), self._parts.get('target_segment')]
-
 
     def clear_fragment(self):
         """
@@ -217,8 +213,8 @@ class UrlParts(object):
         """
 
         c = self.clone()
-        c.fragment = [None, None]
-        c.fragment_query = {}
+        c._parts['target_file'] = None
+        c._parts['target_segment'] = None
 
         return c
 
@@ -228,9 +224,7 @@ class UrlParts(object):
 
     def set_fragment(self, f):
         """Return a clone with the fragment set"""
-        u = self.clone()
-        u.fragment = f
-        return u
+        raise NotImplementedError()
 
     @property
     def resource_file(self):
@@ -255,6 +249,7 @@ class UrlParts(object):
     @target_file.setter
     def target_file(self, v):
         self._parts['target_file'] = v
+
 
     def set_target_file(self, v):
         """Return a clone with a target_file set"""

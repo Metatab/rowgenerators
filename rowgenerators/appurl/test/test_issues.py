@@ -89,7 +89,8 @@ class TestIssues(unittest.TestCase):
 
         url = parse_app_url('http://public.source.civicknowledge.com/example.com/sources/test_data.zip#renter_cost_excel07.xlsx;Sheet1')
 
-        self.assertEqual(['renter_cost_excel07.xlsx', 'Sheet1'], url.fragment)
+        self.assertEqual('renter_cost_excel07.xlsx', url.target_file)
+        self.assertEqual('Sheet1', url.target_segment)
 
     def test_join_target_xls(self):
         u = parse_app_url('file:/a/file.xlsx')
@@ -139,9 +140,6 @@ class TestIssues(unittest.TestCase):
     def test_second_frag_args(self):
 
         url = parse_app_url('http://example.com/file.txt#encoding=latin1&target_format=tsv&start=10')
-
-        print(url.fragment)
-        print(url.fragment_query)
 
         self.assertEqual('latin1',url.encoding)
         self.assertEqual('tsv',url.target_format)

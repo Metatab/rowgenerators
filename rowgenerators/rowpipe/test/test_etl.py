@@ -19,17 +19,15 @@ def cast_float(v):
 
 class Test(unittest.TestCase):
 
-
     def test_sample_head(self):
 
         class Source(Pipe):
 
             def __iter__(self):
-
                 yield ['int', 'int']
 
                 for i in range(10000):
-                    yield([i, i])
+                    yield ([i, i])
 
         # Sample
         pl = Pipeline(
@@ -92,8 +90,7 @@ class Test(unittest.TestCase):
 
         class Source(Pipe):
             def __iter__(self):
-
-                yield ['col'+str(j) for j in range(20)]
+                yield ['col' + str(j) for j in range(20)]
 
                 for i in range(10000):
                     yield [j for j in range(20)]
@@ -124,8 +121,6 @@ class Test(unittest.TestCase):
 
         pl.run()
 
-
-
         self.assertEquals([1, 0, 1, 2, 10, 11, 12, 9, 19], pl[PrintRows].rows[0])
         self.assertEquals(
             ['col0', 'col1', 'col2', 'col10', 'col11', 'col12', 'col9', 'col19'],
@@ -140,7 +135,7 @@ class Test(unittest.TestCase):
 
             def __iter__(self):
 
-                for i in range(self.start, self.start+10):
+                for i in range(self.start, self.start + 10):
                     if i == self.start:
                         yield ['int', 'int']  # header
 
@@ -152,10 +147,8 @@ class Test(unittest.TestCase):
         # Sample
         pl = Pipeline(last=PrintRows(count=50))
 
-
         pl.run(source_pipes=[Source(0), Source(10), Source(20)])
 
         self.assertIn([0, 2], pl[PrintRows].rows)
         self.assertIn([10, 18], pl[PrintRows].rows)
         self.assertIn([20, 21], pl[PrintRows].rows)
-
