@@ -22,8 +22,17 @@ def match_url_classes(u_str, **kwargs):
     u = Url(str(u_str), downloader=None, **kwargs)
 
     try:
-        classes = sorted([ep.load() for ep in iter_entry_points(group='appurl.urls') if u._match_entry_point(ep.name)],
-                         key=lambda cls: cls.match_priority)
+        #classes = sorted([ep.load() for ep in iter_entry_points(group='appurl.urls') if u._match_entry_point(ep.name)],
+        #                 key=lambda cls: cls.match_priority)
+
+        classes = []
+
+        for ep in iter_entry_points(group='appurl.urls'):
+            if u._match_entry_point(ep.name):
+                classes.append(ep.load())
+
+        classes = sorted(classes, key=lambda cls: cls.match_priority)
+
     except ModuleNotFoundError as e:
         raise ModuleNotFoundError("Failed to find module for url string '{}', entrypoint: "
                                   .format(u_str, e))
@@ -72,6 +81,24 @@ def parse_app_url(u_str, downloader='default', **kwargs):
             return cls(str(u_str) if u_str else None, downloader=downloader, **kwargs)
 
 
+class UrlPartsProp(object):
+    """Property descriptor for reading and writting to the _parts dict
+    in UrlParts"""
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, obj, objtype):
+        return obj._parts.get(self.name)
+
+    def __set__(self, obj, value):
+        if value is None and self.name in obj._parts:
+            del obj._parts[self.name]
+        else:
+            obj._parts[self.name] = value
+
+    def __delete__(self, obj):
+       del obj._parts[self.name]
+
 class UrlParts(object):
     """Container class for handling property accessors"""
 
@@ -108,8 +135,6 @@ class UrlParts(object):
 
         self._parts.update(kwargs)
 
-        self.__initialized = True
-
     def _convert_fragment(self):
 
         if 'fragment' in self._parts and isinstance(self._parts['fragment'], (list, tuple)):
@@ -129,36 +154,32 @@ class UrlParts(object):
                     self._parts[k] = self._parts['fragment_query'][k]
                     del self._parts['fragment_query'][k]
 
+    scheme = UrlPartsProp('scheme')
+    scheme_extension = UrlPartsProp('scheme_extension')
+    netloc = UrlPartsProp('netloc')
+    hostname = UrlPartsProp('hostname')
+    username = UrlPartsProp('username')
+    password = UrlPartsProp('password')
+    port = UrlPartsProp('port')
+    path = UrlPartsProp('path')
+    target_segment = UrlPartsProp('target_segment')
+    start = UrlPartsProp('start')
+    end = UrlPartsProp('end')
+    headers = UrlPartsProp('headers')
+    encoding = UrlPartsProp('encoding')
 
-    def __getattr__(self, item):
-        """ """
-        try:
-            return self._parts[item]
-        except KeyError:
+    fragment_query = UrlPartsProp('fragment_query')
 
-            if item in self._all_parts:
-                return None
-
-            return object.__getattribute__(self, item)
-
-    def __setattr__(self, item, value):
-        """ """
-        if '_UrlParts__initialized' not in self.__dict__:
-            object.__setattr__(self, item, value)
-
-        else:
-            if item in self._all_parts:
-                self._parts[item] = value
-            elif item in  self._extra_fragement_props:
-                self._parts['fragment_query'][item] = value
-            else:
-                object.__setattr__(self, item, value)
     @property
     def proto(self):
         return self._parts.get('proto') or \
                self._parts['scheme_extension'] or \
                {'https': 'http', '': 'file'}.get(self._parts['scheme']) or \
                self._parts['scheme']
+
+    @proto.setter
+    def proto(self,v):
+        self._parts['proto'] = v
 
     @property
     def target_format(self):
@@ -178,6 +199,10 @@ class UrlParts(object):
             target_format = None
 
         return target_format
+
+    @target_format.setter
+    def target_format(self, v):
+        self._parts['target_format'] = v
 
     @property
     def fragment(self):
@@ -225,39 +250,22 @@ class UrlParts(object):
     @property
     def target_file(self):
 
-        try:
-            if self.fragment[0]:
-                return self.fragment[0]
-        except IndexError:
-            pass
-
-        return self.resource_file
+        return self._parts.get('target_file') or self.resource_file
 
     @target_file.setter
     def target_file(self, v):
-        self.fragment[0] = v
+        self._parts['target_file'] = v
 
     def set_target_file(self, v):
         """Return a clone with a target_file set"""
         u = self.clone()
-        u.fragment[0] = v
+        u.target_file = v
         return u
-
-    @property
-    def target_segment(self):
-        if self.fragment:
-            return self.fragment[1]
-        else:
-            return None
-
-    @target_segment.setter
-    def target_segment(self, v):
-        self.fragment[1] = v
 
     def set_target_segment(self, v):
         """Return a clone with a target_file set"""
         u = self.clone()
-        u.fragment[1] = v
+        u.target_segment = v
         return u
 
     @property
@@ -270,7 +278,7 @@ class UrlParts(object):
 
         d = dict(self._parts.items())
 
-        d['scheme_extension'] = self._parts.get('proto') or d['scheme_extension']
+        d['scheme_extension'] = self._parts.get('proto') or d.get('scheme_extension')
 
         for k, v in list(d.items()):
             if k in (self._fragment_query_parts + self._fragment_segments_parts):
@@ -300,6 +308,8 @@ class UrlParts(object):
     def __str__(self):
 
         return unparse_url_dict(self.dict)
+
+
 
 
 class Url(UrlParts):
@@ -498,7 +508,9 @@ class Url(UrlParts):
         if not self.scheme_extension:
             return self
 
-        return parse_app_url(str(self.clone(scheme_extension=None)), downloader=self.downloader)
+        c = self.clone(scheme_extension=None, proto=None)
+
+        return parse_app_url(str(c), downloader=self.downloader)
 
 
     @property
@@ -568,6 +580,7 @@ class Url(UrlParts):
         for k, v in kwargs.items():
             try:
                 setattr(c, k, v)
+
             except AttributeError:
                 raise AttributeError("Can't set attribute '{}' on '{}' ".format(k, c))
 

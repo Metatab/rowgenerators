@@ -121,9 +121,11 @@ class StataSource(Source):
 
         source_url = kwargs.get('source_url')
 
-        self.fragment_args = parse_app_url(source_url).fragment_query
+        u_ = parse_app_url(source_url)
+        self.target_file = u_.target_file
+        self.target_segment = u_.target_segment
 
-        self.value_type = self.fragment_args.get('values', 'categorical')
+        self.value_type = u_.fragment_query.get('values', 'categorical')
 
         self.kwargs = kwargs
 

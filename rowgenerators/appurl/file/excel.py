@@ -28,12 +28,14 @@ class ExcelFileUrl(FileUrl):
 
     @property
     def target_file(self):
-        # This one should probably thow an exception, to force user to use target_segment.
-        return None
+        return self.target_segment
 
-    @property
-    def target_segment(self):
-        return self._parts['target_segment']
+    # Just a copy of the one from Url; looks like it must be reset because
+    # the target_file prop was replaced
+    @target_file.setter
+    def target_file(self, v):
+        self.target_segment = v
+
 
     @property
     def target_format(self):

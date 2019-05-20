@@ -43,6 +43,12 @@ class ZipUrl(FileUrl):
         # Want to return none, so get_files_from-zip can assume to use the first file in the archive.
         return None
 
+    # Just a copy of the one from Url; looks like it must be reset because
+    # the target_file prop was replaced
+    @target_file.setter
+    def target_file(self, v):
+        self._parts['target_file'] = v
+
     def join_target(self, tf):
         """
         Joins the target ``tf`` by setting the value of the first slot of the fragment.

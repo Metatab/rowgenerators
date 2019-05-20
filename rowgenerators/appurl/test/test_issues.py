@@ -181,10 +181,25 @@ class TestIssues(unittest.TestCase):
 
 
     def test_set_query_args(self):
+        from rowgenerators.appurl.url import Url, UrlParts
+
+
+        url = UrlParts('/example.com/sources/unicode-utf8.csv')
+        print(type(url))
+        url.encoding = 'bar'
+        url.target_format = 'bar'
+
+        url = parse_app_url('/example.com/sources/unicode-utf8.csv'
+                            '#encoding=foo&target_format=foo&start=10')
+
+        print(type(url))
+        url.encoding = 'bar'
+        url.target_format = 'bar'
 
         url = parse_app_url('http://public.source.civicknowledge.com/example.com/sources/unicode-utf8.csv'
                             '#encoding=foo&target_format=foo&start=10')
 
+        print(type(url))
         url.encoding='bar'
         url.target_format = 'bar'
 
@@ -269,6 +284,18 @@ class TestIssues(unittest.TestCase):
         pprint(ru.resource_format)
         pprint(ru._parts)
 
+
+    def test_urlparts_descriptors(self):
+        from rowgenerators.appurl.url import UrlParts, Url
+
+        up = UrlParts('http://example.com/foobar')
+
+        print(up.path)
+        up.path = 'path'
+        print(up.path)
+
+        up.scheme = 1
+        up.username = 1
 
 if __name__ == '__main__':
     unittest.main()

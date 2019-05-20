@@ -420,7 +420,10 @@ class BasicTests(unittest.TestCase):
         def u_attr(cls, d):
             u = cls(d['url_in'])
             for k, v in d.get('attr',{}).items():
-                setattr(u, k, v)
+                try:
+                    setattr(u, k, v)
+                except AttributeError:
+                    raise AttributeError("Can't set {} on {} for {}".format(v, k, type(u)))
             return u
 
         def u_kw(cls, d):
