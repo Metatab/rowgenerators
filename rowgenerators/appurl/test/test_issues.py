@@ -268,6 +268,33 @@ class TestIssues(unittest.TestCase):
         self.assertEqual('file:///foo/bar/archive.zip#excel.xls',
                           parse_file_to_uri('file:///foo/bar/archive.zip#excel.xls'))
 
+
+    def test_excel_fragment(self):
+
+        us = 'http://public.source.civicknowledge.com/example.com/sources/test_data.zip#renter_cost_excel07.xlsx'
+        u = parse_app_url(us)
+        r = u.get_resource()
+        t = r.get_target()
+
+        print(u)
+        print(r)
+        print(t)
+
+        self.assertEqual('renter_cost_excel07.xlsx',t.target_file)
+        self.assertIsNone(t.target_segment)
+
+
+        us = 'https://www.cde.ca.gov/ds/sd/sd/documents/cupc1314.xls#1'
+        u = parse_app_url(us)
+        r = u.get_resource()
+        t = r.get_target()
+
+        print(u)
+        print(r)
+        print(t)
+
+
+
     def test_join_target(self):
         from pprint import pprint
         from rowgenerators.appurl.url import UrlParts, Url
@@ -281,6 +308,7 @@ class TestIssues(unittest.TestCase):
 
         pprint(ru.resource_format)
         pprint(ru._parts)
+
 
 
     def test_urlparts_descriptors(self):

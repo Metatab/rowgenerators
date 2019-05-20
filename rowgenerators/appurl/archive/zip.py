@@ -115,6 +115,9 @@ class ZipUrl(FileUrl):
         if 'resource_file' in fq:
             del fq['resource_file']
 
+        if 'target_file' in fq:
+            del fq['target_file']
+
         tu =  parse_app_url(target_path,
                              scheme_extension=self.scheme_extension,
                              downloader=self.downloader,

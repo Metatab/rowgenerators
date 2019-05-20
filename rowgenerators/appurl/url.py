@@ -647,14 +647,10 @@ class Url(UrlParts):
 
 
     def __deepcopy__(self, memo):
-        d = self.dict.copy()
-        d.update(self._kwargs)
-        return type(self)(None, downloader=self._downloader, **d)
+        return type(self)(None, downloader=self._downloader, **self._parts)
 
     def __copy__(self):
-        d = self.dict.copy()
-        d.update(self._kwargs)
-        return type(self)(None, downloader=self._downloader, **d)
+        return type(self)(None, downloader=self._downloader, **self._parts)
 
     def _decompose_fragment(self, frag):
         """Parse the fragment component"""

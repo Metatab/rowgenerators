@@ -120,7 +120,7 @@ class RowProcessor(object):
 
                 yield row
             except Exception as e:
-                raise RowProcessorError("Exception at source row {}: {}".format(i, str(e)))
+                raise RowProcessorError("Exception at source ({}) row {}: {}".format(type(self.source), i, str(e))) from e
 
 
         self.finish()

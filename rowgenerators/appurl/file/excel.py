@@ -14,6 +14,13 @@ class ExcelFileUrl(FileUrl):
     def __init__(self, url=None, downloader=None, **kwargs):
         super().__init__(url, downloader, **kwargs)
 
+        # Move the target_file to the sequence, if there is only one.
+        if self._parts.get('target_file') and not self._parts.get('target_segment'):
+            self._parts['target_segment'] = self._parts['target_file']
+            del self._parts['target_file']
+
+
+
     @classmethod
     def _match(cls, url, **kwargs):
         return url.proto == 'file' and url.resource_format in ('xlsx', 'xls')
@@ -28,14 +35,13 @@ class ExcelFileUrl(FileUrl):
 
     @property
     def target_file(self):
-        return self.target_segment
+        return self.resource_file
 
     # Just a copy of the one from Url; looks like it must be reset because
     # the target_file prop was replaced
     @target_file.setter
     def target_file(self, v):
-        self.target_segment = v
-
+        raise NotImplementedError()
 
     @property
     def target_format(self):
@@ -65,9 +71,9 @@ class ExcelFileUrl(FileUrl):
         u = self.clone()
 
         try:
-            u.target_file = tf.path
+            u.target_segment = tf.path
         except AttributeError:
-            u.target_file = tf
+            u.target_segment = tf
 
         return u
 

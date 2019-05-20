@@ -3,9 +3,10 @@
 
 """ """
 
+from rowgenerators.exceptions import RowGeneratorError
 from rowgenerators.source import Source
 from xlrd import open_workbook, XLRDError
-from rowgenerators.exceptions import RowGeneratorError
+
 
 class ExcelSource(Source):
     """Generate rows from an excel file"""
@@ -16,8 +17,8 @@ class ExcelSource(Source):
         self.url = ref
 
         # It is supposed to be segment. Or file. Probably segment. Well, one of them.
-        #ts = self.url.target_segment or self.url.target_file
-        #if not ts:
+        # ts = self.url.target_segment or self.url.target_file
+        # if not ts:
         #    raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
 
     @staticmethod
@@ -37,18 +38,18 @@ class ExcelSource(Source):
     def __iter__(self):
         """Iterate over all of the lines in the file"""
 
-
         self.start()
 
         wb = open_workbook(filename=str(self.url.fspath))
 
-        ts = self.url.target_segment or 0
+        ts = self.url.target_segment or  0
 
         # Without this check, failure to provide a target_segment will cause the return
         # of the first worksheet.
 
-        #if not ts:
+        # if not ts:
         #    raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
+
 
         try:
             try:
@@ -104,5 +105,3 @@ class ExcelSource(Source):
                     return None
 
         return excel_date
-
-

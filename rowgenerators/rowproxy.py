@@ -58,7 +58,7 @@ class RowProxy(object):
                 try:
                     return self.__row[key]
                 except IndexError:
-                    raise KeyError("Failed to get value for integer key '{}' in row {} ".format(key, self.__row))
+                    raise KeyError("Failed to get value for integer key {} in row {} ".format(key, self.__row))
             else:
                 try:
                     return self.__row[self.__pos_map[key]]
