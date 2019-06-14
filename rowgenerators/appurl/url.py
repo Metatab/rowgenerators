@@ -205,6 +205,7 @@ class UrlParts(object):
         self._parts['target_format'] = v
 
 
+
     def clear_fragment(self):
         """
         Return a copy of the URL with no fragment components

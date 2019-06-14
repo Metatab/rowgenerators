@@ -45,8 +45,11 @@ def appurl():
 
         t = [
             ('Url', str(u)),
+            ('Url Type', type(u)),
+            ('Generator Type', type(u.generator)),
             ('Resource', str(r)),
             ('Target', str(t))
+
         ]
 
         print(tabulate(t))

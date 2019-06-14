@@ -5,7 +5,8 @@
 
 import logging
 from functools import lru_cache
-logger = logging.getLogger('rowgenerators.appurl.web.download')
+
+_logger = logger = logging.getLogger('rowgenerators.appurl.web.download')
 
 
 class _NoOpFileLock(object):
@@ -39,7 +40,6 @@ class Resource(object):
     def __str__(self):
         return str(self.__dict__)
 
-
 def default_downloader_callback(msg_type, downloader, message, read_len, total_len):
     pass
 
@@ -47,6 +47,10 @@ def default_downloader_callback(msg_type, downloader, message, read_len, total_l
 def get_instance(cache=None, account_accessor=None, logger=None,
                  working_dir='', callback=None):
         """Return a memoized singleton"""
+
+        # Wont see this debug statement with the --debug cli command ; it gets called
+        # before setting debug log_level
+        _logger.debug("Creating downloader for cache '{}' ".format(cache))
         return Downloader(cache, account_accessor, logger, working_dir, callback)
 
 class Downloader(object):
@@ -59,7 +63,7 @@ class Downloader(object):
     default_callback = default_downloader_callback
 
     def __init__(self, cache=None, account_accessor=None, logger=None,
-                 working_dir='', callback=None):
+                 working_dir='', callback=None, use_cache=True):
         """
         Download and cache files, via HTTP and FTP, with retry and decompression.
 
@@ -78,9 +82,7 @@ class Downloader(object):
         self.working_dir = working_dir
         self._callback = callback or self.default_callback
 
-        self.clean = False
-
-        self.use_cache = True # Set to false to ignore cache
+        self.use_cache = use_cache # Set to false to ignore cache
 
         # For debugging singletonness
         #from metapack.util import dump_stack
@@ -260,15 +262,18 @@ class Downloader(object):
             lock = _NoOpFileLock()
 
         with lock:
-            if self.cache.exists(cache_path) and self.use_cache == True:
-                if self.clean:
+            if self.cache.exists(cache_path):
+                # Rather than ignoring the cache when use_cache is False, we
+                # delete the file and re-download it, because if you ignore the cached file,
+                # you still have to download the resource to a file somewhere.
+                if self.use_cache:
+                    logger.debug("Found {} in cache".format(cache_path))
+                    return cache_path, None
+                else:
                     try:
                         self.cache.remove(cache_path)
                     except ResourceInvalid:
                         pass  # Well, we tried.
-                else:
-                    logger.debug("Found {} in cache".format(cache_path))
-                    return cache_path, None
 
             try:
                 self._download(url, cache_path)

@@ -35,7 +35,7 @@ class WebUrl(Url):
 
         r = self.get_resource()
 
-        return list(self.set_fragment(u.fragment) for u in r.list())
+        return list(self.set_target_file(u.target_file) for u in r.list())
 
 
     @property

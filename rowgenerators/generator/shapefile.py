@@ -40,8 +40,6 @@ class GeoSourceBase(Source):
     pass
 
 
-
-
     def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
         """
         A row source for shapefiles.
@@ -190,7 +188,7 @@ class ShapefileSource(GeoSourceBase):
 
             self.source_projection = source.crs.get('init')
 
-            if self.source_projection  != self.target_projection:
+            if self.source_projection != self.target_projection:
 
                 projection_type, self.epsg_propjection_code = self.target_projection.split(':')
 

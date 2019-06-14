@@ -88,7 +88,10 @@ def rowgen():
     ss = Url(url=args.url, target_format=args.format, encoding=args.encoding, resource_format=args.urlfiletype)
 
     if args.info:
-        prt(tabulate(ss.dict.items()))
+        rows = list(ss.dict.items())
+        rows.append(('start', ss.start))
+        rows.append(('headers', ss.headers))
+        prt(tabulate(rows))
         sys.exit(0)
 
     if args.enumerate:

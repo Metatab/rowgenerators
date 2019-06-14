@@ -204,7 +204,7 @@ def get_generator(source,  **kwargs):
             pass
 
         try:
-            names.append('{}+.{}'.format(ref.proto, ref.target_format))
+            names.append('{}+.{}'.format(ref.scheme_extension, ref.target_format))
         except AttributeError:
             pass
 
@@ -214,7 +214,6 @@ def get_generator(source,  **kwargs):
 
     classes = sorted([ep.load() for ep in iter_entry_points(group='rowgenerators') if ep.name in names],
                      key=lambda cls: cls.priority)
-
 
     if not classes:
         raise RowGeneratorError(("Can't find generator for source '{}' \nproto={}, "

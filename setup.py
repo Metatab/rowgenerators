@@ -33,6 +33,7 @@ setup(
     long_description=readme,
     packages=find_packages(),
     install_requires=[
+        'pyproj<=1.9.5.1' # Version 2.0.1 is horrifically slow. https://github.com/pyproj4/pyproj/issues/187
         'python-dateutil',
         'boto',
         'codegen',
