@@ -6,7 +6,7 @@
 from rowgenerators.exceptions import RowGeneratorError
 from rowgenerators.source import Source
 from xlrd import open_workbook, XLRDError
-
+from rowgenerators.util import md5_file
 
 class ExcelSource(Source):
     """Generate rows from an excel file"""
@@ -20,6 +20,7 @@ class ExcelSource(Source):
         # ts = self.url.target_segment or self.url.target_file
         # if not ts:
         #    raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
+
 
     @staticmethod
     def srow_to_list(row_num, s):
@@ -56,8 +57,12 @@ class ExcelSource(Source):
                 sheets = wb.sheets()
                 sheet_no = int(ts)
                 s = sheets[sheet_no]
-            except ValueError:  # Segment is the workbook name, not the number
+            except (ValueError, IndexError):
+                # ValueError when Segment is the workbook name, not the number
+                # IndexError when the segment is a numeric name, such as a year,
+                # which converted with int(), but is larger than the # of sheets
                 s = wb.sheet_by_name(ts)
+
         except XLRDError as e:
             raise RowGeneratorError("Failed to open Excel workbook: '{}' ".format(e))
 
@@ -71,7 +76,7 @@ class ExcelSource(Source):
         """Return the sheet names from the workbook """
         from xlrd import open_workbook
 
-        wb = open_workbook(filename=self.url.target_file)
+        wb = open_workbook(filename=str(self.url.fspath))
 
         sheets = wb.sheet_names()
 
