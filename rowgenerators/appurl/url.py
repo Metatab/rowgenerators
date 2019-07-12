@@ -105,7 +105,7 @@ class UrlParts(object):
     _url_parts = ['proto', 'scheme_extension', 'scheme',
                  'netloc', 'hostname',
                  'username', 'password', 'port',
-                 'path', 'fragment', 'fragment_query']
+                 'path', 'query', 'fragment', 'fragment_query']
 
     _app_parts = ['resource_file', 'resource_format',
                  'target_file', 'target_format', 'target_segment']
@@ -162,6 +162,7 @@ class UrlParts(object):
     password = UrlPartsProp('password')
     port = UrlPartsProp('port')
     path = UrlPartsProp('path')
+    query = UrlPartsProp('query')
     target_segment = UrlPartsProp('target_segment')
     start = UrlPartsProp('start')
     end = UrlPartsProp('end')

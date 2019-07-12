@@ -188,6 +188,55 @@ class TestUrlParse(unittest.TestCase):
         print (u)
 
 
+    def test_google_url(self):
+        from rowgenerators.appurl.web.google import GoogleSpreadsheetUrl
+
+        us1 = 'https://drive.google.com/open?id=1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w'
+        us2 = 'gs+https://drive.google.com/open?id=1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w'
+        us3 = 'https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing'
+        us4 = 'https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing'
+        us5 = 'https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit#gid=801701031'
+        us6 = 'gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w#801701031'
+
+        for us in  [us1, us2, us3, us4, us5, us6]:
+            u = GoogleSpreadsheetUrl(us)
+
+            self.assertEqual('1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w', u.key)
+
+        for us in  [us1, us2, us3, us4]:
+            u = GoogleSpreadsheetUrl(us)
+
+            self.assertIsNone(u.gid)
+
+        for us in  [us5, us6]:
+            u = GoogleSpreadsheetUrl(us)
+
+            self.assertEqual('801701031', u.gid)
+
+
+        # parse_app_url
+
+        us1 = 'gs+https://drive.google.com/open?id=1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w'
+        us2 = 'gs+https://drive.google.com/open?id=1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w'
+        us3 = 'gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing'
+        us4 = 'gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing'
+        us5 = 'gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit#gid=801701031'
+        us6 = 'gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w#801701031'
+
+        for us in  [us1, us2, us3, us4, us5, us6]:
+            u = parse_app_url(us)
+            self.assertEqual('1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w', u.key)
+
+        for us in  [us1, us2, us3, us4]:
+            u = parse_app_url(us)
+            self.assertIsNone(u.gid)
+
+        for us in  [us5, us6]:
+            u = parse_app_url(us)
+            self.assertEqual('801701031', u.gid)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

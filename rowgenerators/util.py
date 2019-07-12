@@ -75,6 +75,25 @@ def memoize(obj):
 
     return memoizer
 
+def md5_file(path_or_fh):
+    """Hash a large file in chunks"""
+    import hashlib
+
+    def hash_fh(fh):
+        m = hashlib.md5()
+        while True:
+            data = fh.read(8192)
+            if not data:
+                break
+            m.update(data)
+        return m.hexdigest()
+
+    try:
+        return hash_fh(path_or_fh)
+    except AttributeError:
+        with open(path_or_fh, 'rb') as fh:
+            return hash_fh(fh)
+
 
 class Constant:
     """Organizes constants in a class."""

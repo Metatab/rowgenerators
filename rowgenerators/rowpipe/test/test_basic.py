@@ -1,13 +1,16 @@
 from __future__ import print_function
 
 import unittest
-
 import warnings
+
+from rowgenerators.rowpipe import RowProcessor
+from rowgenerators.rowpipe import Table
+
 warnings.resetwarnings()
 warnings.simplefilter("ignore")
 
-class TestBasic(unittest.TestCase):
 
+class TestBasic(unittest.TestCase):
 
     def setUp(self):
         import warnings
@@ -20,10 +23,10 @@ class TestBasic(unittest.TestCase):
         from rowgenerators.rowpipe import Table
 
         t = Table('foobar')
-        t.add_column('i1',datatype='int')
+        t.add_column('i1', datatype='int')
         t.add_column('i2', valuetype='int')
         t.add_column('i3', valuetype='measure/int')
-        t.add_column('f1',datatype='float')
+        t.add_column('f1', datatype='float')
         t.add_column('f2', valuetype='float')
         t.add_column('f3', valuetype='measure/float')
 
@@ -32,12 +35,9 @@ class TestBasic(unittest.TestCase):
         for c in t:
             print(c)
 
-
     def test_expand_transform_1(self):
         from rowgenerators.rowpipe import Table
         from rowgenerators.rowpipe import RowProcessor
-        from contexttimer import Timer
-        from itertools import zip_longest
 
         def doubleit(v):
             return int(v) * 2
@@ -49,23 +49,22 @@ class TestBasic(unittest.TestCase):
         t = Table('extable')
         t.add_column('id', datatype='int')
         t.add_column('b', datatype='int')
-        t.add_column('v1', datatype='int',   transform='^row.a')
-        t.add_column('v2', datatype='int',   transform='row.v1;doubleit')
-        t.add_column('v3', datatype='int',   transform='^row.a;doubleit')
+        t.add_column('v1', datatype='int', transform='^row.a')
+        t.add_column('v2', datatype='int', transform='row.v1;doubleit')
+        t.add_column('v3', datatype='int', transform='^row.a;doubleit')
 
         for c in t:
-            print('---',c)
+            print('---', c)
             for i, tr in enumerate(c.expanded_transform):
-                print('   ',i, len(list(tr)), list(tr))
+                print('   ', i, len(list(tr)), list(tr))
 
+        headers = ['stage'] + list(c.name for c in t)
 
-        headers  = ['stage'] + list(c.name for c in t)
-
-        table = [[i] + [ tr.str(i) for tr in stage ] for i, stage in enumerate(t.stage_transforms)]
+        table = [[i] + [tr.str(i) for tr in stage] for i, stage in enumerate(t.stage_transforms)]
 
         from tabulate import tabulate
 
-        print (tabulate(table, headers, tablefmt="rst"))
+        print(tabulate(table, headers, tablefmt="rst"))
 
         class Source(object):
 
@@ -73,15 +72,13 @@ class TestBasic(unittest.TestCase):
 
             def __iter__(self):
                 for i in range(N):
-                    yield i, 2*i
+                    yield i, 2 * i
 
         rp = RowProcessor(Source(), t, env=env, code_path='/tmp/rowgenerators/test_transform.py')
 
     def test_expand_transform_2(self):
         from rowgenerators.rowpipe import Table
         from rowgenerators.rowpipe import RowProcessor
-        from contexttimer import Timer
-        from itertools import zip_longest
 
         def doubleit(v):
             return int(v) * 2
@@ -93,21 +90,21 @@ class TestBasic(unittest.TestCase):
         t = Table('extable')
         t.add_column('id', datatype='int')
         t.add_column('v4', datatype='float', transform='^row.a;doubleit;doubleit')
-        t.add_column('v5', datatype='int',   transform='^row.a;doubleit|doubleit')
+        t.add_column('v5', datatype='int', transform='^row.a;doubleit|doubleit')
         t.add_column('v6', datatype='str', transform="^str('v6-string')")
 
         for c in t:
-            print('---',c)
+            print('---', c)
             for i, tr in enumerate(c.expanded_transform):
-                print('   ',i, len(list(tr)), list(tr))
+                print('   ', i, len(list(tr)), list(tr))
 
-        headers  = ['stage'] + list(c.name for c in t)
+        headers = ['stage'] + list(c.name for c in t)
 
-        table = [[i] + [ tr.str(i) for tr in stage ] for i, stage in enumerate(t.stage_transforms)]
+        table = [[i] + [tr.str(i) for tr in stage] for i, stage in enumerate(t.stage_transforms)]
 
         from tabulate import tabulate
 
-        print (tabulate(table, headers, tablefmt="rst"))
+        print(tabulate(table, headers, tablefmt="rst"))
 
         class Source(object):
 
@@ -115,11 +112,9 @@ class TestBasic(unittest.TestCase):
 
             def __iter__(self):
                 for i in range(N):
-                    yield i, 2*i
+                    yield i, 2 * i
 
         rp = RowProcessor(Source(), t, env=env, code_path='/tmp/rowgenerators/test_transform.py')
-
-
 
     # NOTE. This speed test is about 12x to 23x faster running in PyPy than CPython!
     def test_basic_transform(self):
@@ -137,12 +132,12 @@ class TestBasic(unittest.TestCase):
 
         t = Table('foobar')
         t.add_column('id', datatype='int')
-        t.add_column('a',  datatype='int')
-        t.add_column('v1', datatype='int',   transform='^row.a')
-        t.add_column('v2', datatype='int',   transform='row.v1;doubleit')
-        t.add_column('v3', datatype='int',   transform='^row.a;doubleit')
+        t.add_column('a', datatype='int')
+        t.add_column('v1', datatype='int', transform='^row.a')
+        t.add_column('v2', datatype='int', transform='row.v1;doubleit')
+        t.add_column('v3', datatype='int', transform='^row.a;doubleit')
         t.add_column('v4', datatype='float', transform='^row.a;doubleit;doubleit')
-        t.add_column('v5', datatype='int',   transform='^row.a;doubleit|doubleit')
+        t.add_column('v5', datatype='int', transform='^row.a;doubleit|doubleit')
         t.add_column('v6', datatype='float')
 
         N = 20000
@@ -153,17 +148,15 @@ class TestBasic(unittest.TestCase):
 
             def __iter__(self):
                 for i in range(N):
-                    yield i, 2*i
+                    yield i, 2 * i
 
         rp = RowProcessor(Source(), t, env=env, code_path='/tmp/rowgenerators/test_transform.py')
-
 
         print("Code: ", rp.code_path)
 
         headers = rp.headers
 
         for row in rp:
-
             d = dict(zip(headers, row))
 
             self.assertEqual(d['a'], d['v1'], d)
@@ -180,27 +173,21 @@ class TestBasic(unittest.TestCase):
 
                 row_sum += round(sum(row[:6]))
 
-
         self.assertEqual(2199890000, row_sum)
 
         print('Rate=', float(N) / t.elapsed)
-
 
     def test_init_transform(self):
 
         from rowgenerators.rowpipe import Table
 
-
         def expand_transform(code, datatype='int', valuetype=None):
-            
             t = Table('foobar')
             c = t.add_column('c', datatype=datatype, valuetype=valuetype, transform=code)
             return c.expanded_transform
 
         print(expand_transform('^GeoidCensusTract|v.as_acs()'))
         print(expand_transform('v.as_acs()'))
-
-
 
     def test_many_transform(self):
 
@@ -225,9 +212,8 @@ class TestBasic(unittest.TestCase):
 
             return sum(accumulator['deque'])
 
-
         def addtwo(x):
-            return x+2
+            return x + 2
 
         env = {
             'doubleit': doubleit,
@@ -237,7 +223,7 @@ class TestBasic(unittest.TestCase):
         }
 
         transforms = [
-            ('',45),
+            ('', 45),
             ('^row.a', 45),
             ('^row.a;doubleit', 90),
             ('^row.a;doubleit;doubleit', 180),
@@ -258,10 +244,10 @@ class TestBasic(unittest.TestCase):
 
         class Source(object):
             headers = 'a'.split()
+
             def __iter__(self):
                 for i in range(N):
                     yield (i,)
-
 
         class Manager(object):
             factor_a = 10
@@ -279,6 +265,33 @@ class TestBasic(unittest.TestCase):
                     row_sum += sum(row)
 
             self.assertEqual(final_sum, row_sum)
+
+    def test_source_dest_diff(self):
+        from tabulate import tabulate
+
+        class Source(object):
+
+            headers = 'Z X Y'.split()
+
+            def __iter__(self):
+                yield self.headers
+                for i in range(5):
+                    yield ('Z'+str(i), 'X'+str(i),  'Y'+str(i))
+
+        t = Table('extable')
+        t.add_column('a', datatype='int')
+        t.add_column('b', datatype='int')
+        t.add_column('c', datatype='int')
+
+        source_headers = 'c b a'.split()
+
+        rp = RowProcessor(Source(), t, source_headers=source_headers,
+                          code_path='/tmp/rowgenerators/test_transform.py')
+
+        print(tabulate(rp))
+
+        print(rp.source_headers)
+
 
 if __name__ == '__main__':
     unittest.main()

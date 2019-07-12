@@ -410,23 +410,23 @@ def ensure_dir(path):
 
 
 def import_name_or_class(name):
-    " Import an obect as either a fully qualified, dotted name, "
+    " Import an object as either a fully qualified, dotted name, "
 
     if isinstance(name, str):
 
         # for "a.b.c.d" -> [ 'a.b.c', 'd' ]
         module_name, object_name = name.rsplit('.',1)
+
         # __import__ loads the multi-level of module, but returns
         # the top level, which we have to descend into
         mod = __import__(module_name)
-
 
         components = name.split('.')
 
         for comp in components[1:]: # Already got the top level, so start at 1
             mod = getattr(mod, comp)
 
-
         return mod
     else:
         return name # Assume it is already the thing we want to import
+

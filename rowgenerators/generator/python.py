@@ -4,12 +4,12 @@
 """ """
 
 import sys
-
-from rowgenerators import Source
-from rowgenerators.exceptions import SourceError, RowGeneratorError
-from rowgenerators.source import Source
 import types
 from itertools import islice
+
+from rowgenerators.exceptions import RowGeneratorError
+from rowgenerators.source import Source
+from rowgenerators.appurl.util import import_name_or_class
 
 
 class PythonSource(Source):
@@ -21,16 +21,39 @@ class PythonSource(Source):
         super().__init__(ref, cache, working_dir, **kwargs)
 
         if not working_dir in sys.path:
-
             sys.path.append(working_dir)
 
         self.env = env or {}
 
         self.kwargs = kwargs
 
+    @property
+    def object(self):
+        """Return the python thing, a class or a function, that will be invoked """
+
+        if not self.ref.path and self.ref.target_file in self.env:
+            return self.env[self.ref.target_file]
+
+        try:
+            path = self.ref.path.replace('/', '.') + '.' + self.ref.target_file
+            return import_name_or_class(path)
+
+        except ModuleNotFoundError:
+            pass
+
+        if self.ref.fspath.parent not in sys.path:
+            sys.path.insert(0, str(self.ref.fspath.parent))
+
+        mod = __import__(self.ref.fspath.stem)
+
+        return getattr(mod, self.ref.target_file)
+
     def __call__(self):
+
+        self.kwargs.update(self.ref.fragment_query)
+
         '''Call the referenced function and return the result '''
-        return self.ref(env=self.env, cache=self.cache, **self.kwargs)
+        return self.object(env=self.env, cache=self.cache, **self.kwargs)
 
     def dataframe(self, *args, **kwargs):
 
@@ -58,7 +81,7 @@ class PythonSource(Source):
 
         o = self()
 
-        if isinstance(o,types.GeneratorType):
+        if isinstance(o, types.GeneratorType):
 
             try:
                 yield from o
@@ -75,7 +98,6 @@ class PythonSource(Source):
 
 class PandasDataframeSource(Source):
     """Iterates a pandas dataframe  """
-
 
     def __init__(self, url, df, cache, working_dir=None, **kwargs):
         super().__init__(url, cache, working_dir, **kwargs)
@@ -114,6 +136,5 @@ class PandasDataframeSource(Source):
 
             for index, row in df.iterrows():
                 yield idx_list(index) + list(row)
-
 
         self.finish()

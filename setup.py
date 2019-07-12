@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.9.4",
+    version="0.9.5",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -50,7 +50,8 @@ setup(
         'aniso8601',
         'geopandas',
         'pyyaml',
-        'h5py'
+        'h5py',
+        'wrapt'
     ],
     extras_require={
         'geo': ['fiona', 'shapely','pyproj', 'pyproject']
@@ -85,9 +86,11 @@ setup(
             "file: = rowgenerators.appurl.file.file:FileUrl",
             "program+ = rowgenerators.appurl.file.program:ProgramUrl",
             "python: = rowgenerators.appurl.file.python:PythonUrl",
+            ".py = rowgenerators.appurl.file.python:PythonUrl",
 
             "shape+ = rowgenerators.appurl.file.shapefile:ShapefileUrl",
             "gs: = rowgenerators.appurl.web.google:GoogleSpreadsheetUrl",
+            "gs+ = rowgenerators.appurl.web.google:GoogleSpreadsheetUrl",
 
             #Sql Alchemy
             "oracle: = rowgenerators.appurl.sql:OracleSql",
@@ -109,7 +112,7 @@ setup(
             "shape+ = rowgenerators.generator.shapefile:ShapefileSource",
             ".geojson = rowgenerators.generator.shapefile:GeoJsonSource",
             ".shp = rowgenerators.generator.shapefile:ShapefileSource",
-            "python: = rowgenerators.generator.python:PythonSource",
+            "<PythonUrl> = rowgenerators.generator.python:PythonSource",
             "fixed+ = rowgenerators.generator.fixed:FixedSource",
             "<Sql> = rowgenerators.generator.sql:SqlSource",
             ".h5 = rowgenerators.generator.hdf5:Hdf5Source",

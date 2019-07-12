@@ -5,15 +5,18 @@
 
 from itertools import islice
 
+from rowgenerators.util import md5_file
+
 from .appurl.web.download import Downloader
+
 default_downloader = Downloader.get_instance()
+
 
 class RowGenerator(object):
     """Main class for accessing row generators"""
 
-    def __init__(self, url, *args, downloader = None, **kwargs):
-        from .appurl.url import parse_app_url, Url
-        from .appurl.web.download import Downloader
+    def __init__(self, url, *args, downloader=None, **kwargs):
+        from .appurl.url import parse_app_url
 
         self._url_text = url
         self._downloader = downloader or default_downloader
@@ -30,7 +33,6 @@ class RowGenerator(object):
             entries.append([c.match_priority, ep.name, ep.module_name, c.__name__, ])
 
         return entries
-
 
     def __iter__(self):
         """Yields first the header, then each of the data rows. """
@@ -64,7 +66,6 @@ class RowGenerator(object):
         except AttributeError:
             pass
 
-
         try:
             return self.url.dataframe(*args, **kwargs)
         except AttributeError:
@@ -90,10 +91,7 @@ class RowGenerator(object):
         except AttributeError:
             pass
 
-
-
         raise NotImplementedError("Url '{}' of type '{}' can't generate a dataframe ".format(self.url, type(self.url)))
-
 
     def intuit(self):
         """Return information about the columns, based on guessing data types"""
@@ -103,10 +101,10 @@ class RowGenerator(object):
         """Return summary statistics for the columns"""
         raise NotImplemented()
 
-
     def set_row_processor(self):
         """Register a row processor, which will transform rows as they are iterated"""
         raise NotImplemented()
+
 
 class Source(object):
     """Base class for accessors that generate rows from any source. This is the class returned from
@@ -121,6 +119,8 @@ class Source(object):
         self.ref = ref
 
         self.cache = cache
+
+        self._meta = {}
 
     @property
     def headers(self):
@@ -147,7 +147,12 @@ class Source(object):
 
     @property
     def meta(self):
-        return {}
+        return self._meta
+
+    @property
+    def hash(self):
+        with open(self.url.fspath, 'rb') as f:
+            return md5_file(f)
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""
@@ -191,7 +196,6 @@ class Source(object):
 
         return DataFrame(list(data), columns=headers)
 
-
     def start(self):
         pass
 
@@ -199,18 +203,17 @@ class Source(object):
         pass
 
 
-
 class SelectiveRowGenerator(object):
     """Proxies an iterator to remove headers, comments, blank lines from the row stream.
-    The header will be emitted first, and comments are avilable from properties """
+    The header will be emitted first, and comments are available from properties """
 
-    def __init__(self, seq, start=0, headers=[], comments=[], end=[], load_headers=True, **kwargs):
+    def __init__(self, seq, start=0, header_lines=[], comments=[], end=[], load_headers=True, **kwargs):
         """
         An iteratable wrapper that coalesces headers and skips comments
 
         :param seq: An iterable
         :param start: The start of data row
-        :param headers: An array of row numbers that should be coalesced into the header line, which is yieled first
+        :param header_lines: An array of row numbers that should be coalesced into the header line, which is yieled first
         :param comments: An array of comment row numbers
         :param end: The last row number for data
         :param kwargs: Ignored. Sucks up extra parameters.
@@ -219,7 +222,8 @@ class SelectiveRowGenerator(object):
 
         self.iter = iter(seq)
         self.start = start if (start or start is 0) else 1
-        self.header_lines = headers if isinstance(headers, (tuple, list)) else [int(e) for e in headers.split(',') if e]
+        self.header_lines = header_lines if isinstance(header_lines, (tuple, list)) else [int(e) for e in
+                                                                                          header_lines.split(',') if e]
         self.comment_lines = comments
         self.end = end
 
@@ -280,7 +284,6 @@ class SelectiveRowGenerator(object):
                 break
 
         if self.headers:
-
             headers = self.coalesce_headers
             yield headers
         else:
@@ -293,3 +296,64 @@ class SelectiveRowGenerator(object):
 
         for row in self.iter:
             yield row
+
+
+class ReorderRowGenerator(object):
+    """A row generator that remaps columns. The row-generator must be in standard format,
+    with the first row being the header, and all others being data.
+
+     The column map maps dest_header->source_header ( it's inverted from what you might expect ). It can be
+     a dict with dest values in keys and source values in values, or an object with `source' and 'dest' attributes,
+     or a sequence of dicts with 'source' and 'dest' keys
+
+     """
+
+    def __init__(self, row_gen, colmap) -> None:
+
+        self.row_gen = row_gen
+
+        self.colmap = None
+
+        if colmap:
+            try:
+                self.colmap = {e.dest: e.source for e in colmap}
+            except AttributeError:
+                pass
+
+            if colmap and not self.colmap:
+                try:
+                    self.colmap = {e['dest']: e['source'] for e in colmap}
+                except (KeyError, TypeError):
+                    pass
+
+            if colmap and not self.colmap:
+                self.colmap = colmap
+
+    def __iter__(self):
+
+        itr = iter(self.row_gen)
+        source_headers = next(itr)
+
+        indexers = []
+
+        if self.colmap:
+            for dh, sh in self.colmap.items():
+                try:
+                    i = source_headers.index(sh)
+                    indexers.append(f'row[{i}]')
+                except ValueError:
+                    indexers.append('None')
+
+            code = 'lambda row: ({})'.format(','.join(indexers))
+
+            f = eval(code)
+
+            yield list(self.colmap.keys())
+        else:
+
+            f = lambda row: row
+
+            yield source_headers
+
+        for row in itr:
+            yield f(row)

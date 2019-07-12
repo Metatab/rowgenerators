@@ -12,6 +12,7 @@ from datetime import date, time, datetime
 from decorator import decorator
 from rowgenerators.util import Constant, memoize
 
+from tableintuit.types import test_nan
 
 ROLE = Constant()
 ROLE.DIMENSION = 'd'
@@ -345,7 +346,7 @@ class IntValue(int, ValueType):
             return int.__new__(cls, float(v))
         except Exception as e:
 
-            if v is None or v is NoneValue or v == '':
+            if v is None or v is NoneValue or v == '' or test_nan(v):
                 return NoneValue
 
             return FailedValue(v, e)
@@ -361,7 +362,7 @@ class LongValue(int, ValueType):
             return int.__new__(cls, v)
         except Exception as e:
 
-            if v is None or v is NoneValue or v == '':
+            if v is None or v is NoneValue or v == '' or test_nan(v):
                 return NoneValue
 
             return FailedValue(v, e)
@@ -378,7 +379,7 @@ class FloatValue(float, ValueType):
             return float.__new__(cls, v)
         except Exception as e:
 
-            if v is None or v is NoneValue or v == '':
+            if v is None or v is NoneValue or v == '' or test_nan(v):
                 return NoneValue
 
             return FailedValue(v, e)

@@ -7,7 +7,6 @@ import sys
 import os
 from rowgenerators.source import Source
 
-
 class CsvSource(Source):
     """Generate rows from a CSV source"""
 
@@ -23,6 +22,8 @@ class CsvSource(Source):
 
         if self.url.scheme != 'file':
             assert self.url.scheme == 'file', str(self.url)
+
+        self._meta = {}
 
     def __iter__(self):
         """Iterate over all of the lines in the file"""
@@ -49,22 +50,24 @@ class CsvSource(Source):
             # Python 3.6 considers None to mean 'utf8', but Python 3.5 considers it to be 'ascii'
             encoding = self.url.encoding or 'utf8'
 
-
-
             with open(self.url.fspath, encoding=encoding) as f:
                 yield from csv.reader(f, delimiter=self.delimiter)
 
         except UnicodeError as e:
             raise
 
-
         self.finish()
+
+    def finish(self):
+        super().finish()
+
 
     @property
     def headers(self):
         '''Return the headers. This implementation just returns the first line, which is not always correct'''
 
         return next(iter(self))
+
 
     def dataframe(self, limit=None, *args, **kwargs):
         import pandas

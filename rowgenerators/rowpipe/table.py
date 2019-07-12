@@ -6,13 +6,14 @@ Tables and columns
 
 """
 
-from rowgenerators.exceptions import  SchemaError
+from itertools import zip_longest
+
+from rowgenerators.exceptions import ConfigurationError
+from rowgenerators.exceptions import SchemaError
 from rowgenerators.table import Column as RGColumn
 from rowgenerators.table import Table as RGTable
 from rowgenerators.valuetype import resolve_value_type
 
-from rowgenerators.exceptions import ConfigurationError
-from itertools import zip_longest
 
 class Table(RGTable):
 
@@ -44,11 +45,9 @@ class Table(RGTable):
                 else:
                     new_stage.append(TransformSegment(transforms=['v'], column=columns[j]))
 
-
             new_stages.append(new_stage)
 
         return new_stages
-
 
     def __str__(self):
         from tabulate import tabulate
@@ -57,9 +56,10 @@ class Table(RGTable):
 
         return ('Table: {}\n'.format(self.name)) + tabulate(rows, headers)
 
+
 class TransformSegment(object):
 
-    def __init__(self,  init=None, datatype=None, transforms=None, exception=None, column=None):
+    def __init__(self, init=None, datatype=None, transforms=None, exception=None, column=None):
         self.init = init
         self.transforms = transforms or []
         self.datatype = datatype
@@ -88,25 +88,18 @@ class TransformSegment(object):
         for f in 'init datatype transforms exception'.split():
             if self[f]:
                 if f == 'datatype':
-                    fields.append('{}={}'.format(f,self[f].__name__))
+                    fields.append('{}={}'.format(f, self[f].__name__))
                 else:
-                    fields.append('{}={}'.format(f,self[f]))
+                    fields.append('{}={}'.format(f, self[f]))
 
         return "<Transform {} {} >".format(self.column.name, ' '.join(fields))
 
-
-    def str(self,stage_n):
+    def str(self, stage_n):
 
         return '|'.join(e.__name__ if isinstance(e, type) else e for e in list(self))
 
-        if stage_n == 0:
-            return self.init if self.init else self.datatype.__name__
-        else:
-            return '|'.join(list(self))
-
 
 class Column(RGColumn):
-
 
     def __init__(self, name, datatype=None, width=None, valuetype=None, transform=None):
 
@@ -129,11 +122,10 @@ class Column(RGColumn):
 
         super().__init__(name, self.valuetype.python_type(), width)
 
-
     def __repr__(self):
-        return "<Column {name} dt={datatype} vt={valuetype} {transform}>"\
-                .format(name=self.name, datatype=self.datatype.__name__, valuetype=self.valuetype.__name__,
-                        transform=self.transform)
+        return "<Column {name} dt={datatype} vt={valuetype} {transform}>" \
+            .format(name=self.name, datatype=self.datatype.__name__, valuetype=self.valuetype.__name__,
+                    transform=self.transform)
 
     @property
     def dict(self):
@@ -148,10 +140,9 @@ class Column(RGColumn):
     def expanded_transform(self):
         """Expands the transform string into segments """
 
-        transform = self.transform.rstrip('|') if  self.transform else ''
+        transform = self.transform.rstrip('|') if self.transform else ''
 
         segments = [TransformSegment(column=self)]
-
 
         for i, seg_str in enumerate(transform.split(';')):  # ';' seperates pipe stages
 
@@ -169,7 +160,7 @@ class Column(RGColumn):
                         raise ConfigurationError('Can only have one initializer in a pipeline segment')
                     if i != 0:
                         raise ConfigurationError('Can only have an initializer in the first pipeline segment')
-                    segments[0].init = pipe[1:] # initializers only go on the first segment
+                    segments[0].init = pipe[1:]  # initializers only go on the first segment
 
                 elif pipe[0] == '!':  # Exception Handler
                     d.exception = pipe[1:]
@@ -179,9 +170,7 @@ class Column(RGColumn):
             if d['transforms'] or d.exception:
                 segments.append(d)
 
-
         if not segments[0].init:
             segments[0].init = self.valuetype or self.datatype
-
 
         return segments

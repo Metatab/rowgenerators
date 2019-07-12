@@ -164,7 +164,7 @@ def get_generator(source,  **kwargs):
         names.append('<generator>')
         ref = source
 
-    elif isinstance(source, collections.Iterable):
+    elif isinstance(source, collections.abc.Iterable):
         names.append('<iterator>')
         ref = source
 
@@ -216,9 +216,9 @@ def get_generator(source,  **kwargs):
                      key=lambda cls: cls.priority)
 
     if not classes:
-        raise RowGeneratorError(("Can't find generator for source '{}' \nproto={}, "
+        raise RowGeneratorError(("Can't find generator for url '{}' \ntype={}, proto={}, "
                                   "resource_format={}, target_format={}, names={} ")
-                                 .format(source, ref.proto, ref.resource_format, ref.target_format, names))
+                                 .format( source, type(source), ref.proto, ref.resource_format, ref.target_format, names))
     try:
         return classes[0](ref, **kwargs)
     except NotImplementedError:

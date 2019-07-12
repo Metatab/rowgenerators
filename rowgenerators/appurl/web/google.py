@@ -4,7 +4,8 @@
 """ """
 
 from rowgenerators.appurl.web.web import WebUrl
-
+from rowgenerators.appurl.url import parse_app_url
+from rowgenerators.appurl.file.csv import CsvFileUrl
 
 class GoogleProtoCsvUrl(WebUrl):
     """Access a Google spreadheet as a CSV format download"""
@@ -23,20 +24,33 @@ class GoogleProtoCsvUrl(WebUrl):
 
 class GoogleSpreadsheetUrl(WebUrl):
 
+    """A Google spreadsheet url. Supports URLs with these forms:
+
+        gs://1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w
+        gs+https://drive.google.com/open?id=1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w
+        gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing
+        gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing
+        gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit#gid=801701031
+
+        """
+
     match_priority = WebUrl.match_priority - 1
 
     url_template = 'https://docs.google.com/spreadsheets/d/{key}/export?format=csv'
     gid_siffix = '&gid={gid}'
 
     def __init__(self, url=None, downloader=None, **kwargs):
-        from rowgenerators.appurl.url import parse_app_url
 
         super().__init__(url, downloader, **kwargs)
 
-        self._proto = 'gs'
+        parts = self.path.split('/') + [self.query.replace('id=', ''), self.netloc]
+        parts = list(reversed(sorted(parts, key=lambda k: len(k))))
+        self.key = parts[0]
 
-        self.key = self.path or self.netloc # former without '://', later with ':'
-        self.gid = self.target_file
+        if self.scheme == 'gs':
+            self.gid = self.target_file
+        else:
+            self.gid = self.fragment_query.get('gid')
 
         if self.gid:
             web_url = (self.url_template + self.gid_siffix).format(key=self.key, gid=self.gid)
@@ -53,9 +67,11 @@ class GoogleSpreadsheetUrl(WebUrl):
 
     def get_resource(self):
 
-        from rowgenerators.appurl.file.csv import CsvFileUrl
         return CsvFileUrl(str(self.web_url.get_resource()))
 
     def get_target(self):
         return self.get_resource().get_target()
+
+
+
 

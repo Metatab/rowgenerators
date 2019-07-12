@@ -79,22 +79,19 @@ class GeoSourceBase(Source):
         self._meta = {}
 
 
-class ShapefileSource(GeoSourceBase):
-    """ Accessor for shapefiles (*.shp) with geo data. """
+    @property
+    def meta(self):
+        '''Used as post-iterator metadata in Metapack, copied into a resource term after build'''
+        return self._meta
 
-    def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
+    @property
+    def headers(self):
+        """Return headers. This must be run after iteration, since the value that is returned is
+        set in iteration """
 
-        assert isinstance(ref, (ShapefileUrl, ShapefileShpUrl))
+        # self.spec.columns = [c for c in self._get_columns(property_schema)]
 
-        super().__init__(ref, cache, working_dir, env, **kwargs)
-
-
-
-    def _convert_column(self, shapefile_column):
-        """ Converts column from a *.shp file to the column expected by ambry_sources."""
-        name, type_ = shapefile_column
-        type_ = type_.split(':')[0]
-        return {'name': name, 'type': type_}
+        return [x['name'] for x in self.columns]
 
     @property
     def columns(self):
@@ -112,51 +109,11 @@ class ShapefileSource(GeoSourceBase):
         columns.append({'name': 'geometry', 'type': 'geometry_type'})
         return columns
 
-    @property
-    def headers(self):
-        """Return headers. This must be run after iteration, since the value that is returned is
-        set in iteration """
-
-        # self.spec.columns = [c for c in self._get_columns(property_schema)]
-
-        return [x['name'] for x in self.columns]
-
-    @property
-    def meta(self):
-        return self._meta
-
-    def _open_file_params(self):
-        from zipfile import ZipFile
-
-        layer_index = self.ref.target_segment or 0
-
-        if self.ref.resource_format == 'zip':
-            # Find the SHP file. I thought Fiona used to do this itself ...
-            assert self.ref.target_file
-
-            vfs = 'zip://{}'.format(self.ref.fspath)
-
-            if self.ref.target_file:
-                shp_file = '/' + self.ref.target_file.strip('/')
-            else:
-                shp_file = '/' + next(
-                    n for n in ZipFile(self.ref.fspath).namelist() if (n.endswith('.shp') or n.endswith('geojson')))
-        else:
-            shp_file = self.ref.fspath
-            vfs = None
-
-        return vfs, shp_file, layer_index
-
-    @property
-    def _parameters(self):
-        import fiona
-
-        vfs, shp_file, layer_index = self._open_file_params()
-
-        with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
-
-            return source.schema['properties']
-
+    def _convert_column(self, shapefile_column):
+        """ Converts column from a *.shp file to the column expected by ambry_sources."""
+        name, type_ = shapefile_column
+        type_ = type_.split(':')[0]
+        return {'name': name, 'type': type_}
 
     def __iter__(self):
         """ Returns generator over shapefile rows.
@@ -179,9 +136,9 @@ class ShapefileSource(GeoSourceBase):
 
         self.start()
 
-        vfs, shp_file, layer_index = self._open_file_params()
+        args, kwargs = self._fiona_open_params()
 
-        with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
+        with fiona.open(*args, **kwargs ) as source:
 
             if self.target_projection == '<source>':
                 self.target_projection = source.crs.get('init')
@@ -235,6 +192,55 @@ class ShapefileSource(GeoSourceBase):
 
         self.finish()
 
+
+class ShapefileSource(GeoSourceBase):
+    """ Accessor for shapefiles (*.shp) with geo data. """
+
+    def __init__(self, ref, cache=None, working_dir=None, env=None, **kwargs):
+
+        assert isinstance(ref, (ShapefileUrl, ShapefileShpUrl))
+
+        super().__init__(ref, cache, working_dir, env, **kwargs)
+
+
+    def _open_file_params(self):
+        from zipfile import ZipFile
+
+        layer_index = self.ref.target_segment or 0
+
+        if self.ref.resource_format == 'zip':
+            # Find the SHP file. I thought Fiona used to do this itself ...
+            assert self.ref.target_file
+
+            vfs = 'zip://{}'.format(self.ref.fspath)
+
+            if self.ref.target_file:
+                shp_file = '/' + self.ref.target_file.strip('/')
+            else:
+                shp_file = '/' + next(
+                    n for n in ZipFile(self.ref.fspath).namelist() if (n.endswith('.shp') or n.endswith('geojson')))
+        else:
+            shp_file = self.ref.fspath
+            vfs = None
+
+        return vfs, shp_file, layer_index
+
+    @property
+    def _parameters(self):
+        import fiona
+
+        vfs, shp_file, layer_index = self._open_file_params()
+
+        with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
+
+            return source.schema['properties']
+
+    def _fiona_open_params(self):
+        vfs, shp_file, layer_index = self._open_file_params()
+
+        return (shp_file, ), dict(vfs=vfs, layer=layer_index)
+
+
     def dataframe(self, limit=None):
         """An alias for geoframe()"""
 
@@ -264,8 +270,14 @@ class GeoJsonSource(GeoSourceBase):
     def _parameters(self):
         import fiona
 
-        t = self.url.get_resource().get_target()
+        t = self.ref.get_resource().get_target()
 
         with fiona.open(t.fspath) as source:
-
             return source.schema['properties']
+
+    def _fiona_open_params(self):
+
+        t = self.ref.get_resource().get_target()
+
+        return (t.fspath,), {}
+

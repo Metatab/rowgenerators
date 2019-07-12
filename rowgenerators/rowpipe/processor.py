@@ -28,6 +28,12 @@ class RowProcessor(object):
         :return:
         """
 
+        if not source:
+            raise RowProcessorError("No source")
+
+        if not dest_table:
+            raise RowProcessorError("No destination row processor table")
+
         self.source = source
         self.manager = manager
         self.source_headers = source_headers if source_headers is not None else self.source.headers
