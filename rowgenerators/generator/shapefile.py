@@ -231,14 +231,14 @@ class ShapefileSource(GeoSourceBase):
 
         vfs, shp_file, layer_index = self._open_file_params()
 
-        with fiona.open(shp_file, vfs=vfs, layer=layer_index) as source:
+        with fiona.open(vfs, layer=layer_index) as source:
 
             return source.schema['properties']
 
     def _fiona_open_params(self):
         vfs, shp_file, layer_index = self._open_file_params()
 
-        return (shp_file, ), dict(vfs=vfs, layer=layer_index)
+        return (vfs, ), dict( layer=layer_index)
 
 
     def dataframe(self, limit=None):
@@ -257,7 +257,7 @@ class ShapefileSource(GeoSourceBase):
 
         vfs, shp_file, layer_index = self._open_file_params()
 
-        o = gpd.read_file(shp_file, vfs=vfs, layer=layer_index)
+        o = gpd.read_file(vfs, layer=layer_index)
 
         return o
 

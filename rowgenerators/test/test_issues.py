@@ -22,6 +22,18 @@ class TestIssues(unittest.TestCase):
         print(len(list(g)))
 
 
+    def test_slow_projection(self):
+        from timer_cm import Timer
+
+        f = 'shape+http://ds.civicknowledge.org/sangis.org/BUSINESS_SITES.zip'
+
+        from rowgenerators import geoframe
+
+        with Timer("load"):
+            g = geoframe(f)
+
+        with Timer("project"):
+            g_ = g.to_crs({'init': 'epsg:3395'})
 
 
 if __name__ == '__main__':

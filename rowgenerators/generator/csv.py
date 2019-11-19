@@ -73,11 +73,13 @@ class CsvSource(Source):
         import pandas
 
         # The NA Filter can produce unfortunate results when it isn't expected.
-        if not 'na_filter' in kwargs:
-            kwargs['na_filter'] = False
+        # It can also break things when it is turned off
+        #if not 'na_filter' in kwargs:
+        #    kwargs['na_filter'] = False
 
         if self.url.encoding and not 'encoding' in kwargs:
             kwargs['encoding'] = self.url.encoding
+
 
         return pandas.read_csv(self.url.fspath, *args, **kwargs)
 

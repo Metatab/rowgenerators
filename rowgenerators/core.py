@@ -1,5 +1,5 @@
 
-
+from . import DEFAULT_EPSG
 
 def geoframe(url):
     """Parse an App url and return a Geopandas geoframe"""
@@ -9,7 +9,7 @@ def geoframe(url):
 
 def dataframe(url,  downloader='default', *args, **kwargs):
     """Parse an App url and return a Pandas dataframe"""
-    from rowgenerators import parse_app_url
+    from . import parse_app_url
     import pandas as pd
     from itertools import islice
 
@@ -57,7 +57,6 @@ def geoframe(url, downloader='default', *args, **kwargs):
     t = r.get_target()
 
 
-
     g = t.generator
 
     # Try the generator
@@ -102,7 +101,7 @@ def geoframe(url, downloader='default', *args, **kwargs):
         # Wild guess. This case should be most often for Metatab processed geo files,
         # which are all 4326
         if gdf.crs is None:
-            gdf.crs = {'init': 'epsg:4326'}
+            gdf.crs = {'init': f'epsg:{DEFAULT_EPSG}'}
 
     except KeyError as e:
         raise SourceError("Failed to create GeoDataFrame for resource '{}': No geometry column".format(t))
