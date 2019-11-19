@@ -28,12 +28,12 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.9.5",
+    version="0.9.6",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
     install_requires=[
-        'pyproj', #'pyproj<=1.9.5.1', # Version 2.0.1 is horrifically slow. https://github.com/pyproj4/pyproj/issues/187
+        'pyproj',
         'python-dateutil',
         'boto',
         'codegen',
