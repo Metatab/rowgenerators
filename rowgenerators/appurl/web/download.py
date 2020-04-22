@@ -40,18 +40,9 @@ class Resource(object):
     def __str__(self):
         return str(self.__dict__)
 
-def default_downloader_callback(msg_type, downloader, message, read_len, total_len):
+def default_downloader_callback(msg_type, message, read_len, total_len):
     pass
 
-@lru_cache(100)
-def get_instance(cache=None, account_accessor=None, logger=None,
-                 working_dir='', callback=None):
-        """Return a memoized singleton"""
-
-        # Wont see this debug statement with the --debug cli command ; it gets called
-        # before setting debug log_level
-        _logger.debug("Creating downloader for cache '{}' ".format(cache))
-        return Downloader(cache, account_accessor, logger, working_dir, callback)
 
 class Downloader(object):
     """Downloader objects handle downloading resrouces from the web, including authorization,
@@ -60,7 +51,7 @@ class Downloader(object):
 
     context = {}  # A variable substitution context, for substituting hostnames, pathnames, etc
 
-    default_callback = default_downloader_callback
+    singleton = None
 
     def __init__(self, cache=None, account_accessor=None, logger=None,
                  working_dir='', callback=None, use_cache=True):
@@ -80,7 +71,7 @@ class Downloader(object):
         self.account_acessor = account_accessor
         self.logger = logger
         self.working_dir = working_dir
-        self._callback = callback or self.default_callback
+        self._callback = callback or default_downloader_callback
 
         self.use_cache = use_cache # Set to false to ignore cache
 
@@ -93,7 +84,22 @@ class Downloader(object):
     def get_instance(cache=None, account_accessor=None, logger=None,
                      working_dir='', callback=None):
         """Return a memoized singleton"""
-        return get_instance(cache, account_accessor, logger, working_dir, callback)
+
+        # Wont see this debug statement with the --debug cli command ; it gets called
+        # before setting debug log_level
+        if not Downloader.singleton:
+            _logger.debug("Creating downloader for cache '{}' ".format(cache))
+            Downloader.set_singleton(cache, account_accessor, logger, working_dir, callback)
+
+        return Downloader.singleton
+
+    @staticmethod
+    def set_singleton(cache=None, account_accessor=None, logger=None,
+                     working_dir='', callback=None):
+        """Assign the downloader singleton"""
+
+        Downloader.singleton = Downloader(cache, account_accessor, logger, working_dir, callback)
+        return Downloader.singleton
 
     def callback(self, msg_type, message, read_len=-1, total_len=-1 ):
         if True or self._callback:
@@ -101,8 +107,13 @@ class Downloader(object):
 
     def set_callback(self, cb):
         # The Downloader is supposed to be a singleton, but it gets created all over the place
-        Downloader.default_callback = cb
         self._callback = cb
+
+    def reset_callback(self):
+        # The Downloader is supposed to be a singleton, but it gets created all over the place
+        self.set_callback(default_downloader_callback)
+
+
 
     @property
     def cache(self):
@@ -123,7 +134,7 @@ class Downloader(object):
         from rowgenerators.appurl.url import Url
         from rowgenerators.exceptions import DownloadError, AccessError
 
-        # logger.debug(f"Download {url}")
+        logger.debug(f"Download {url}")
 
         working_dir = self.working_dir if self.working_dir else ''
 
@@ -267,10 +278,12 @@ class Downloader(object):
                 # delete the file and re-download it, because if you ignore the cached file,
                 # you still have to download the resource to a file somewhere.
                 if self.use_cache:
-                    logger.debug("Found {} in cache".format(cache_path))
+                    logger.debug(f"Found {cache_path} in cache, and cache is active")
                     return cache_path, None
                 else:
+                    logger.debug(f"File {cache_path} is not in cache")
                     try:
+                        logger.debug(f"Found {cache_path} in cache, but cache not active; deleting")
                         self.cache.remove(cache_path)
                     except ResourceInvalid:
                         pass  # Well, we tried.

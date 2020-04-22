@@ -9,8 +9,6 @@ from rowgenerators.util import md5_file
 
 from .appurl.web.download import Downloader
 
-default_downloader = Downloader.get_instance()
-
 
 class RowGenerator(object):
     """Main class for accessing row generators"""
@@ -19,7 +17,7 @@ class RowGenerator(object):
         from .appurl.url import parse_app_url
 
         self._url_text = url
-        self._downloader = downloader or default_downloader
+        self._downloader = downloader or Downloader.get_instance()
 
         self.url = parse_app_url(self._url_text, *args, downloader=self._downloader, **kwargs)
 

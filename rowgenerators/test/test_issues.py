@@ -21,7 +21,21 @@ class TestIssues(unittest.TestCase):
 
         print(len(list(g)))
 
+    def test_broken_zip(self):
 
+        us = 'http://public.source.civicknowledge.com/example.com/sources/test_data.foo#simple-example.csv&resource_format=zip&encoding=ascii'
+
+        u = parse_app_url(us, target_format=None)
+
+        print(u)
+        r = u.get_resource()
+        print(r)
+        t = r.get_target()
+        print(t)
+
+        g = t.generator
+
+        print(len(list(g)))
 
 
 if __name__ == '__main__':

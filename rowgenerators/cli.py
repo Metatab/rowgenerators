@@ -118,9 +118,17 @@ def rowgen():
     else:
         from rowgenerators import parse_app_url
 
-        t = parse_app_url(args.url, target_format=args.format, encoding=args.encoding,
-                          resource_format=args.urlfiletype) \
-            .get_resource().get_target()
+        kwargs = {}
+        if args.format:
+            kwargs['target_format'] = args.format
+
+        if args.encoding:
+            kwargs['encoding'] = args.encoding
+
+        if args.urlfiletype:
+            kwargs['resource_format'] = args.urlfiletype
+
+        t = parse_app_url(args.url, **kwargs).get_resource().get_target()
 
         rg = t.generator
 

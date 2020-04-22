@@ -138,6 +138,7 @@ class ZipUrl(FileUrl):
 
         from zipfile import ZipFile
 
+
         if self.target_file:
             return list(self.set_target_segment(tl.target_segment) for tl in self.get_target().list())
         else:
@@ -200,6 +201,8 @@ class ZipUrl(FileUrl):
 
         for e in zf.infolist():
 
+
+
             # Get rid of __MACOS and .DS_whatever
             if basename(e.filename).startswith('__') or basename(e.filename).startswith('.'):
                 continue
@@ -209,8 +212,10 @@ class ZipUrl(FileUrl):
             # e.external_attr>>31&1 works when the archive has external attrs set, and a dir heirarchy
             # e.external_attr==0 works in cases where there are no external attrs set
             # e.external_attr==32 is true for some single-file archives.
-            if bool(e.external_attr >> 31 & 1 or e.external_attr == 0 or e.external_attr == 32):
+            # e.external_attr==128 has been true at least once ...
+            if bool(e.external_attr >> 31 & 1 or e.external_attr == 0 or e.external_attr == 32 or e.external_attr == 128):
                 yield e.filename
+
 
     @classmethod
     def _match(cls, url, **kwargs):
