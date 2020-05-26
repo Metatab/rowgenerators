@@ -119,23 +119,30 @@ class BasicTests(RowGeneratorTest):
 
     def test_google(self):
 
+        from hashlib import md5
+        from rowgenerators.appurl.web.google import GoogleSpreadsheetUrl
+
         url = 'gs:1qjjtkMqpxtkDp3qZlkF7P8Tm8VtfIwiWW-OqJ2J91yE#2038675149'
 
         u = parse_app_url(url)
+        self.assertIsInstance(u, GoogleSpreadsheetUrl)
 
         wu = u.web_url
-        print(type(wu), wu)
 
         r = u.get_resource()
 
-        print(type(r), r.path)
-
         t = r.get_target()
 
-        print(type(t), t.path)
+        h = md5()
 
         for r in t.generator:
-            print(r)
+            h.update( (''.join(e for e in r)).encode('utf8'))
+
+        self.assertEqual(h.hexdigest(), '2108f203561d6b4cf3b6ecf74bd769c6')
+
+        u = parse_app_url('https://docs.google.com/spreadsheets/u/0/d/e/2PACX-1vS6_JK5zktVQr6JwkYUPvzlwcw0YAawSVC7ldWZVfg9hvTjBxl2z4xWaWCrzb9JZ0Go07KhLgbzw5DW/pubhtml/sheet?headers=false&gid=1658358543')
+
+        self.assertIsInstance(u, GoogleSpreadsheetUrl)
 
 
     def test_RowGenerator(self):
@@ -201,3 +208,5 @@ class BasicTests(RowGeneratorTest):
         df = u.dataframe()
         self.assertEqual(27, df.head().sum().sum())
         self.assertEqual(['B0000300', 'B0000400', 'B0000500', 'B0000600'], list(df.columns))
+
+

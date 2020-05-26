@@ -28,7 +28,7 @@ classifiers = [
 
 setup(
     name='rowgenerators',
-    version="0.9.8",
+    version="0.9.9",
     description='Generate row data from a variety of file formats',
     long_description=readme,
     packages=find_packages(),
@@ -89,6 +89,7 @@ setup(
             ".py = rowgenerators.appurl.file.python:PythonUrl",
 
             "shape+ = rowgenerators.appurl.file.shapefile:ShapefileUrl",
+            "/docs.google.com/spreadsheets/ = rowgenerators.appurl.web.google:GoogleSpreadsheetUrl",
             "gs: = rowgenerators.appurl.web.google:GoogleSpreadsheetUrl",
             "gs+ = rowgenerators.appurl.web.google:GoogleSpreadsheetUrl",
 

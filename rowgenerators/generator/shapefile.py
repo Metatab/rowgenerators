@@ -241,19 +241,18 @@ class ShapefileSource(GeoSourceBase):
         return (vfs, ), dict( layer=layer_index)
 
 
-    def dataframe(self, limit=None):
+    def dataframe(self, limit=None, *args, **kwargs):
         """An alias for geoframe()"""
 
         return self.geoframe()
 
 
-    def geoframe(self):
+    def geoframe(self, *args, **kwargs):
         """Return a geopandas dataframe. The geoframe does not reproject, ( which is a lot faster )
         but does set the crs with the actual projection, so you can re-project with to_crs()
 
         """
         import geopandas as gpd
-        import fiona
 
         vfs, shp_file, layer_index = self._open_file_params()
 

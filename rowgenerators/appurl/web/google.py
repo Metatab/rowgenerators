@@ -32,6 +32,12 @@ class GoogleSpreadsheetUrl(WebUrl):
         gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing
         gs+https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit#gid=801701031
 
+        You can also leave off the 'gs+', so these are also valid:
+
+        https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing
+        https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit?usp=sharing
+        https://docs.google.com/spreadsheets/d/1VGEkgXXmpWya7KLkrAPHp3BLGbXibxHqZvfn9zA800w/edit#gid=801701031
+
         """
 
     match_priority = WebUrl.match_priority - 1
@@ -59,11 +65,13 @@ class GoogleSpreadsheetUrl(WebUrl):
 
         web_url +="#target_file={}-{}.csv".format(self.key,self.gid)
 
-        self.web_url = parse_app_url(web_url)
+        self.web_url = WebUrl(web_url, downloader=self.downloader)
 
     @classmethod
     def _match(cls, url, **kwargs):
-        return url.proto == 'gs'
+
+        return url.proto == 'gs' or \
+               (url.netloc == 'docs.google.com' and url.path.startswith('/spreadsheets'))
 
     def get_resource(self):
 

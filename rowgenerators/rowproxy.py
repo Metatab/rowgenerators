@@ -66,7 +66,15 @@ class RowProxy(object):
                     raise IndexError("Failed to get value for non-int key '{}', resolved to position {} "
                                      .format(key, self.__pos_map[key]))
                 except KeyError:
-                    raise KeyError("Failed to get value for non-int key '{}' in row {} ".format(key, self.__row))
+                    raise KeyError("Failed to get value for non-int key '{}'; has {} ".format(key, self.__keys))
+
+    def get(self, item, default=None):
+
+        try:
+            return self.__getitem__(item)
+        except (KeyError, IndexError):
+            return default
+
 
     def __setattr__(self, key, value):
 

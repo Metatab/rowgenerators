@@ -22,9 +22,6 @@ def match_url_classes(u_str, **kwargs):
     u = Url(str(u_str), downloader=None, **kwargs)
 
     try:
-        #classes = sorted([ep.load() for ep in iter_entry_points(group='appurl.urls') if u._match_entry_point(ep.name)],
-        #                 key=lambda cls: cls.match_priority)
-
         classes = []
 
         for ep in iter_entry_points(group='appurl.urls'):
@@ -39,9 +36,7 @@ def match_url_classes(u_str, **kwargs):
 
     return classes
 
-
 default_downloader = None
-
 
 def parse_app_url(u_str, downloader='default', **kwargs):
     """
@@ -614,6 +609,8 @@ class Url(UrlParts):
             '#.ext' Match the target extension
         """
 
+        import re
+
         if '&' in name:
             return all(self._match_entry_point(n) for n in name.split('&'))
 
@@ -624,6 +621,8 @@ class Url(UrlParts):
 
         if name == '*':
             return True
+        elif name.startswith("/") and name.endswith("/"):
+            return re.search(name[1:-1], str(self))
         elif name.endswith(":"):
             return name[:-1] == self.scheme
         elif name.endswith('+'):

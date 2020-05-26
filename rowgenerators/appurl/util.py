@@ -197,6 +197,8 @@ def unparse_url_dict(d, **kwargs):
     if user_pass:
         host_port = '{}@{}'.format(user_pass, host_port)
 
+
+
     if d.get('scheme') == 'file':
         if d['netloc']: # Windows UNC path
             url = 'file://{}/{}'.format(d['netloc'], d.get('path', '').lstrip('/'))
@@ -217,7 +219,7 @@ def unparse_url_dict(d, **kwargs):
         url = '{}://{}/{}'.format(d['scheme'], host_port, d.get('path', '').lstrip('/'))
 
     elif d.get('scheme'):
-        url = '{}://{}'.format(d['scheme'], d.get('path', '').lstrip('/'))
+        url = '{}:{}'.format(d['scheme'], d.get('path', '').lstrip('/'))
 
     elif d.get('path'):
         raise AppUrlError("Can only unparse file urls that have a file: scheme")
