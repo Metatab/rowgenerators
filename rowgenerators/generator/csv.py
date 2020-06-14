@@ -6,7 +6,7 @@
 import sys
 import os
 from rowgenerators.source import Source
-
+import warnings
 class CsvSource(Source):
     """Generate rows from a CSV source"""
 
@@ -71,6 +71,7 @@ class CsvSource(Source):
 
     def dataframe(self, limit=None, *args, **kwargs):
         import pandas
+        from rowgenerators.exceptions import RowGeneratorError
 
         # The NA Filter can produce unfortunate results when it isn't expected.
         # It can also break things when it is turned off
@@ -81,5 +82,38 @@ class CsvSource(Source):
             kwargs['encoding'] = self.url.encoding
 
 
-        return pandas.read_csv(self.url.fspath, *args, **kwargs)
+        last_exception = None
+
+        while True:
+
+            try:
+                return  pandas.read_csv(self.url.fspath, *args, **kwargs)
+            except Exception as e:
+                last_exception = e
+
+            if 'not in list' in str(last_exception) and 'parse_dates' in kwargs:
+
+                # This case happens when there is a mismatch between the headings in the
+                # file we're reading and the schema. for insance, the file header has a leading space,
+                # and we're trying to parse dates for that column. So, try again
+                # without parsing dates.
+                del kwargs['parse_dates']
+                warnings.warn('Date parsing error in read_csv. Trying again without parsing dates '+
+                              'Exception: '+str(last_exception))
+                continue
+
+            if 'has NA values in column' in str(last_exception) and 'dtype' in kwargs:
+                # We're trying to force dtypes to in for a column that can't be an int,
+                # so give up trying to force dtypes.
+
+                del kwargs['dtype']
+                warnings.warn('Error setting dtypes; NA in integer column. Try again without dtypes ' +
+                              'Exception: ' + str(last_exception))
+                continue
+
+            break
+
+
+        raise RowGeneratorError(f"{last_exception} in read_csv: path={self.url.fspath} args={args} kwargs={kwargs}\n")
+
 
