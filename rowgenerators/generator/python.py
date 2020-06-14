@@ -107,6 +107,7 @@ class PandasDataframeSource(Source):
     def __iter__(self):
 
         import numpy as np
+        from itertools import islice
 
         self.start()
 
