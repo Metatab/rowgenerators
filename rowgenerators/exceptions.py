@@ -8,6 +8,13 @@ Revised BSD License, included in this distribution as LICENSE.txt
 class RowGeneratorError(Exception):
     pass
 
+class RowGeneratorConfigError(RowGeneratorError):
+    """Row generator errors that result from the configuration of the rowgenerator,
+    such as using a tab-based parser on a comma-based file"""
+
+    def __init__(self, config_type: str, *args: object) -> None:
+        super().__init__(*args)
+        self.config_type = config_type
 
 class SourceError(RowGeneratorError):
     pass

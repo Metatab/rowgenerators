@@ -7,6 +7,7 @@ import sys
 import os
 from rowgenerators.source import Source
 import warnings
+
 class CsvSource(Source):
     """Generate rows from a CSV source"""
 
@@ -71,16 +72,15 @@ class CsvSource(Source):
 
     def dataframe(self, limit=None, *args, **kwargs):
         import pandas
-        from rowgenerators.exceptions import RowGeneratorError
+        from rowgenerators.exceptions import RowGeneratorError, RowGeneratorConfigError
 
         # The NA Filter can produce unfortunate results when it isn't expected.
         # It can also break things when it is turned off
-        #if not 'na_filter' in kwargs:
+        # if not 'na_filter' in kwargs:
         #    kwargs['na_filter'] = False
 
         if self.url.encoding and not 'encoding' in kwargs:
             kwargs['encoding'] = self.url.encoding
-
 
         last_exception = None
 
@@ -97,19 +97,24 @@ class CsvSource(Source):
                 # file we're reading and the schema. for insance, the file header has a leading space,
                 # and we're trying to parse dates for that column. So, try again
                 # without parsing dates.
-                del kwargs['parse_dates']
-                warnings.warn('Date parsing error in read_csv. Trying again without parsing dates '+
-                              'Exception: '+str(last_exception))
-                continue
+                #del kwargs['parse_dates']
+                #warnings.warn('Date parsing error in read_csv. Trying again without parsing dates '+
+                #              'Exception: '+str(last_exception))
+
+                raise RowGeneratorConfigError('dates',
+                                              'Date parsing error in read_csv. Trying again without parsing dates. '+
+                                              'Exception: '+str(last_exception))
 
             if 'has NA values in column' in str(last_exception) and 'dtype' in kwargs:
                 # We're trying to force dtypes to in for a column that can't be an int,
                 # so give up trying to force dtypes.
 
-                del kwargs['dtype']
-                warnings.warn('Error setting dtypes; NA in integer column. Try again without dtypes ' +
-                              'Exception: ' + str(last_exception))
-                continue
+                #del kwargs['dtype']
+                #warnings.warn('Error setting dtypes; NA in integer column. Try again without dtypes ' +
+                #              'Exception: ' + str(last_exception))
+                raise RowGeneratorConfigError('dtype',
+                                              'Error setting dtypes; NA in integer column. Try again without dtypes. ' +
+                                              'Exception: ' + str(last_exception))
 
             break
 

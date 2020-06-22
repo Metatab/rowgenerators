@@ -21,7 +21,6 @@ class ExcelSource(Source):
         # if not ts:
         #    raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
 
-
     @staticmethod
     def srow_to_list(row_num, s):
         """Convert a sheet row to a list"""
@@ -50,7 +49,6 @@ class ExcelSource(Source):
 
         # if not ts:
         #    raise RowGeneratorError("URL does not include target file in fragment: {}".format(self.url))
-
 
         try:
             try:
