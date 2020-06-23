@@ -90,14 +90,17 @@ class ZipUrl(FileUrl):
         """
 
         from rowgenerators.appurl.url import parse_app_url
-        from zipfile import ZipFile
+        from zipfile import ZipFile, BadZipFile
         import io
         from os.path import join, dirname
         from rowgenerators.appurl.util import copy_file_or_flo, ensure_dir
 
         assert self.zip_dir
 
-        zf = ZipFile(str(self.fspath))
+        try:
+            zf = ZipFile(str(self.fspath))
+        except BadZipFile:
+            raise ZipUrlError(f"Not a zip file: {str(self.fspath)} for url {str(self)}")
 
         self.target_file = ZipUrl.get_file_from_zip(self)
 
