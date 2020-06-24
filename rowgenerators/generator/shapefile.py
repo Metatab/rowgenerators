@@ -153,10 +153,11 @@ class GeoSourceBase(Source):
 
                 int(self.epsg_propjection_code)
 
-                project = partial(pyproj.transform,
-                                  pyproj.Proj(source.crs, preserve_units=True),
-                                  pyproj.Proj(from_epsg(str(self.epsg_propjection_code)))
-                                  )
+                transformer = pyproj.Transformer.from_crs(self.source_projection,
+                                                          f'epsg:{self.epsg_propjection_code}')
+
+                def project(x,y,z=None):
+                    return transformer.transform(x,y)
 
                 self.projection = self.target_projection
             else:
@@ -181,6 +182,7 @@ class GeoSourceBase(Source):
                 row = [int(s['id'])]
                 for col_name, elem in row_data.items():
                     row.append(elem)
+
 
                 if project and shp:
                     row.append(transform(project, shp))
