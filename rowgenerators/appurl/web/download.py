@@ -179,6 +179,8 @@ class Downloader(object):
 
             r.sys_path = self.cache.getsyspath(r.cache_path)
 
+        logger.debug(f"Downloaded {url} to {r.cache_path}")
+
         return r
 
     def cache_path(self, url):
@@ -371,6 +373,12 @@ class Downloader(object):
             except SSLError as e:
                 raise DownloadError("Failed to GET {}: {} ".format(url, e))
 
+            if r.status_code>=300:
+                if r.status_code>=304:
+                    raise DownloadError("Server Returned 304: Not Modified");
+                else:
+                    raise DownloadError("Can't handle server response, {r.status_code}");
+
             # Requests will auto decode gzip responses, but not when streaming. This following
             # monkey patch is recommended by a core developer at
             # https://github.com/kennethreitz/requests/issues/2155
@@ -380,6 +388,8 @@ class Downloader(object):
             def copy_cb(message, read_len, total_len):
                 # Message is just the read len
                 self.callback('copy', url, read_len, total_len)
+
+            logger.debug(f"Response code={r.status_code} {r.headers}" )
 
             with self.cache.open(cache_path, 'wb') as f:
                 copy_file_or_flo(r.raw, f, cb=copy_cb)

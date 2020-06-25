@@ -153,11 +153,15 @@ class ZipUrl(FileUrl):
         """Given a file name that may be a regular expression, return the full name for the file
         from a zip archive"""
 
-        from zipfile import ZipFile
+        from rowgenerators.exceptions import AppUrlError
+        from zipfile import ZipFile, BadZipFile
         import re
 
         names = []
-        zf = ZipFile(str(url.fspath))
+        try:
+            zf = ZipFile(str(url.fspath))
+        except BadZipFile:
+            raise AppUrlError(f"Bad zip file: '{str(url.fspath)}' ")
 
         nl = list(ZipUrl.real_files_in_zf(zf))  # Old way, but maybe gets links? : list(zf.namelist())
 
