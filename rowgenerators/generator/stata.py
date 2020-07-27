@@ -134,6 +134,12 @@ class StataSource(Source):
 
         import pandas as pd
 
+        for k,v in tuple(kwargs.items()):
+            if k not in ('convert_dates', 'convert_categoricals', 'index_cols',
+                         'convert_missing', 'preserve_dtypes','columns',
+                         'order_categoricals', 'chunksize'):
+                del kwargs[k]
+
         return pd.read_stata(self.ref.fspath, *args, **kwargs)
 
     @property
