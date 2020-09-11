@@ -175,11 +175,12 @@ class ZipUrl(FileUrl):
 
         # the target_file may be a string, or a regular expression
 
-        if tf.startswith('*'):
-            # Common user error using a glob instead of a regex
-            tf = tf.replace('*','.*')
-
         if tf:
+
+            if tf.startswith('*'):
+                # Common user error using a glob instead of a regex
+                tf = tf.replace('*', '.*')
+
             try:
                 names = list([e for e in nl if re.search(tf, e)
                           and not (e.startswith('__') or e.startswith('.'))
