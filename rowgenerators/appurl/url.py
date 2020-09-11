@@ -3,7 +3,7 @@
 
 """ """
 
-from os.path import basename
+from os.path import basename, join
 from urllib.parse import unquote
 
 from .util import file_ext, parse_url_to_dict, unparse_url_dict
@@ -125,10 +125,44 @@ class UrlParts(object):
         else:
             self._parts = {}
 
+        if  kwargs.get('no_netloc') is True:
+            self.remove_netloc()
+
+        if kwargs.get('no_abs_path') is True:
+            self.relify_path()
+
         self._convert_fragment()
         self._convert_fragment_query()
 
         self._parts.update(kwargs)
+
+    def remove_netloc(self):
+        '''If the URL has a netloc, move it to the path'''
+
+        if self._parts.get('netloc'):
+            path = self._parts['path']
+            if path.startswith('/'):
+                path = path[1:]
+            self._parts['path'] = join(self._parts['netloc'], path)
+            self._parts['netloc'] = ''
+
+        return self
+
+    def relify_path(self):
+        """If the path is absolute, make it relative, by removing a leading /"""
+
+        if self._parts['path'].startswith('/'):
+            self._parts['path'] = self._parts['path'][1:]
+
+        return self
+
+    def absify_path(self):
+        """If the path is relative, make it relative, by adding a leading /"""
+
+        if not self._parts['path'].startswith('/'):
+            self._parts['path'] = '/'+self._parts['path']
+
+        return self
 
     def _convert_fragment(self):
 
@@ -357,10 +391,15 @@ class Url(UrlParts):
     match_proto = None
     generator_class = None  # If set, generators match with name = <{generator_class}>
 
-    def __init__(self, url=None, downloader=None, **kwargs):
+    def __init__(self, url=None, downloader=None, no_netloc=False, no_abs_path=False,
+                 **kwargs):
         """  Initialize a new Application Url
+
         :param url: URL string
         :param downloader: :py:class:`appurl.web.download.Downloader` object.
+        :param no_netloc: If true, assume there is no netloc component, so 'proto://' and 'proto:/' are
+            equivalent Will move any netloc component into the path
+        :param no_abs_path: If true, convert all paths to be relative -- remove any leading '/'
         :param kwargs: Additional arguments override URL properties.
         :return: An Application Url object
 
@@ -371,7 +410,7 @@ class Url(UrlParts):
         self._kwargs = kwargs
         self._downloader = downloader
 
-        super().__init__(url, **kwargs)
+        super().__init__(url, no_netloc=no_netloc, no_abs_path=no_abs_path, **kwargs)
 
         assert 'is_archive' not in self._kwargs #?
 

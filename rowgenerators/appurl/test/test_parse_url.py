@@ -235,6 +235,28 @@ class TestUrlParse(unittest.TestCase):
             u = parse_app_url(us)
             self.assertEqual('801701031', u.gid)
 
+    def test_no_netloc(self):
+        from rowgenerators import Url
+
+        url_strs = ['proto://a/b/c', 'proto:/a/b/c', 'proto:a/b/c']
+
+        #for us in url_strs:
+        #    u = Url(us)
+        #    print("{} | {}".format(u.netloc, u.path))
+
+        print('---')
+
+        url_strs = ['proto://a/b/c', 'proto:/a/b/c', 'proto:a/b/c']
+
+        for us in url_strs:
+            u = Url(us, no_netloc=True, no_abs_path=True)
+            self.assertEqual(u.netloc,'')
+            self.assertEqual(u.path,'a/b/c')
+
+            u = Url(us, no_netloc=True).remove_netloc().absify_path()
+            self.assertEqual(u.path, '/a/b/c')
+
+
 
 
 
