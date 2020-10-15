@@ -81,7 +81,7 @@ def parse_url_to_dict(url, assume_localhost=False):
         scheme = p.scheme
         scheme_extension = None
 
-    if scheme is '':
+    if scheme == '':
         # If we continue from here, just setting the scheme,
         # fragments won't parse correctly, but they do if the scheme is properly set
         scheme = 'file'
@@ -331,7 +331,6 @@ def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
         if output_opened:
             output.close()
 
-
 DEFAULT_CACHE_NAME = 'rowgen-cache'
 
 def get_cache_name(cache_name=None):
@@ -359,22 +358,24 @@ def get_cache(cache_name=None, clean=False):
     cache_name = get_cache_name(cache_name)
 
     # If the environmental variable for the cache is set, change the cache directory.
-    env_var = (cache_name+'_cache').upper()
+    env_var = cache_name.upper().replace('-','_')
 
     cache_dir = os.getenv(env_var, None)
 
     if cache_dir:
         try:
-            return OSFS(cache_dir)
+            r =  OSFS(cache_dir)
         except CreateFailed as e:
             raise CreateFailed("Failed to create '{}': {} ".format(cache_dir, e))
     else:
 
         try:
-            return UserDataFS(cache_name.lower())
+            r = UserDataFS(cache_name.lower())
         except CreateFailed as e:
             raise CreateFailed("Failed to create '{}': {} ".format(cache_name.lower(), e))
 
+
+    return r
 
 
 def clean_cache(cache = None, cache_name=None):
