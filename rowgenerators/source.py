@@ -219,7 +219,7 @@ class SelectiveRowGenerator(object):
         """
 
         self.iter = iter(seq)
-        self.start = start if (start or start is 0) else 1
+        self.start = start if (start or start == 0) else 1
         self.header_lines = header_lines if isinstance(header_lines, (tuple, list)) else [int(e) for e in
                                                                                           header_lines.split(',') if e]
         self.comment_lines = comments

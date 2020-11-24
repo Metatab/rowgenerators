@@ -85,14 +85,23 @@ def rowgen():
 
     args = parser.parse_args(sys.argv[1:])
 
-    ss = Url(url=args.url, target_format=args.format, encoding=args.encoding, resource_format=args.urlfiletype)
-
     if args.info:
-        rows = list(ss.dict.items())
-        rows.append(('start', ss.start))
-        rows.append(('headers', ss.headers))
+        from rowgenerators import parse_app_url
+        u = parse_app_url(args.url)
+        d = u.dict
+        for p in u._app_parts:
+            v = getattr(u,p)
+            if v is not None:
+                d[p] = v
+
+        rows = list(d.items())
+        rows.append(('start', u.start))
+        rows.append(('headers', u.headers))
         prt(tabulate(rows))
         sys.exit(0)
+
+    ss = Url(url=args.url, target_format=args.format, encoding=args.encoding, resource_format=args.urlfiletype)
+
 
     if args.enumerate:
         contents = list(enumerate_contents(ss, cache_fs=cache))

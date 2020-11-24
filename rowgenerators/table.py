@@ -38,15 +38,17 @@ class Table(object):
 
         return ('Table: {}\n'.format(self.name)) + tabulate(rows, headers)
 
-    def make_fw_row_parser(self, ignore_empty=False):
+    def make_fw_row_parser(self,  ignore_empty=False):
 
         parts = []
 
         start = 0
         for i, c in enumerate(self.columns):
 
+            w = c.width
+
             try:
-                int(c.width)
+                int(w)
             except TypeError:
 
                 # This is a special name from Metapack, EMPTY_SOURCE_HEADER
@@ -56,7 +58,7 @@ class Table(object):
 
                 raise SchemaError('Table must have width value for {} column '.format(c.name))
 
-            parts.append('row[{}:{}].strip()'.format(start,start + c.width))
+            parts.append('row[{}:{}].strip()'.format(start,start +w))
 
             start += c.width
 
@@ -71,5 +73,3 @@ class Column(object):
         self.name = name
         self.datatype = datatype
         self.width = width
-
-
