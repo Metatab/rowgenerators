@@ -91,9 +91,10 @@ class ZipUrl(FileUrl):
 
         from rowgenerators.appurl.url import parse_app_url
         from zipfile import ZipFile, BadZipFile
-        import io
-        from os.path import join, dirname
         from rowgenerators.appurl.util import copy_file_or_flo, ensure_dir
+        from pathlib import Path
+        from time import time
+
 
         assert self.zip_dir
 
@@ -104,11 +105,24 @@ class ZipUrl(FileUrl):
 
         self.target_file = ZipUrl.get_file_from_zip(self)
 
-        target_path = join(self.zip_dir, self.target_file)
-        ensure_dir(dirname(target_path))
+        target_path = Path(self.zip_dir).joinpath(self.target_file)
+        ensure_dir(target_path.parent)
 
-        with io.open(target_path, 'wb') as f, zf.open(self.target_file) as flo:
-            copy_file_or_flo(flo, f)
+        def age(p):
+            """File age in minutes"""
+            try:
+                return (time() - p.stat().st_mtime) / 60
+            except:
+                print("XXXX", p, p.exists())
+                raise
+
+        # Unpack the file if it dos not exist, or if the zile file is newer
+        if not target_path.exists() or age(target_path) > age(Path(self.fspath)):
+            with target_path.open('wb') as f, zf.open(self.target_file) as flo:
+                copy_file_or_flo(flo, f)
+            disp = 'copied'
+        else:
+            disp = 'extant'
 
         fq = self.frag_dict
 
@@ -121,7 +135,7 @@ class ZipUrl(FileUrl):
         if 'target_file' in fq:
             del fq['target_file']
 
-        tu =  parse_app_url(target_path,
+        tu =  parse_app_url(str(target_path),
                              scheme_extension=self.scheme_extension,
                              downloader=self.downloader,
                              **fq
@@ -133,6 +147,8 @@ class ZipUrl(FileUrl):
                 tu.target_format = self.target_format
             except AttributeError:
                 pass # Some URLS don't allow resetting target type.
+
+        tu._disp = disp
 
         return tu
 
