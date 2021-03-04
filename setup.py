@@ -46,7 +46,7 @@ setup(
         'petl',
         'requests',
         'tabulate',
-        'xlrd',
+        'xlrd<2',
         'aniso8601',
         'geopandas',
         'pyyaml',

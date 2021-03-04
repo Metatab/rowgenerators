@@ -358,7 +358,11 @@ def get_cache(cache_name=None, clean=False):
     cache_name = get_cache_name(cache_name)
 
     # If the environmental variable for the cache is set, change the cache directory.
+
     env_var = cache_name.upper().replace('-','_')
+
+    if 'CACHE' not in env_var:
+        env_var += '_CACHE'
 
     cache_dir = os.getenv(env_var, None)
 
