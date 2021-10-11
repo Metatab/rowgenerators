@@ -61,3 +61,4 @@ class TestGeo(unittest.TestCase):
         u = parse_app_url(us)
 
         print(u.generator.geoframe().geometry.total_bounds)
+

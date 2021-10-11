@@ -25,7 +25,6 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 
-
 setup(
     name='rowgenerators',
     version="0.9.19",
@@ -64,7 +63,6 @@ setup(
             'rowgen-urls=rowgenerators.appurl.cli:appurl',
             'rowgen-valuestypes=rowgenerators.valuetype.cli:valuetypes'
         ],
-
 
         'appurl.urls': [
             "* = rowgenerators.appurl.url:Url",

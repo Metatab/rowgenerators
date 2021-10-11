@@ -367,17 +367,19 @@ class Downloader(object):
 
             logger.debug("Request " + str(url))
 
+            headers = {}
+
             try:
-                r = requests.get(url, stream=True)
+                r = requests.get(url, headers=headers, stream=True)
                 r.raise_for_status()
             except SSLError as e:
                 raise DownloadError("Failed to GET {}: {} ".format(url, e))
 
             if r.status_code>=300:
                 if r.status_code>=304:
-                    raise DownloadError("Server Returned 304: Not Modified");
+                    raise DownloadError(f"Server Returned 304: Not Modified. for {str(url)}");
                 else:
-                    raise DownloadError("Can't handle server response, {r.status_code}");
+                    raise DownloadError(f"Can't handle server response, {r.status_code}");
 
             # Requests will auto decode gzip responses, but not when streaming. This following
             # monkey patch is recommended by a core developer at

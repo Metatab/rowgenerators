@@ -31,8 +31,11 @@ def appurl():
 
     entries = []
     for ep in iter_entry_points('appurl.urls'):
-        c = ep.load()
-        entries.append([c.match_priority, ep.name, ep.module_name,  c.__name__, ])
+        try:
+            c = ep.load()
+            entries.append([c.match_priority, ep.name, ep.module_name,  c.__name__, ])
+        except ModuleNotFoundError as e:
+            print(e)
 
 
     if args.list:

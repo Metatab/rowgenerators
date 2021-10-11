@@ -87,7 +87,7 @@ class CsvSource(Source):
         while True:
 
             try:
-                return  pandas.read_csv(self.url.fspath, *args, **kwargs)
+                return pandas.read_csv(self.url.fspath, *args, **kwargs)
             except Exception as e:
                 last_exception = e
 

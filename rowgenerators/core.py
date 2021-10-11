@@ -1,6 +1,20 @@
 
 from . import DEFAULT_EPSG
 
+import warnings
+
+# Project changed the way to specify the CRS
+with warnings.catch_warnings(record=True) as w:
+    warnings.simplefilter("error")
+    try:
+        from pyproj import CRS
+        DEFAULT_CRS_SPEC = {'init': f'epsg:{DEFAULT_EPSG}'}
+        CRS(DEFAULT_CRS_SPEC)
+    except:
+        DEFAULT_CRS_SPEC = f'EPSG:{DEFAULT_EPSG}'
+        CRS(DEFAULT_CRS_SPEC)
+
+
 def geoframe(url):
     """Parse an App url and return a Geopandas geoframe"""
     pass
@@ -101,7 +115,7 @@ def geoframe(url, downloader='default', *args, **kwargs):
         # Wild guess. This case should be most often for Metatab processed geo files,
         # which are all 4326
         if gdf.crs is None:
-            gdf.crs = {'init': f'epsg:{DEFAULT_EPSG}'}
+            gdf.crs = DEFAULT_CRS_SPEC
 
     except KeyError as e:
         raise SourceError("Failed to create GeoDataFrame for resource '{}': No geometry column".format(t))

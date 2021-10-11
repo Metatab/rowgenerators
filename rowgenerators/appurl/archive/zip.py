@@ -233,8 +233,6 @@ class ZipUrl(FileUrl):
 
         for e in zf.infolist():
 
-
-
             # Get rid of __MACOS and .DS_whatever
             if basename(e.filename).startswith('__') or basename(e.filename).startswith('.'):
                 continue
