@@ -5,7 +5,14 @@
 
 from rowgenerators.exceptions import RowGeneratorError
 from rowgenerators.source import Source
+
+# Fixes https://stackoverflow.com/a/65131301
+import xlrd
+xlrd.xlsx.ensure_elementtree_imported(False, None)
+xlrd.xlsx.Element_has_iter = True
+
 from xlrd import open_workbook, XLRDError
+
 from rowgenerators.util import md5_file
 
 class ExcelSource(Source):

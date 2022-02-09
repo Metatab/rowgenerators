@@ -270,8 +270,10 @@ class ShapeValue(tuple, ValueType):
             return loads(self[0])
 
     def __str__(self):
-        return str(self.shape)
+        s = self.shape
+        return str(s)
 
+        
 
 class DecimalDegreesValue(FloatDimension, GeoMixin):
     """An geographic code defined by the census"""
