@@ -2,12 +2,13 @@
 from . import DEFAULT_EPSG
 
 import warnings
+from pyproj import CRS
 
 # Project changed the way to specify the CRS
 with warnings.catch_warnings(record=True) as w:
     warnings.simplefilter("error")
     try:
-        from pyproj import CRS
+
         DEFAULT_CRS_SPEC = {'init': f'epsg:{DEFAULT_EPSG}'}
         CRS(DEFAULT_CRS_SPEC)
     except:

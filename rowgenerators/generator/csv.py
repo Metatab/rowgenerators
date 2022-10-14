@@ -24,6 +24,7 @@ class CsvSource(Source):
         if self.url.scheme != 'file':
             assert self.url.scheme == 'file', str(self.url)
 
+
         self._meta = {}
 
     def __iter__(self):
@@ -81,6 +82,9 @@ class CsvSource(Source):
 
         if self.url.encoding and not 'encoding' in kwargs:
             kwargs['encoding'] = self.url.encoding
+
+        if not 'sep' in kwargs:
+            kwargs['sep'] = self.delimiter
 
         last_exception = None
 
