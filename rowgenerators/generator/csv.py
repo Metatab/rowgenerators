@@ -48,11 +48,10 @@ class CsvSource(Source):
         self.start()
 
         try:
-
-            # Python 3.6 considers None to mean 'utf8', but Python 3.5 considers it to be 'ascii'
             encoding = self.url.encoding or 'utf8'
 
             with open(self.url.fspath, encoding=encoding) as f:
+
                 yield from csv.reader(f, delimiter=self.delimiter)
 
         except UnicodeError as e:
@@ -91,6 +90,7 @@ class CsvSource(Source):
         while True:
 
             try:
+
                 return pandas.read_csv(self.url.fspath, *args, **kwargs)
             except Exception as e:
                 last_exception = e

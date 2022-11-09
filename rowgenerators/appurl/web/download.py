@@ -384,7 +384,7 @@ class Downloader(object):
             # Requests will auto decode gzip responses, but not when streaming. This following
             # monkey patch is recommended by a core developer at
             # https://github.com/kennethreitz/requests/issues/2155
-            if r.headers.get('content-encoding') == 'gzip':
+            if r.headers.get('content-encoding') in ('gzip', 'br'):
                 r.raw.read = functools.partial(r.raw.read, decode_content=True)
 
             def copy_cb(message, read_len, total_len):
