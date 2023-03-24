@@ -7,7 +7,7 @@
 "namesu8","csv","csv","utf8","WebUrl","CsvFileUrl","CsvFileUrl","CsvSource",53,"http://public.source.civicknowledge.com/example.com/sources/unicode-utf8.csv#encoding=utf8","CSV file with Unicode in UTF"
 "rent07","xlsx","xlsx",,"WebUrl","FileUrl","FileUrl","ExcelSource",12004,"http://public.source.civicknowledge.com/example.com/sources/renter_cost_excel07.xlsx","Renter cost, Excel 2007 format"
 "rent97","xls","xls",,"WebUrl","FileUrl","FileUrl","ExcelSource",12004,"http://public.source.civicknowledge.com/example.com/sources/renter_cost_excel97.xls","Renter cost, Excel 97 format"
-"rentcsv","csv","csv",,"WebUrl","CsvFileUrl","CsvFileUrl","CsvSource",12004,"http://public.source.civicknowledge.com/example.com/sources/renter_cost.csv","Renter cost, CSV format"
+"rentcsv","csv","csv",,"WebUrl","CsvFileUrl","CsvFileUrl","CsvSource",12004,http://public.source.civicknowledge.com/example.com/sources/renter_cost.csv,"Renter cost, CSV format"
 "renttab","tsv","tsv",,"WebUrl","FileUrl","FileUrl","TsvSource",12004,"http://public.source.civicknowledge.com/example.com/sources/renter_cost.tsv","Renter cost, Tab format"
 "rpeople","csv","csv",,"WebUrl","CsvFileUrl","CsvFileUrl","CsvSource",101,"http://public.source.civicknowledge.com/example.com/sources/random-names.csv","People's names and a random number"
 "sf_zip","zip","csv",,"WebUrl","ZipUrl","CsvFileUrl","CsvSource",10001,"http://public.source.civicknowledge.com/example.com/sources/simple-example.csv.zip","Single-file zipfile"

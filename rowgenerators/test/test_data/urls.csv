@@ -1,4 +1,4 @@
-"type","url"
+"type",url
 ,"http://public.source.civicknowledge.com/example.com/sources/simple-example-altnames.csv"
 ,"http://public.source.civicknowledge.com/example.com/sources/simple-example.foo"
 ,"http://public.source.civicknowledge.com/example.com/sources/multisheet.xls"
@@ -8,8 +8,8 @@
 ,"http://public.source.civicknowledge.com/example.com/sources/renter_cost_excel07.xlsx"
 ,"http://public.source.civicknowledge.com/example.com/sources/renter_cost_excel97.xls"
 ,"http://public.source.civicknowledge.com/example.com/sources/renter_cost.csv"
-,"http://public.source.civicknowledge.com/example.com/sources/renter_cost.tsv"
-,"http://public.source.civicknowledge.com/example.com/sources/random-names.csv"
+,http://public.source.civicknowledge.com/example.com/sources/renter_cost.tsv
+,http://public.source.civicknowledge.com/example.com/sources/random-names.csv
 ,"http://public.source.civicknowledge.com/example.com/sources/simple-example.csv.zip"
 ,"http://public.source.civicknowledge.com/example.com/sources/simple-example.csv"
 ,"http://public.source.civicknowledge.com/example.com/sources/test_data.foo#simple-example.csv"
