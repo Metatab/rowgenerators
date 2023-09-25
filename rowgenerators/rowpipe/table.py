@@ -112,7 +112,7 @@ class Column(RGColumn):
             self.valuetype = None
 
         if self.valuetype is None:
-            raise SchemaError("Could not resovle type for for column '{}' datatype='{}' and valuetype='{}' "
+            raise SchemaError("Could not resolve type for for column '{}' datatype='{}' and valuetype='{}' "
                               .format(name, datatype, valuetype))
 
         self.transform = transform
