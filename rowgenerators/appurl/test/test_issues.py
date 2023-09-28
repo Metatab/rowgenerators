@@ -11,6 +11,22 @@ from rowgenerators.appurl.web.web import WebUrl
 
 class TestIssues(unittest.TestCase):
 
+
+    def test_s3_no_bucket_name(self):
+
+        import os
+
+        os.environ['AWS_PROFILE'] = 'linkedin'
+
+        us = 's3://linkedin.civicknowledge.com/packages/civicknowledge.com-onet_soc_db-1.2.1/metadata.csv'
+
+        u = parse_app_url(us)
+
+        print(u.bucket_name)
+
+        r = u.get_resource()
+
+
     def test_spec_resource_format(self):
 
         us='http://public.source.civicknowledge.com/example.com/sources/test_data.foo#simple-example.csv&resource_format=zip'

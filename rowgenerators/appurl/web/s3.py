@@ -11,6 +11,9 @@ class S3Url(WebUrl):
 
     def __init__(self, url=None, downloader=None, **kwargs):
         # Save for auth_url()
+
+        url = url.replace('s3:///', 's3://') # Remove triple slash
+
         self._orig_url = url
         self._orig_kwargs = dict(kwargs.items())
 
@@ -87,6 +90,8 @@ class S3Url(WebUrl):
         import boto3
 
         s3 = boto3.resource('s3')
+
+        assert self.bucket_name, "No bucket name for {}".format(self)
 
         return s3.Object(self.bucket_name, self.key)
 

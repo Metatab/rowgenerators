@@ -164,10 +164,11 @@ class Downloader(object):
                                     .format('\n'.join(locations), working_dir, r.cache_path, url.path))
 
         else:
+
             # Not a local file, so actually need to download it.
             try:
                 r.cache_path, r.download_time = self._download_with_lock(url.resource_url)
-            except AccessError as e:
+            except (AccessError, DownloadError) as e:
                 # Try again, using a URL that we may have configured an account for. This is
                 # primarily S3 urls, with Boto or AWS credential
                 try:
