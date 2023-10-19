@@ -331,7 +331,7 @@ def copy_file_or_flo(input_, output, buffer_size=64 * 1024, cb=None):
         if output_opened:
             output.close()
 
-DEFAULT_CACHE_NAME = 'rowgen-cache'
+DEFAULT_CACHE_NAME = 'metapack-cache'
 
 def get_cache_name(cache_name=None):
     cn = cache_name or DEFAULT_CACHE_NAME
@@ -351,33 +351,26 @@ def get_cache(cache_name=None, clean=False):
     """Return the path to a file cache"""
 
     from fs.osfs import OSFS
-    from fs.appfs import UserDataFS
     from fs.errors import CreateFailed
+    from pathlib import Path
     import os
 
     cache_name = get_cache_name(cache_name)
 
     # If the environmental variable for the cache is set, change the cache directory.
-
     env_var = cache_name.upper().replace('-','_')
 
     if 'CACHE' not in env_var:
         env_var += '_CACHE'
 
-    cache_dir = os.getenv(env_var, None)
+    cache_dir = os.getenv(env_var, Path().cwd().joinpath('_metapack_cache'))
 
-    if cache_dir:
-        try:
-            r =  OSFS(cache_dir)
-        except CreateFailed as e:
-            raise CreateFailed("Failed to create '{}': {} ".format(cache_dir, e))
-    else:
+    ensure_dir(cache_dir)
 
-        try:
-            r = UserDataFS(cache_name.lower())
-        except CreateFailed as e:
-            raise CreateFailed("Failed to create '{}': {} ".format(cache_name.lower(), e))
-
+    try:
+        r =  OSFS(cache_dir)
+    except CreateFailed as e:
+        raise CreateFailed("Failed to create '{}': {} ".format(cache_dir, e))
 
     return r
 

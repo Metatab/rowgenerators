@@ -45,7 +45,7 @@ def default_downloader_callback(msg_type, message, read_len, total_len):
 
 
 class Downloader(object):
-    """Downloader objects handle downloading resrouces from the web, including authorization,
+    """Downloader objects handle downloading resources from the web, including authorization,
     and storing the downloaded object in a cache. Since they are the primary interface to the file cache,
     all Urls object have a link to a Downloader """
 
@@ -60,7 +60,7 @@ class Downloader(object):
 
         :param self:
         :param cache: A PyFs filesystem object for caching files
-        :param account_accessor: An objevct for acessing account credentials. Not currently used.
+        :param account_accessor: An object for accessing account credentials. Not currently used.
         :param logger: Logging object to write debug logs to
         :param working_dir:
         :param callback: Call back to call with progress reports during downloads.
@@ -68,6 +68,9 @@ class Downloader(object):
         """
 
         self._cache = cache
+
+        _logger.debug("__init_ is setting Downloader cache = {}".format(cache))
+
         self.account_acessor = account_accessor
         self.logger = logger
         self.working_dir = working_dir
@@ -122,6 +125,8 @@ class Downloader(object):
             # qn = self.__module__+'.'+self.__class__.__qualname__
             self._cache = get_cache()
 
+            logger.debug("cache property is setting Downloader cache = {}".format(self._cache))
+
         return self._cache
 
     def get_resource(url):
@@ -134,7 +139,7 @@ class Downloader(object):
         from rowgenerators.appurl.url import Url
         from rowgenerators.exceptions import DownloadError, AccessError
 
-        logger.debug(f"Download {url}")
+        logger.debug(f"Download {url}, cache is {str(self.cache)}")
 
         working_dir = self.working_dir if self.working_dir else ''
 
@@ -239,6 +244,10 @@ class Downloader(object):
         assert isinstance(url, str)
 
         cache_path = self.cache_path(url)
+
+        logger.debug(f"_download_with_lock Cache = {self.cache}")
+        logger.debug(f"_download_with_lock Path in cache = {cache_path}")
+
 
         if not self.cache.exists(cache_path):
 

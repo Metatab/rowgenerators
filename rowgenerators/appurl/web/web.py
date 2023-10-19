@@ -3,9 +3,9 @@
 
 """Base class for Web URLs. These are URLs that can be fetched to the local filesystem. """
 
-
 from rowgenerators.appurl.util import parse_url_to_dict
 from rowgenerators.appurl.url import Url
+
 
 class WebUrl(Url):
     """Base class for web urls.
@@ -21,9 +21,7 @@ class WebUrl(Url):
 
         self._resource = None  # return value from the downloader
 
-        super().__init__(url,downloader=downloader, **kwargs)
-
-
+        super().__init__(url, downloader=downloader, **kwargs)
 
     @classmethod
     def _match(cls, url, **kwargs):
@@ -36,7 +34,6 @@ class WebUrl(Url):
         r = self.get_resource()
 
         return list(self.set_target_file(u.target_file) for u in r.list())
-
 
     @property
     def auth_resource_url(self):
@@ -51,16 +48,17 @@ class WebUrl(Url):
 
     def get_resource(self):
         """Get the contents of resource and save it to the cache, returning a file-like object"""
-        from rowgenerators import parse_app_url # Here, to break an import cycle
+        from rowgenerators import parse_app_url  # Here, to break an import cycle
+
+
 
         self._resource = self._downloader.download(self.inner)
 
 
         ru = parse_app_url(self._resource.sys_path,
-                           downloader=self.downloader,
+                           downloader=self._downloader,
                            scheme_extension=self.scheme_extension,
                            **self.frag_dict)
-
 
         return ru
 
@@ -74,8 +72,7 @@ class WebUrl(Url):
 
     def join_dir(self, s):
 
-
-        if self.resource_format in ('zip','xlsx'):
+        if self.resource_format in ('zip', 'xlsx'):
             u = Url(s)
             return self.clone(fragment=u.path)
         else:
@@ -83,21 +80,22 @@ class WebUrl(Url):
 
     def join_target(self, tf):
 
-            try:
-                tf = str(tf.path)
-            except:
-                pass
+        try:
+            tf = str(tf.path)
+        except:
+            pass
 
-            if self.target_format:
-                u = self.clone()
-                u.target_file = tf
+        if self.target_format:
+            u = self.clone()
+            u.target_file = tf
 
-            else:
-                # Assuming that if there is no target format, there is no actual target file
-                # and the URL is specifying a directory.
-                u = self.join(tf)
+        else:
+            # Assuming that if there is no target format, there is no actual target file
+            # and the URL is specifying a directory.
+            u = self.join(tf)
 
-            return u
+        return u
+
 
 class FtpUrl(WebUrl):
 
@@ -105,5 +103,3 @@ class FtpUrl(WebUrl):
     def _match(cls, url, **kwargs):
         """Return True if this handler can handle the input URL"""
         return url.scheme.startswith('ftp')
-
-
